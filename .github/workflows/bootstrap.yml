@@ -21,7 +21,9 @@ jobs:
         run: |
           set -euo pipefail
           cat .bootstrap/part-00 .bootstrap/part-01 .bootstrap/part-02 .bootstrap/part-03 \
+            | tr -cd 'A-Za-z0-9+/=' \
             | base64 --decode > /tmp/matter-ready-demo.tar.gz
+          gzip -t /tmp/matter-ready-demo.tar.gz
           mkdir -p /tmp/matter-ready
           tar -xzf /tmp/matter-ready-demo.tar.gz -C /tmp/matter-ready
           cp -a /tmp/matter-ready/matter-ready-demo/. ./
