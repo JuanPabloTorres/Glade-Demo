@@ -20,9 +20,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .bootstrap/part-00 .bootstrap/part-01 .bootstrap/part-02 .bootstrap/part-03 \
-            | tr -cd 'A-Za-z0-9+/=' \
-            | base64 --decode > /tmp/matter-ready-demo.tar.gz
+          python - <<'PY'
+          from pathlib import Path
+          import base64
+          import re
+
+          source = b"".join(
+              Path(f".bootstrap/part-{index:02d}").read_bytes()
+              for index in range(4)
+          )
+          payload = re.sub(rb"[^A-Za-z0-9+/=]", b"", source).replace(b"=", b"")
+          payload += b"=" * ((-len(payload)) % 4)
+          archive = base64.b64decode(payload, validate=True)
+          Path("/tmp/matter-ready-demo.tar.gz").write_bytes(archive)
+          PY
           gzip -t /tmp/matter-ready-demo.tar.gz
           mkdir -p /tmp/matter-ready
           tar -xzf /tmp/matter-ready-demo.tar.gz -C /tmp/matter-ready
@@ -34,7 +45,7 @@ jobs:
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]]@users.noreply.github.com"
           git add -- \
             .agents \
             .editorconfig \
