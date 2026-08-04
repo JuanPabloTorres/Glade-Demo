@@ -16,27 +16,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Reconstruct project archive
+      - name: Reconstruct and verify project archive
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          import base64
-          import re
-
-          source = b"".join(
-              Path(f".bootstrap/part-{index:02d}").read_bytes()
-              for index in range(4)
-          )
-          payload = re.sub(rb"[^A-Za-z0-9+/=]", b"", source).replace(b"=", b"")
-          payload += b"=" * ((-len(payload)) % 4)
-          archive = base64.b64decode(payload, validate=True)
-          Path("/tmp/matter-ready-demo.tar.gz").write_bytes(archive)
-          PY
-          gzip -t /tmp/matter-ready-demo.tar.gz
+          cat .bootstrap/zip-{00..11} > /tmp/matter-ready-demo.b64
+          test "$(wc -c < /tmp/matter-ready-demo.b64 | tr -d ' ')" = "117756"
+          echo "38f647ab3e6a63bda7d063d12a68f16faf3d3a61d06bcb2216926940993e4600  /tmp/matter-ready-demo.b64" | sha256sum -c -
+          base64 --decode /tmp/matter-ready-demo.b64 > /tmp/matter-ready-demo.zip
+          echo "7c0a0de8b66a08898d2930ec7d0fb4b7d99e5d8898f84fa86173033784a3a2b9  /tmp/matter-ready-demo.zip" | sha256sum -c -
+          rm -rf /tmp/matter-ready
           mkdir -p /tmp/matter-ready
-          tar -xzf /tmp/matter-ready-demo.tar.gz -C /tmp/matter-ready
+          unzip -q /tmp/matter-ready-demo.zip -d /tmp/matter-ready
           cp -a /tmp/matter-ready/matter-ready-demo/. ./
           rm -f .github/workflows/ci.yml
 
@@ -45,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- \
             .agents \
             .editorconfig \
