@@ -20,6 +20,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          sha256sum .bootstrap/zip-{00..11}
           cat .bootstrap/zip-{00..11} > /tmp/matter-ready-demo.b64
           test "$(wc -c < /tmp/matter-ready-demo.b64 | tr -d ' ')" = "117756"
           echo "38f647ab3e6a63bda7d063d12a68f16faf3d3a61d06bcb2216926940993e4600  /tmp/matter-ready-demo.b64" | sha256sum -c -
