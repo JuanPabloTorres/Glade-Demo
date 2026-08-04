@@ -1,0 +1,64 @@
+name: Bootstrap MatterReady
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/bootstrap.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Reconstruct project archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .bootstrap/part-00 .bootstrap/part-01 .bootstrap/part-02 .bootstrap/part-03 \
+            | base64 --decode > /tmp/matter-ready-demo.tar.gz
+          mkdir -p /tmp/matter-ready
+          tar -xzf /tmp/matter-ready-demo.tar.gz -C /tmp/matter-ready
+          cp -a /tmp/matter-ready/matter-ready-demo/. ./
+          rm -f .github/workflows/ci.yml
+
+      - name: Commit project scaffold
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            .agents \
+            .editorconfig \
+            .env.example \
+            .github/copilot-instructions.md \
+            .githooks \
+            .gitignore \
+            .python-version \
+            AGENTS.md \
+            Makefile \
+            README.md \
+            VALIDATION.md \
+            api \
+            backend \
+            contracts \
+            docker-compose.yml \
+            docs \
+            frontend \
+            package.json \
+            render.yaml \
+            requirements.txt \
+            scripts \
+            vercel.json
+          if git diff --cached --quiet; then
+            echo "No scaffold changes detected."
+            exit 0
+          fi
+          git commit -m "feat: scaffold MatterReady legal intake demo"
+          git push origin main
