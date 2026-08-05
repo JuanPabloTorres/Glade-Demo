@@ -2,21 +2,21 @@ import { describe, expect, it } from "vitest";
 import { buildPath, getEndpoint } from "./endpointRegistry";
 
 describe("endpointRegistry", () => {
-  it("builds the exact backend path from client-safe contract metadata", () => {
-    expect(
-      buildPath("conflicts.resolve", {
-        matter_id: "matter-1",
-        conflict_id: "conflict-2",
-      }),
-    ).toBe("/api/v1/matters/matter-1/conflicts/conflict-2/resolve");
-    expect(getEndpoint("conflicts.resolve")).toEqual({
-      operationId: "resolveConflict",
+  it("builds the bankruptcy analysis path from client-safe contract metadata", () => {
+    expect(buildPath("bankruptcy.analyze")).toBe("/api/v1/bankruptcy/analyze");
+    expect(getEndpoint("bankruptcy.analyze")).toEqual({
+      operationId: "analyzeBankruptcyCase",
       method: "POST",
-      path: "/api/v1/matters/{matter_id}/conflicts/{conflict_id}/resolve",
+      path: "/api/v1/bankruptcy/analyze",
     });
   });
 
-  it("fails fast when a required path parameter is missing", () => {
-    expect(() => buildPath("matters.get")).toThrow("matter_id");
+  it("exposes the bankruptcy guidance operation", () => {
+    expect(buildPath("bankruptcy.guide")).toBe("/api/v1/bankruptcy/guide");
+    expect(getEndpoint("bankruptcy.guide")).toEqual({
+      operationId: "guideBankruptcyCase",
+      method: "POST",
+      path: "/api/v1/bankruptcy/guide",
+    });
   });
 });
