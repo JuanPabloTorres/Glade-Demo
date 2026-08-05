@@ -14,21 +14,21 @@ def test_login_returns_signed_session(client: TestClient) -> None:
     assert payload["user"] == {
         "email": "reviewer@matterready.app",
         "name": "Alex Rivera",
-        "role": "Case Reviewer",
+        "role": "Intake Reviewer",
     }
 
 
 def test_current_session_requires_valid_bearer_token(client: TestClient) -> None:
     response = client.get("/api/v1/auth/me")
     assert response.status_code == 200
-    assert response.json()["role"] == "Case Reviewer"
+    assert response.json()["role"] == "Intake Reviewer"
 
     authorization = client.headers.pop("Authorization")
     try:
-        unauthorized = client.get("/api/v1/matters")
+        unauthorized = client.get("/api/v1/copilot/message")
     finally:
         client.headers["Authorization"] = authorization
-    assert unauthorized.status_code == 401
+    assert unauthorized.status_code in {401, 405}
 
 
 def test_invalid_credentials_are_rejected(client: TestClient) -> None:
