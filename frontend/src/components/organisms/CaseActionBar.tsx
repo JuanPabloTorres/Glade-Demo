@@ -189,7 +189,7 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
       <Modal show={openAction === "request-clarification" || openAction === "add-note"} onClose={close}>
         <ModalHeader>{openAction === "request-clarification" ? "Solicitar aclaración" : "Añadir nota"}</ModalHeader>
         <ModalBody>
-          <Label htmlFor="note-text" className="sr-only">Texto</Label>
+          <Label htmlFor="note-text" className="sr-only">{openAction === "request-clarification" ? "Aclaración solicitada" : "Nota profesional"}</Label>
           <Textarea id="note-text" rows={5} value={noteText} onChange={(event) => setNoteText(event.target.value)} placeholder={openAction === "request-clarification" ? "¿Qué necesitas que el cliente aclare?" : "Nota profesional para el expediente."} />
         </ModalBody>
         <ModalFooter>
