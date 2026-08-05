@@ -1,26 +1,47 @@
-import { Badge, Button, Card } from "flowbite-react";
+import { Alert, Badge, Button, Card, Progress } from "flowbite-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { AppIcon } from "../components/atoms/AppIcon";
+import { useAuth } from "../auth/AuthContext";
+import { AppIcon, type AppIconName } from "../components/atoms/AppIcon";
 import { EmptyState, ErrorState, LoadingState } from "../components/atoms/AsyncState";
 import { MatterCard } from "../components/molecules/MatterCard";
 import { MetricCard } from "../components/molecules/MetricCard";
 import { AutomationOverview } from "../components/organisms/AutomationOverview";
 import { MatterFormModal } from "../components/organisms/MatterFormModal";
-import { ProductValueMap } from "../components/organisms/ProductValueMap";
-import { WorkflowOverview } from "../components/organisms/WorkflowOverview";
 import { useCreateMatter, useMatters } from "../hooks/useMatters";
 import type { MatterCreateDto } from "../types/api";
 
-const HERO_STEPS = [
-  { icon: "intake" as const, label: "Capture", detail: "Approved client record" },
-  { icon: "document" as const, label: "Compare", detail: "Documents and case facts" },
-  { icon: "review" as const, label: "Decide", detail: "Human-approved outcome" },
+const WORKFLOW: { icon: AppIconName; title: string; detail: string; result: string }[] = [
+  {
+    icon: "portfolio",
+    title: "Start the matter",
+    detail: "Create the client record and assign the responsible professional.",
+    result: "A single workspace for the case",
+  },
+  {
+    icon: "intake",
+    title: "Confirm intake",
+    detail: "Record the approved client information that documents will be compared against.",
+    result: "A trusted source of truth",
+  },
+  {
+    icon: "document",
+    title: "Analyze documents",
+    detail: "Extract supported values and identify differences that need attention.",
+    result: "Less manual comparison",
+  },
+  {
+    icon: "review",
+    title: "Make the decision",
+    detail: "Keep the client record or accept the document value with an explicit action.",
+    result: "An auditable review package",
+  },
 ];
 
 export function DashboardPage() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const auth = useAuth();
   const matters = useMatters();
   const create = useCreateMatter();
 
@@ -30,12 +51,8 @@ export function DashboardPage() {
     navigate(`/matters/${matter.id}`);
   };
 
-  if (matters.isLoading) {
-    return <LoadingState label="Loading matter portfolio" />;
-  }
-  if (matters.isError) {
-    return <ErrorState message="The matter portfolio could not be loaded." />;
-  }
+  if (matters.isLoading) return <LoadingState label="Loading matter workspace" />;
+  if (matters.isError) return <ErrorState message="The matter workspace could not be loaded." />;
 
   const data = matters.data ?? [];
   const averageReadiness = data.length
@@ -45,121 +62,110 @@ export function DashboardPage() {
   const readyMatters = data.filter((item) => item.status === "ready_for_review").length;
 
   return (
-    <div className="space-y-10 lg:space-y-12">
+    <div className="space-y-8 lg:space-y-10">
       <section id="product" className="scroll-mt-28">
-        <Card className="overflow-hidden border border-slate-200 bg-white shadow-sm">
-          <div className="grid items-stretch gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10">
-            <div className="flex flex-col justify-center py-2">
-              <Badge color="info" className="mb-5 w-fit">
-                AI-assisted legal operations
+        <Card className="border border-slate-200 bg-white shadow-sm">
+          <div className="grid gap-7 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div>
+              <Badge color="info" className="mb-4 w-fit">
+                Signed in as {auth.user?.role}
               </Badge>
-              <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-5xl sm:leading-[1.08]">
-                Turn client intake and documents into a review-ready matter.
+              <h1 className="max-w-3xl text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-4xl lg:text-5xl">
+                Prepare a matter for professional review.
               </h1>
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-                MatterReady compares verified case information with supporting documents,
-                identifies what needs attention, records the professional decision, and shows
-                exactly what remains before review.
+              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+                MatterReady gives a case professional one guided place to confirm client data,
+                review documents, make accountable decisions, and know when the matter is ready.
               </p>
-
-              <div className="mt-7 flex flex-wrap items-center gap-4">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button size="lg" onClick={() => setOpen(true)}>
-                  <span className="flex items-center gap-2">
-                    Create a matter
-                    <AppIcon name="arrow-right" size={18} />
+                  <span className="flex items-center justify-center gap-2">
+                    <AppIcon name="portfolio" size={18} />
+                    Start a matter
                   </span>
                 </Button>
-                <a
-                  href="#workflow"
-                  className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-blue-700 hover:text-blue-800"
+                <Button
+                  color="alternative"
+                  size="lg"
+                  onClick={() => document.getElementById("workflow")?.scrollIntoView()}
                 >
-                  See the workflow
-                  <AppIcon name="arrow-right" size={16} />
-                </a>
-              </div>
-
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                {HERO_STEPS.map((step) => (
-                  <div key={step.label} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-                      <AppIcon name={step.icon} size={18} />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{step.label}</p>
-                      <p className="mt-0.5 text-xs leading-5 text-slate-500">{step.detail}</p>
-                    </div>
-                  </div>
-                ))}
+                  See the four steps
+                </Button>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-6 sm:p-7">
-              <div className="flex items-start justify-between gap-4">
+            <Card className="border border-blue-100 bg-blue-50/60 shadow-none">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">
-                    Live workspace outcome
+                  <p className="text-sm font-semibold text-blue-700">Workspace health</p>
+                  <p className="mt-1 text-2xl font-semibold text-slate-950">
+                    {averageReadiness}% average readiness
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-                    Know the next action without reading technical diagnostics.
-                  </h2>
                 </div>
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-white text-blue-700 shadow-sm">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-blue-700 shadow-sm">
                   <AppIcon name="readiness" size={23} />
                 </span>
               </div>
-
-              <div className="mt-6 space-y-3">
-                <div className="rounded-2xl border border-blue-100 bg-white p-5">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-                      <AppIcon name="check" size={18} />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-950">{readyMatters} ready for review</p>
-                      <p className="mt-1 text-sm text-slate-500">All requirements and decisions completed</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-blue-100 bg-white p-5">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
-                      <AppIcon name="clock" size={18} />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-950">{reviewItems} decisions outstanding</p>
-                      <p className="mt-1 text-sm text-slate-500">Document differences requiring professional review</p>
-                    </div>
-                  </div>
-                </div>
+              <Progress progress={averageReadiness} color="blue" size="lg" />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Card className="border border-slate-200 bg-white shadow-none">
+                  <p className="text-2xl font-semibold text-slate-950">{readyMatters}</p>
+                  <p className="text-sm text-slate-500">Ready for review</p>
+                </Card>
+                <Card className="border border-slate-200 bg-white shadow-none">
+                  <p className="text-2xl font-semibold text-slate-950">{reviewItems}</p>
+                  <p className="text-sm text-slate-500">Human decisions pending</p>
+                </Card>
               </div>
-
-              <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-100/50 p-5">
-                <p className="text-sm font-semibold text-slate-950">The value to the team</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Less manual comparison, no silent AI overwrites, and a visible path from
-                  intake to accountable professional review.
-                </p>
-              </div>
-            </div>
+            </Card>
           </div>
         </Card>
       </section>
 
-      <ProductValueMap />
+      <Alert color="info">
+        <span className="font-semibold">Human utility:</span> the system reduces manual comparison,
+        prevents silent AI overwrites, and produces a visible decision history for the reviewer.
+      </Alert>
 
-      <section id="workflow" className="scroll-mt-28">
-        <WorkflowOverview />
+      <section id="workflow" className="scroll-mt-28 space-y-5">
+        <div>
+          <p className="text-sm font-semibold text-blue-700">The job to be done</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+            Four steps from intake to a review-ready matter
+          </h2>
+          <p className="mt-2 max-w-3xl text-base leading-7 text-slate-600">
+            Each step has a human purpose and a clear result. AI assists with document comparison;
+            the professional remains responsible for every final decision.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {WORKFLOW.map((step, index) => (
+            <Card key={step.title} className="border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                  <AppIcon name={step.icon} size={20} />
+                </span>
+                <Badge color="gray">Step {index + 1}</Badge>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">{step.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{step.detail}</p>
+              </div>
+              <Alert color="success">{step.result}</Alert>
+            </Card>
+          ))}
+        </div>
       </section>
 
       <section id="portfolio" className="scroll-mt-28 space-y-5" aria-labelledby="portfolio-heading">
-        <div className="flex flex-wrap items-end justify-between gap-5">
-          <div className="max-w-2xl">
-            <p className="text-sm font-semibold text-blue-700">Operational workspace</p>
-            <h2 id="portfolio-heading" className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-slate-950">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-blue-700">Active work</p>
+            <h2 id="portfolio-heading" className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
               Matter portfolio
             </h2>
-            <p className="mt-2 text-base leading-7 text-slate-600">
-              See readiness, unresolved decisions, and the next action for every matter.
+            <p className="mt-2 text-base text-slate-600">
+              Open the matter that needs action and continue at the correct step.
             </p>
           </div>
           <Button color="alternative" onClick={() => setOpen(true)}>
@@ -171,34 +177,17 @@ export function DashboardPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <MetricCard
-            icon="portfolio"
-            label="Matters in workspace"
-            value={data.length}
-            detail="Structured cases currently tracked"
-          />
-          <MetricCard
-            icon="readiness"
-            label="Average readiness"
-            value={`${averageReadiness}%`}
-            detail="Across required information and documents"
-          />
-          <MetricCard
-            icon="clock"
-            label="Items awaiting review"
-            value={reviewItems}
-            detail="Differences requiring a recorded decision"
-          />
+          <MetricCard icon="portfolio" label="Matters" value={data.length} detail="Cases currently tracked" />
+          <MetricCard icon="readiness" label="Average readiness" value={`${averageReadiness}%`} detail="Completion across the portfolio" />
+          <MetricCard icon="clock" label="Review decisions" value={reviewItems} detail="Items requiring a professional choice" />
         </div>
 
         {data.length ? (
           <div className="grid gap-5 lg:grid-cols-2">
-            {data.map((matter) => (
-              <MatterCard key={matter.id} matter={matter} />
-            ))}
+            {data.map((matter) => <MatterCard key={matter.id} matter={matter} />)}
           </div>
         ) : (
-          <EmptyState message="No matters have been created. Start a matter to demonstrate structured intake, document analysis, and review readiness." />
+          <EmptyState message="No matters exist yet. Start a matter to test the complete human-reviewed workflow." />
         )}
       </section>
 

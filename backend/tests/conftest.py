@@ -34,5 +34,16 @@ def client(session: Session) -> Generator[TestClient]:
 
     app.dependency_overrides[get_db_session] = override_db
     with TestClient(app) as test_client:
+        login = test_client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": "reviewer@matterready.app",
+                "password": "MatterReady!2026",
+            },
+        )
+        assert login.status_code == 200
+        test_client.headers.update(
+            {"Authorization": f"Bearer {login.json()['access_token']}"}
+        )
         yield test_client
     app.dependency_overrides.clear()

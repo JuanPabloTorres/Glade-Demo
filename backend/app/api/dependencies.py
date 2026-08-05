@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
+from app.core.security import CurrentUserDep
 from app.providers.document_intelligence.factory import DocumentIntelligenceProviderFactory
 from app.repositories.unit_of_work import SqlAlchemyUnitOfWork
 from app.services.activity_service import ActivityService
@@ -18,7 +19,7 @@ SessionDep = Annotated[Session, Depends(get_db_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
-def get_uow(session: SessionDep) -> SqlAlchemyUnitOfWork:
+def get_uow(session: SessionDep, _: CurrentUserDep) -> SqlAlchemyUnitOfWork:
     return SqlAlchemyUnitOfWork(session)
 
 

@@ -12,6 +12,24 @@ export type DocumentType = (typeof DOCUMENT_TYPE_VALUES)[number];
 export type DocumentStatus = (typeof DOCUMENT_STATUS_VALUES)[number];
 export type ConflictStatus = (typeof CONFLICT_STATUS_VALUES)[number];
 
+export interface LoginDto {
+  email: string;
+  password: string;
+}
+
+export interface AuthUserDto {
+  email: string;
+  name: string;
+  role: string;
+}
+
+export interface AuthTokenDto {
+  access_token: string;
+  token_type: "bearer";
+  expires_in: number;
+  user: AuthUserDto;
+}
+
 export interface MatterCreateDto {
   display_name: string;
   case_type: CaseType;
