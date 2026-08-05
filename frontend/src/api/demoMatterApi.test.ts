@@ -52,10 +52,14 @@ describe("demoMatterApi", () => {
     const conflicts = await demoMatterApi.listConflicts(GUIDED_DEMO_MATTER_ID);
     expect(conflicts).toHaveLength(1);
 
+    const conflict = conflicts[0];
+    expect(conflict).toBeDefined();
+    if (!conflict) throw new Error("Expected guided conflict");
+
     await demoMatterApi.resolveConflict(
       GUIDED_DEMO_MATTER_ID,
-      conflicts[0].id,
-      conflicts[0].canonical_value,
+      conflict.id,
+      conflict.canonical_value,
     );
 
     const refreshed = await demoMatterApi.getMatter(GUIDED_DEMO_MATTER_ID);

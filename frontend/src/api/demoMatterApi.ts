@@ -189,7 +189,7 @@ function normalize(value: unknown): string {
 function calculateReadiness(record: DemoMatterRecord): ReadinessDto {
   const items: ReadinessItemDto[] = REQUIRED_FIELDS[record.matter.case_type].map((field) => ({
     key: `field:${String(field)}`,
-    label: FIELD_LABELS[String(field)],
+    label: FIELD_LABELS[String(field)] ?? String(field),
     complete: Boolean(String(record.matter[field] ?? "").trim()),
     source: "approved client record",
   }));
