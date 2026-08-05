@@ -16,15 +16,6 @@ dependencies = [
   "rapidfuzz>=3.14,<4.0",
 ]
 
-[project.optional-dependencies]
-ai = [
-  "torch>=2.8,<3.0",
-  "transformers>=4.55,<5.0",
-  "sentence-transformers>=5.0,<6.0",
-  "accelerate>=1.10,<2.0",
-]
-documents = ["docling>=2.60,<3.0"]
-
 [dependency-groups]
 dev = [
   "httpx>=0.28,<1.0",
