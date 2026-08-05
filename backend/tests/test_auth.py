@@ -14,18 +14,31 @@ def test_login_returns_signed_session(client: TestClient) -> None:
     assert payload["user"] == {
         "email": "reviewer@matterready.app",
         "name": "Alex Rivera",
-        "role": "Case Reviewer",
+        "role": "Intake Reviewer",
     }
 
 
-def test_current_session_requires_valid_bearer_token(client: TestClient) -> None:
+def test_current_session_and_copilot_require_valid_bearer_token(client: TestClient) -> None:
     response = client.get("/api/v1/auth/me")
     assert response.status_code == 200
-    assert response.json()["role"] == "Case Reviewer"
+    assert response.json()["role"] == "Intake Reviewer"
 
     authorization = client.headers.pop("Authorization")
     try:
-        unauthorized = client.get("/api/v1/matters")
+        unauthorized = client.post(
+            "/api/v1/copilot/message",
+            json={
+                "state": {
+                    "session_id": "unauthorized-test",
+                    "messages": [],
+                    "profile": {},
+                    "documents": [],
+                    "resolutions": {},
+                },
+                "message": "Prepare an intake",
+                "locale": "en",
+            },
+        )
     finally:
         client.headers["Authorization"] = authorization
     assert unauthorized.status_code == 401

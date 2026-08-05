@@ -10,7 +10,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "MatterReady Demo"
+    app_name: str = "MatterReady AI Intake Copilot"
     environment: str = "development"
     api_v1_prefix: str = "/api/v1"
     database_url: str = "sqlite:///./matter_ready.db"
@@ -26,7 +26,12 @@ class Settings(BaseSettings):
     demo_user_email: str = "reviewer@matterready.app"
     demo_user_password: str = "MatterReady!2026"
     demo_user_name: str = "Alex Rivera"
-    demo_user_role: str = "Case Reviewer"
+    demo_user_role: str = "Intake Reviewer"
+
+    ai_provider: str = "template"
+    ai_model_id: str = "Qwen/Qwen3-0.6B"
+    embedding_model_id: str = "Qwen/Qwen3-Embedding-0.6B"
+    ai_max_new_tokens: int = 180
 
     @property
     def cors_origin_list(self) -> list[str]:

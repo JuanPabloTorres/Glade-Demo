@@ -24,7 +24,7 @@ def test_health_response_is_safe_and_versioned(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json() == {
         "status": "ok",
-        "service": "MatterReady Demo",
+        "service": "MatterReady AI Intake Copilot",
         "version": APP_VERSION,
     }
     assert "x-backend-operation-id" not in response.headers

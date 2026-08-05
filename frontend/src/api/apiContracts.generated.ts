@@ -16,6 +16,21 @@ export const apiContracts = {
     "method": "GET",
     "path": "/api/v1/auth/me"
   },
+  "copilot.message": {
+    "operationId": "sendCopilotMessage",
+    "method": "POST",
+    "path": "/api/v1/copilot/message"
+  },
+  "copilot.document": {
+    "operationId": "analyzeCopilotDocument",
+    "method": "POST",
+    "path": "/api/v1/copilot/document"
+  },
+  "copilot.resolveIssue": {
+    "operationId": "resolveCopilotIssue",
+    "method": "POST",
+    "path": "/api/v1/copilot/issues/{issue_id}/resolve"
+  },
   "matters.list": {
     "operationId": "listMatters",
     "method": "GET",

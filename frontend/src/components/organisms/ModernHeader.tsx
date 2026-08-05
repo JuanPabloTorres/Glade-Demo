@@ -17,9 +17,8 @@ import { APP_VERSION } from "../../config/version";
 import { AppIcon, type AppIconName } from "../atoms/AppIcon";
 
 const NAV_ITEMS: { href: string; label: string; icon: AppIconName }[] = [
-  { href: "/", label: "Workspace", icon: "portfolio" },
-  { href: "/#workflow", label: "How it works", icon: "review" },
-  { href: "/#portfolio", label: "Matters", icon: "readiness" },
+  { href: "/#copilot", label: "Copilot", icon: "sparkles" },
+  { href: "/#case-packet", label: "Case packet", icon: "document" },
 ];
 
 export function ModernHeader() {
@@ -42,11 +41,11 @@ export function ModernHeader() {
       <Navbar fluid rounded={false} className="mx-auto max-w-screen-2xl bg-transparent px-4 py-3 sm:px-6 lg:px-8">
         <NavbarBrand href="/">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-700">
-            <AppIcon name="brand" size={25} />
+            <AppIcon name="sparkles" size={25} />
           </span>
           <span className="ml-3 self-center whitespace-nowrap">
             <span className="block text-lg font-semibold tracking-[-0.02em] text-slate-950">MatterReady</span>
-            <span className="block text-xs font-medium text-slate-500">Reviewer workspace</span>
+            <span className="block text-xs font-medium text-slate-500">AI Intake Copilot</span>
           </span>
         </NavbarBrand>
 
@@ -62,7 +61,7 @@ export function ModernHeader() {
               <span className="block truncate text-xs text-slate-500">{auth.user?.email}</span>
               <span className="mt-1 block text-xs font-medium text-blue-700">{auth.user?.role}</span>
             </DropdownHeader>
-            <DropdownItem onClick={() => navigate("/")}>Workspace</DropdownItem>
+            <DropdownItem onClick={() => navigate("/")}>Intake copilot</DropdownItem>
             <DropdownDivider />
             <DropdownItem onClick={signOut}>Sign out</DropdownItem>
           </Dropdown>
