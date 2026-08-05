@@ -9,7 +9,6 @@ from app.api.routers import activities, conflicts, documents, health, matters, r
 from app.core.config import get_settings
 from app.core.database import engine
 from app.core.errors import DomainError, NotFoundError, ValidationError
-from app.core.traceability import ApiTraceabilityMiddleware
 from app.domain.base import Base
 
 
@@ -21,19 +20,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
-app.add_middleware(ApiTraceabilityMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=[
-        "X-Backend-Operation-Id",
-        "X-Backend-Controller",
-        "X-Backend-Action",
-        "X-Trace-Match",
-    ],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 for router in (

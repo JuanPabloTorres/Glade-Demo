@@ -4,8 +4,6 @@ export interface EndpointDescriptor {
   readonly operationId: string;
   readonly method: string;
   readonly path: string;
-  readonly controller: string;
-  readonly action: string;
 }
 
 export function getEndpoint(key: ApiOperationKey): EndpointDescriptor {

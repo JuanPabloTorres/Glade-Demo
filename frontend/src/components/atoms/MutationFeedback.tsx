@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Alert } from "flowbite-react";
 
 interface MutationFeedbackProps {
   success?: string | null;
@@ -17,25 +18,24 @@ function getErrorMessage(error: unknown): string {
         return first.msg;
       }
     }
-    return error.message;
+    return "The request could not be completed. Review the information and try again.";
   }
-  return error instanceof Error ? error.message : "The operation could not be completed.";
+  return error instanceof Error
+    ? error.message
+    : "The operation could not be completed.";
 }
 
 export function MutationFeedback({ success, error }: MutationFeedbackProps) {
   if (error) {
     return (
-      <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+      <Alert color="failure">
+        <span className="font-medium">Action required. </span>
         {getErrorMessage(error)}
-      </div>
+      </Alert>
     );
   }
   if (success) {
-    return (
-      <div role="status" className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-        {success}
-      </div>
-    );
+    return <Alert color="success">{success}</Alert>;
   }
   return null;
 }

@@ -1,4 +1,13 @@
-import { Button, Card, Label, Select, Textarea, TextInput } from "flowbite-react";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Label,
+  Select,
+  Textarea,
+  TextInput,
+} from "flowbite-react";
 import { useForm } from "react-hook-form";
 import {
   DEFAULT_DOCUMENT_TYPE,
@@ -6,16 +15,10 @@ import {
 } from "../../config/domainOptions";
 import type { DocumentCreateDto } from "../../types/api";
 
-const SAMPLE_DOCUMENT = `Name: Jordan A. Sample
-Email: jordan@example.com
-Phone: 787-555-0100
-DOB: 1990-05-04
-Address: 123 Main St Apt 2, San Juan, PR`;
-
 const DEFAULT_VALUES: DocumentCreateDto = {
-  original_name: "passport.txt",
+  original_name: "",
   document_type: DEFAULT_DOCUMENT_TYPE,
-  content: SAMPLE_DOCUMENT,
+  content: "",
 };
 
 interface DocumentFormProps {
@@ -30,35 +33,40 @@ export function DocumentForm({ busy, onSubmit }: DocumentFormProps) {
 
   const submit = async (dto: DocumentCreateDto) => {
     await onSubmit(dto);
-    reset({
-      original_name: "document.txt",
-      document_type: DEFAULT_DOCUMENT_TYPE,
-      content: "",
-    });
+    reset(DEFAULT_VALUES);
   };
 
   return (
-    <Card>
-      <div>
-        <h2 className="text-lg font-semibold">Add document text</h2>
-        <p className="text-sm text-gray-500">
-          The deterministic provider extracts labeled facts. Missing or different
-          canonical values require explicit review.
+    <Card className="border border-gray-200 shadow-sm">
+      <div className="space-y-2">
+        <Badge color="info" className="w-fit">
+          Step 2
+        </Badge>
+        <h2 className="text-xl font-semibold text-gray-900">Analyze a supporting document</h2>
+        <p className="text-sm leading-6 text-gray-600">
+          Provide document text for structured extraction. MatterReady identifies supported
+          client fields and sends differences to human review.
         </p>
       </div>
+
+      <Alert color="info">
+        Use redacted or sample content in this evaluation workspace. Extracted values require
+        explicit approval before they become part of the client record.
+      </Alert>
 
       <form className="space-y-4" onSubmit={handleSubmit(submit)}>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="doc-name">File name</Label>
+            <Label htmlFor="doc-name">Document name</Label>
             <TextInput
               id="doc-name"
+              placeholder="Example: passport.txt"
               {...register("original_name", { required: true, minLength: 1 })}
             />
           </div>
           <div>
             <Label htmlFor="doc-type">Document type</Label>
-            <Select id="doc-type" {...register("document_type") }>
+            <Select id="doc-type" {...register("document_type")}>
               {DOCUMENT_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -69,16 +77,17 @@ export function DocumentForm({ busy, onSubmit }: DocumentFormProps) {
         </div>
 
         <div>
-          <Label htmlFor="doc-content">Extractable text</Label>
+          <Label htmlFor="doc-content">Document text</Label>
           <Textarea
             id="doc-content"
             rows={7}
+            placeholder={"Use labeled fields such as:\nName: ...\nDOB: ...\nAddress: ..."}
             {...register("content", { required: true, minLength: 1 })}
           />
         </div>
 
         <Button type="submit" disabled={busy}>
-          {busy ? "Processing..." : "Process document"}
+          {busy ? "Analyzing document..." : "Analyze document"}
         </Button>
       </form>
     </Card>

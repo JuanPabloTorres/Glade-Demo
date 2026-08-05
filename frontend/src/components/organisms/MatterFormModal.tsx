@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  Alert,
   Button,
   Label,
   Modal,
@@ -80,14 +81,19 @@ export function MatterFormModal({
 
   return (
     <Modal show={open} onClose={onClose}>
-      <ModalHeader>Create matter</ModalHeader>
+      <ModalHeader>Create a new matter</ModalHeader>
       <form onSubmit={handleSubmit(submit)}>
-        <ModalBody className="space-y-4">
+        <ModalBody className="space-y-5">
+          <Alert color="info">
+            Begin with the client information available at intake. Additional fields and
+            supporting documents can be reviewed inside the matter workspace.
+          </Alert>
           <MutationFeedback error={error} />
           <div>
             <Label htmlFor="display_name">Client name</Label>
             <TextInput
               id="display_name"
+              placeholder="Enter the client or matter name"
               {...register("display_name")}
               color={errors.display_name ? "failure" : undefined}
             />
@@ -96,8 +102,8 @@ export function MatterFormModal({
             ) : null}
           </div>
           <div>
-            <Label htmlFor="case_type">Case type</Label>
-            <Select id="case_type" {...register("case_type") }>
+            <Label htmlFor="case_type">Matter type</Label>
+            <Select id="case_type" {...register("case_type")}>
               {CASE_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -110,6 +116,7 @@ export function MatterFormModal({
             <TextInput
               id="email"
               type="email"
+              placeholder="client@example.com"
               {...register("email")}
               color={errors.email ? "failure" : undefined}
             />
@@ -119,16 +126,20 @@ export function MatterFormModal({
           </div>
           <div>
             <Label htmlFor="phone">Phone</Label>
-            <TextInput id="phone" {...register("phone")} />
+            <TextInput id="phone" placeholder="Primary contact number" {...register("phone")} />
           </div>
           <div>
-            <Label htmlFor="assigned_to">Assigned to</Label>
-            <TextInput id="assigned_to" {...register("assigned_to")} />
+            <Label htmlFor="assigned_to">Assigned professional</Label>
+            <TextInput
+              id="assigned_to"
+              placeholder="Attorney, analyst, or case owner"
+              {...register("assigned_to")}
+            />
           </div>
         </ModalBody>
         <ModalFooter>
           <Button type="submit" disabled={busy}>
-            {busy ? "Creating..." : "Create"}
+            {busy ? "Creating matter..." : "Create matter"}
           </Button>
           <Button color="alternative" type="button" onClick={onClose} disabled={busy}>
             Cancel

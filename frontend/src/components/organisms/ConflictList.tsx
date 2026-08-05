@@ -1,4 +1,4 @@
-import { Button, Card } from "flowbite-react";
+import { Alert, Badge, Button, Card } from "flowbite-react";
 import type { ConflictDto } from "../../types/api";
 import { EmptyState } from "../atoms/AsyncState";
 import { StatusBadge } from "../atoms/StatusBadge";
@@ -11,7 +11,9 @@ interface ConflictListProps {
 
 export function ConflictList({ conflicts, busy, onResolve }: ConflictListProps) {
   if (!conflicts.length) {
-    return <EmptyState message="No data conflicts detected." />;
+    return (
+      <EmptyState message="No review items were identified. Document values currently align with the client record." />
+    );
   }
 
   const ordered = [...conflicts].sort((left, right) => {
@@ -24,55 +26,76 @@ export function ConflictList({ conflicts, busy, onResolve }: ConflictListProps) 
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {ordered.map((conflict) => (
-        <Card key={conflict.id} data-testid={`conflict-${conflict.field_name}`}>
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="font-semibold capitalize">
-              {conflict.field_name.replaceAll("_", " ")}
-            </h3>
+        <Card
+          key={conflict.id}
+          data-testid={`conflict-${conflict.field_name}`}
+          className="border border-gray-200 shadow-sm"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <Badge color="gray" className="mb-2 w-fit">
+                Extracted field
+              </Badge>
+              <h3 className="text-lg font-semibold capitalize text-gray-900">
+                {conflict.field_name.replaceAll("_", " ")}
+              </h3>
+            </div>
             <StatusBadge value={conflict.status} />
           </div>
 
           {conflict.status === "resolved" ? (
-            <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">
-              Accepted value: <strong>{conflict.resolved_value}</strong>
-            </div>
+            <Alert color="success">
+              Decision recorded: <strong>{conflict.resolved_value}</strong>
+            </Alert>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-                <p className="text-xs font-medium uppercase text-green-700">
-                  {conflict.canonical_source}
-                </p>
-                <p>{conflict.canonical_value || "No canonical value provided"}</p>
-                {conflict.canonical_value ? (
-                  <Button
-                    size="xs"
-                    className="mt-3"
-                    disabled={busy}
-                    onClick={() => resolve(conflict.id, conflict.canonical_value)}
-                  >
-                    Keep canonical value
-                  </Button>
-                ) : null}
-              </div>
+            <>
+              <p className="text-sm leading-6 text-gray-600">
+                MatterReady found different values. Select the value that should become the
+                approved client record.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                    Client record
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-gray-900">
+                    {conflict.canonical_value || "No value recorded"}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">{conflict.canonical_source}</p>
+                  {conflict.canonical_value ? (
+                    <Button
+                      size="xs"
+                      className="mt-4"
+                      disabled={busy}
+                      onClick={() => resolve(conflict.id, conflict.canonical_value)}
+                    >
+                      Keep client record
+                    </Button>
+                  ) : null}
+                </div>
 
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                <p className="text-xs font-medium uppercase text-amber-700">
-                  {conflict.conflicting_source}
-                </p>
-                <p>{conflict.conflicting_value}</p>
-                <Button
-                  color="yellow"
-                  size="xs"
-                  className="mt-3"
-                  disabled={busy}
-                  onClick={() => resolve(conflict.id, conflict.conflicting_value)}
-                >
-                  Use document value
-                </Button>
+                <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                    Document finding
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-gray-900">
+                    {conflict.conflicting_value}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">{conflict.conflicting_source}</p>
+                  <Button
+                    color="yellow"
+                    size="xs"
+                    className="mt-4"
+                    disabled={busy}
+                    onClick={() => resolve(conflict.id, conflict.conflicting_value)}
+                  >
+                    Accept document value
+                  </Button>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </Card>
       ))}

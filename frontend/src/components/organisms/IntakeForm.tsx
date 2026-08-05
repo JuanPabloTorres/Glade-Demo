@@ -1,4 +1,4 @@
-import { Button, Card, Label, Textarea, TextInput } from "flowbite-react";
+import { Badge, Button, Card, Label, Textarea, TextInput } from "flowbite-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import type { MatterDetailDto, MatterIntakeUpdateDto } from "../../types/api";
@@ -24,12 +24,15 @@ export function IntakeForm({ matter, busy, onSubmit }: IntakeFormProps) {
   }, [matter, reset]);
 
   return (
-    <Card>
-      <div>
-        <h2 className="text-lg font-semibold">Canonical intake</h2>
-        <p className="text-sm text-gray-500">
-          This record is the source of truth. Document differences become reviewable
-          conflicts and are never applied silently.
+    <Card className="border border-gray-200 shadow-sm">
+      <div className="space-y-2">
+        <Badge color="info" className="w-fit">
+          Step 1
+        </Badge>
+        <h2 className="text-xl font-semibold text-gray-900">Confirm client information</h2>
+        <p className="text-sm leading-6 text-gray-600">
+          Review the approved client record. Document findings are compared against this
+          information and are never applied without a recorded decision.
         </p>
       </div>
 
@@ -59,11 +62,16 @@ export function IntakeForm({ matter, busy, onSubmit }: IntakeFormProps) {
         </div>
         <div className="sm:col-span-2">
           <Label htmlFor="intake-summary">Matter summary</Label>
-          <Textarea id="intake-summary" rows={3} {...register("summary")} />
+          <Textarea
+            id="intake-summary"
+            rows={4}
+            placeholder="Summarize the objective, context, and relevant review notes."
+            {...register("summary")}
+          />
         </div>
         <div className="sm:col-span-2">
           <Button type="submit" disabled={busy}>
-            {busy ? "Saving..." : "Save canonical intake"}
+            {busy ? "Saving information..." : "Save client information"}
           </Button>
         </div>
       </form>

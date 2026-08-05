@@ -1,81 +1,60 @@
 // Generated from contracts/api-contracts.json. Do not edit manually.
+// Only client-safe endpoint metadata is included in the browser bundle.
 export const apiContracts = {
-    "health.get": {
-        "operationId": "getHealth",
-        "method": "GET",
-        "path": "/api/v1/health",
-        "controller": "HealthController",
-        "action": "get_health"
-    },
-    "matters.list": {
-        "operationId": "listMatters",
-        "method": "GET",
-        "path": "/api/v1/matters",
-        "controller": "MatterController",
-        "action": "list_matters"
-    },
-    "matters.create": {
-        "operationId": "createMatter",
-        "method": "POST",
-        "path": "/api/v1/matters",
-        "controller": "MatterController",
-        "action": "create_matter"
-    },
-    "matters.get": {
-        "operationId": "getMatter",
-        "method": "GET",
-        "path": "/api/v1/matters/{matter_id}",
-        "controller": "MatterController",
-        "action": "get_matter"
-    },
-    "matters.updateIntake": {
-        "operationId": "updateMatterIntake",
-        "method": "PUT",
-        "path": "/api/v1/matters/{matter_id}/intake",
-        "controller": "MatterController",
-        "action": "update_intake"
-    },
-    "documents.create": {
-        "operationId": "createDocument",
-        "method": "POST",
-        "path": "/api/v1/matters/{matter_id}/documents",
-        "controller": "DocumentController",
-        "action": "create_document"
-    },
-    "documents.list": {
-        "operationId": "listDocuments",
-        "method": "GET",
-        "path": "/api/v1/matters/{matter_id}/documents",
-        "controller": "DocumentController",
-        "action": "list_documents"
-    },
-    "conflicts.list": {
-        "operationId": "listConflicts",
-        "method": "GET",
-        "path": "/api/v1/matters/{matter_id}/conflicts",
-        "controller": "ConflictController",
-        "action": "list_conflicts"
-    },
-    "conflicts.resolve": {
-        "operationId": "resolveConflict",
-        "method": "POST",
-        "path": "/api/v1/matters/{matter_id}/conflicts/{conflict_id}/resolve",
-        "controller": "ConflictController",
-        "action": "resolve_conflict"
-    },
-    "readiness.get": {
-        "operationId": "getReadiness",
-        "method": "GET",
-        "path": "/api/v1/matters/{matter_id}/readiness",
-        "controller": "ReadinessController",
-        "action": "get_readiness"
-    },
-    "activities.list": {
-        "operationId": "listActivities",
-        "method": "GET",
-        "path": "/api/v1/matters/{matter_id}/activities",
-        "controller": "ActivityController",
-        "action": "list_activities"
-    }
+  "health.get": {
+    "operationId": "getHealth",
+    "method": "GET",
+    "path": "/api/v1/health"
+  },
+  "matters.list": {
+    "operationId": "listMatters",
+    "method": "GET",
+    "path": "/api/v1/matters"
+  },
+  "matters.create": {
+    "operationId": "createMatter",
+    "method": "POST",
+    "path": "/api/v1/matters"
+  },
+  "matters.get": {
+    "operationId": "getMatter",
+    "method": "GET",
+    "path": "/api/v1/matters/{matter_id}"
+  },
+  "matters.updateIntake": {
+    "operationId": "updateMatterIntake",
+    "method": "PUT",
+    "path": "/api/v1/matters/{matter_id}/intake"
+  },
+  "documents.create": {
+    "operationId": "createDocument",
+    "method": "POST",
+    "path": "/api/v1/matters/{matter_id}/documents"
+  },
+  "documents.list": {
+    "operationId": "listDocuments",
+    "method": "GET",
+    "path": "/api/v1/matters/{matter_id}/documents"
+  },
+  "conflicts.list": {
+    "operationId": "listConflicts",
+    "method": "GET",
+    "path": "/api/v1/matters/{matter_id}/conflicts"
+  },
+  "conflicts.resolve": {
+    "operationId": "resolveConflict",
+    "method": "POST",
+    "path": "/api/v1/matters/{matter_id}/conflicts/{conflict_id}/resolve"
+  },
+  "readiness.get": {
+    "operationId": "getReadiness",
+    "method": "GET",
+    "path": "/api/v1/matters/{matter_id}/readiness"
+  },
+  "activities.list": {
+    "operationId": "listActivities",
+    "method": "GET",
+    "path": "/api/v1/matters/{matter_id}/activities"
+  }
 } as const;
 export type ApiOperationKey = keyof typeof apiContracts;

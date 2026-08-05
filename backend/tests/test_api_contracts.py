@@ -17,31 +17,13 @@ def test_every_contract_maps_to_an_openapi_operation() -> None:
         assert (contract.method, contract.path, contract.operation_id) in operations
 
 
-def test_response_exposes_frontend_to_backend_trace(client: TestClient) -> None:
-    response = client.get(
-        "/api/v1/health",
-        headers={
-            "X-Frontend-Operation-Id": "getHealth",
-            "X-Frontend-Controller": "HealthController",
-            "X-Frontend-Action": "get_health",
-        },
-    )
-
-    assert response.headers["X-Backend-Operation-Id"] == "getHealth"
-    assert response.headers["X-Backend-Controller"] == "HealthController"
-    assert response.headers["X-Backend-Action"] == "get_health"
-    assert response.headers["X-Trace-Match"] == "true"
-
-
-def test_trace_detects_controller_or_action_mismatch(client: TestClient) -> None:
-    response = client.get(
-        "/api/v1/health",
-        headers={
-            "X-Frontend-Operation-Id": "getHealth",
-            "X-Frontend-Controller": "WrongController",
-            "X-Frontend-Action": "get_health",
-        },
-    )
+def test_health_response_does_not_expose_internal_routing_metadata(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/health")
 
     assert response.status_code == 200
-    assert response.headers["X-Trace-Match"] == "false"
+    assert "x-backend-operation-id" not in response.headers
+    assert "x-backend-controller" not in response.headers
+    assert "x-backend-action" not in response.headers
+    assert "x-trace-match" not in response.headers

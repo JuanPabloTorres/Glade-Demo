@@ -8,10 +8,10 @@ interface MetricCardProps {
 
 export function MetricCard({ label, value, detail }: MetricCardProps) {
   return (
-    <Card>
+    <Card className="border border-gray-200 shadow-sm">
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="text-3xl font-semibold text-gray-900 dark:text-white">{value}</p>
-      {detail ? <p className="text-xs text-gray-500">{detail}</p> : null}
+      <p className="text-3xl font-semibold tracking-tight text-gray-900">{value}</p>
+      {detail ? <p className="text-sm text-gray-500">{detail}</p> : null}
     </Card>
   );
 }
