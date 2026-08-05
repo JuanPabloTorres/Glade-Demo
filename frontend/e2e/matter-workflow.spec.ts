@@ -33,7 +33,7 @@ test("builds a review-ready packet through the AI intake copilot", async ({ page
   await expect(issue).toBeVisible();
   await issue.getByRole("button", { name: "Use: elena@example.com" }).click();
   await expect(page.getByTestId("readiness-score")).toHaveText("100%");
-  await expect(page.getByText("The intake packet is complete.", { exact: false })).toBeVisible();
+  await expect(page.getByText("The packet is now 100% ready.", { exact: false })).toBeVisible();
 
   await page.reload();
   await expect(page.getByTestId("readiness-score")).toHaveText("100%");
