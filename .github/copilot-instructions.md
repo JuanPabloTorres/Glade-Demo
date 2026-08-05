@@ -1,0 +1,1 @@
+Follow `AGENTS.md`. Preserve the shared API contract, DTO boundaries, service/repository separation, provider factories, and component hierarchy. Never add endpoint strings directly inside React components or pages.

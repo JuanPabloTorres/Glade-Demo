@@ -1,0 +1,12 @@
+{
+  "name": "matter-ready-demo",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "install:web": "npm --prefix frontend install --no-audit --no-fund",
+    "build": "npm --prefix frontend run build"
+  }
+}
