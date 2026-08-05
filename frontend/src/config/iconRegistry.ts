@@ -10,6 +10,8 @@ import {
   HiDocumentText,
   HiExclamationTriangle,
   HiHome,
+  HiMagnifyingGlass,
+  HiQuestionMarkCircle,
   HiReceiptPercent,
   HiScale,
   HiShieldCheck,
@@ -43,6 +45,8 @@ export const iconRegistry = {
   "arrow-right": HiArrowRight,
   shield: HiShieldCheck,
   document: HiDocument,
+  search: HiMagnifyingGlass,
+  help: HiQuestionMarkCircle,
 } as const satisfies Record<string, IconType>;
 
 export type IconRegistryName = keyof typeof iconRegistry;

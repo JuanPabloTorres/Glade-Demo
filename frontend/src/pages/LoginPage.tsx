@@ -105,14 +105,24 @@ export function LoginPage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Button type="button" size="lg" className="primary-action w-full" disabled={busy} onClick={() => openSession(CLIENT)}>
-                  <AppIcon name="client" className="mr-2" />
-                  Entrar como cliente
-                </Button>
-                <Button type="button" size="lg" color="light" className="secondary-action w-full" disabled={busy} onClick={() => openSession(ATTORNEY)}>
-                  <AppIcon name="attorney" className="mr-2" />
-                  Entrar como abogado
-                </Button>
+                <div>
+                  <Button type="button" size="lg" className="primary-action w-full" disabled={busy} onClick={() => openSession(CLIENT)}>
+                    <AppIcon name="client" className="mr-2" />
+                    Entrar como cliente
+                  </Button>
+                  <p className="mt-1.5 text-xs leading-4 text-[var(--color-text-muted)]">
+                    Verás tu expediente, progreso y el chat de guía inteligente.
+                  </p>
+                </div>
+                <div>
+                  <Button type="button" size="lg" color="light" className="secondary-action w-full" disabled={busy} onClick={() => openSession(ATTORNEY)}>
+                    <AppIcon name="attorney" className="mr-2" />
+                    Entrar como abogado
+                  </Button>
+                  <p className="mt-1.5 text-xs leading-4 text-[var(--color-text-muted)]">
+                    Verás la bandeja de casos, alertas y evidencia de todos los clientes.
+                  </p>
+                </div>
               </div>
 
               <div className="relative flex items-center py-1">
