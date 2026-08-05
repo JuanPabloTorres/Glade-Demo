@@ -1,7 +1,7 @@
 {
   "name": "matter-ready-demo",
   "private": true,
-  "version": "0.4.0",
+  "version": "1.0.0",
   "engines": {
     "node": "22.x"
   },

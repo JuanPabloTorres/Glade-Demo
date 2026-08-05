@@ -1,6 +1,6 @@
 [project]
 name = "matter-ready-api"
-version = "0.4.0"
+version = "1.0.0"
 description = "MatterReady conversational intake and evidence analysis API"
 requires-python = ">=3.13"
 dependencies = [
