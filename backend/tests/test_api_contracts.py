@@ -1,4 +1,3 @@
-from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from app.core.contracts import get_contract_registry
@@ -7,10 +6,12 @@ from app.main import app
 
 def test_every_contract_maps_to_an_openapi_operation() -> None:
     routes = {
-        (next(iter(route.methods or [])), route.path, route.operation_id)
+        (method, route.path, route.operation_id)
         for route in app.routes
-        if isinstance(route, APIRoute)
+        if getattr(route, "operation_id", None) is not None
+        for method in (getattr(route, "methods", None) or set())
     }
+
     for contract in get_contract_registry().values():
         assert (contract.method, contract.path, contract.operation_id) in routes
 
