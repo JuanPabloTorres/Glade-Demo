@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import secrets
 from datetime import UTC, datetime, timedelta
 from functools import lru_cache
-import secrets
 from typing import Annotated, Any
 
 import jwt
