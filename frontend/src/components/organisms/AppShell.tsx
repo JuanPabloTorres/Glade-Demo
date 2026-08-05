@@ -5,10 +5,10 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950">
       <Navbar fluid rounded={false} className="border-b border-gray-200">
-        <NavbarBrand as={Link} to="/">
-          <span className="self-center whitespace-nowrap text-xl font-semibold">
+        <NavbarBrand>
+          <Link to="/" className="self-center whitespace-nowrap text-xl font-semibold">
             MatterReady
-          </span>
+          </Link>
         </NavbarBrand>
         <span className="text-xs text-gray-500">Synthetic legal-operations demo</span>
       </Navbar>

@@ -81,8 +81,10 @@ export function MatterFormModal({
               id="display_name"
               {...register("display_name")}
               color={errors.display_name ? "failure" : undefined}
-              helperText={errors.display_name?.message}
             />
+            {errors.display_name ? (
+              <p className="mt-1 text-sm text-red-600">{errors.display_name.message}</p>
+            ) : null}
           </div>
           <div>
             <Label htmlFor="case_type">Case type</Label>
@@ -101,8 +103,10 @@ export function MatterFormModal({
               type="email"
               {...register("email")}
               color={errors.email ? "failure" : undefined}
-              helperText={errors.email?.message}
             />
+            {errors.email ? (
+              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+            ) : null}
           </div>
           <div>
             <Label htmlFor="phone">Phone</Label>
