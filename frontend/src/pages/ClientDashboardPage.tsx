@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { bankruptcyApi } from "../api/bankruptcyApi";
 import { useAuth } from "../auth/AuthContext";
+import { useChatPanel } from "../chat/ChatPanelContext";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { CaseTimeline } from "../components/organisms/CaseTimeline";
 import { STATUS_LABELS } from "../config/bankruptcyOptions";
@@ -21,6 +22,7 @@ export function ClientDashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const workspace = useBankruptcyWorkspace();
+  const { openChat } = useChatPanel();
   const cases = workspace.cases.filter((item) => item.ownerUserId === user?.id);
   const activeCase = cases[0];
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
@@ -118,8 +120,8 @@ export function ClientDashboardPage() {
       {analysisError ? <Alert color="failure">{analysisError}</Alert> : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Chat entry point */}
-        <Card className="app-card interactive-card cursor-pointer" onClick={() => navigate(`/case/${activeCase.id}`)}>
+        {/* Chat entry point — opens the persistent chat panel (Block 7), not a page navigation */}
+        <Card className="app-card interactive-card cursor-pointer" onClick={() => openChat()}>
           <div className="flex items-start gap-3">
             <span className="glade-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"><AppIcon name="chat" /></span>
             <div className="flex-1">
@@ -127,7 +129,7 @@ export function ClientDashboardPage() {
               <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
                 Pregunta qué falta, qué documento respalda una cifra, o cuánto te sobra al mes.
               </p>
-              <Button size="xs" color="light" className="mt-3">Abrir chat</Button>
+              <Button size="xs" color="light" className="mt-3" onClick={(event) => { event.stopPropagation(); openChat(); }}>Abrir chat</Button>
             </div>
           </div>
         </Card>

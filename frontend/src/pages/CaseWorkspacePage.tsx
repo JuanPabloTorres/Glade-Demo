@@ -13,10 +13,11 @@ import {
   Textarea,
   TextInput,
 } from "flowbite-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Navigate, useNavigate, useParams } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { bankruptcyApi } from "../api/bankruptcyApi";
 import { useAuth } from "../auth/AuthContext";
+import { useChatPanel } from "../chat/ChatPanelContext";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { BankruptcyEntryModal } from "../components/organisms/BankruptcyEntryModal";
 import { CaseActionBar } from "../components/organisms/CaseActionBar";
@@ -30,13 +31,24 @@ import type {
   CaseStatus,
   EntryKind,
   EntrySubmission,
-  GuidanceResponse,
 } from "../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
 import { currency, localCompletion, monthlyAmount } from "../workspace/caseMetrics";
 
-const GUIDE_TAB_INDEX = 1;
-const ATTORNEY_REVIEW_TAB_INDEX = 11;
+const ATTORNEY_REVIEW_TAB_INDEX = 10;
+
+/** Maps a backend GuidanceResponseDto.focus_section value to this page's tab index. */
+const FOCUS_SECTION_TAB_INDEX: Record<string, number> = {
+  overview: 0,
+  household: 1,
+  "income-expenses": 2,
+  "debts-assets": 4,
+  evidence: 6,
+  review: 7,
+  timeline: 9,
+  "attorney-review": ATTORNEY_REVIEW_TAB_INDEX,
+  "chapter-comparison": 0,
+};
 
 function statusColor(status: CaseStatus): "gray" | "warning" | "success" | "info" {
   if (status === "submitted" || status === "attorney_review") return "warning";
@@ -47,16 +59,15 @@ function statusColor(status: CaseStatus): "gray" | "warning" | "success" | "info
 
 export function CaseWorkspacePage() {
   const { caseId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const workspace = useBankruptcyWorkspace();
+  const { openChat } = useChatPanel();
   const caseData = workspace.cases.find((item) => item.id === caseId);
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [modalKind, setModalKind] = useState<EntryKind | null>(null);
-  const [message, setMessage] = useState("");
-  const [guidance, setGuidance] = useState<GuidanceResponse | null>(null);
-  const [busy, setBusy] = useState(false);
   const tabsRef = useRef<TabsRef>(null);
 
   useEffect(() => {
@@ -71,6 +82,19 @@ export function CaseWorkspacePage() {
       active = false;
     };
   }, [caseData]);
+
+  // Deep-link support for the chat's "Abrir sección recomendada" action —
+  // see ChatPanel.tsx, which navigates here with ?focus=<section>.
+  useEffect(() => {
+    const focus = searchParams.get("focus");
+    if (!focus) return;
+    const index = FOCUS_SECTION_TAB_INDEX[focus];
+    if (index !== undefined) tabsRef.current?.setActiveTab(index);
+    const next = new URLSearchParams(searchParams);
+    next.delete("focus");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   if (!caseData || !user) return <Navigate to="/" replace />;
   if (user.role === "client" && caseData.ownerUserId !== user.id) return <Navigate to="/" replace />;
@@ -95,36 +119,8 @@ export function CaseWorkspacePage() {
       evidence: kind === "evidence" ? current.evidence.filter((item) => item.id !== entryId) : current.evidence,
     }));
 
-  const openChat = (prefill?: string) => {
-    if (prefill) setMessage(prefill);
-    tabsRef.current?.setActiveTab(GUIDE_TAB_INDEX);
-  };
-
   const markUrgent = () =>
     update((current) => ({ ...current, household: { ...current.household, urgentCollectionAction: !current.household.urgentCollectionAction } }));
-
-  const sendMessage = async (event: FormEvent) => {
-    event.preventDefault();
-    const trimmed = message.trim();
-    if (!trimmed) return;
-    setMessage("");
-    setBusy(true);
-    setAnalysisError(null);
-    const userMessage = { id: `message-${crypto.randomUUID()}`, role: "user" as const, content: trimmed, createdAt: new Date().toISOString() };
-    update((current) => ({ ...current, messages: [...current.messages, userMessage] }));
-    try {
-      const response = await bankruptcyApi.guide(caseData, trimmed, user.role);
-      setGuidance(response);
-      update((current) => ({
-        ...current,
-        messages: [...current.messages, { id: `message-${crypto.randomUUID()}`, role: "assistant", content: response.reply, createdAt: new Date().toISOString() }],
-      }));
-    } catch {
-      setAnalysisError("El asistente no respondió. Intenta de nuevo en un momento.");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const completion = analysis?.completion_score ?? localCompletion(caseData);
   const isAttorney = user.role === "attorney";
@@ -230,29 +226,6 @@ export function CaseWorkspacePage() {
               </Card>
             </div>
           </div>
-        </TabItem>
-
-        <TabItem title="Guía inteligente">
-          <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-            <div className="flex items-center gap-3 border-b border-[var(--color-border)] pb-4">
-              <span className="glade-gradient flex h-10 w-10 items-center justify-center rounded-xl text-white"><AppIcon name="chat" /></span>
-              <div><h2 className="text-xl font-semibold">Asistente de preparación</h2><p className="text-sm text-[var(--color-text-muted)]">Pregunta qué falta o qué debes discutir con el abogado.</p></div>
-            </div>
-            <div className="my-5 flex min-h-[320px] flex-col gap-3 overflow-y-auto">
-              {caseData.messages.map((item) => (
-                <div key={item.id} className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[72%] ${item.role === "user" ? "bg-[#111111] text-white" : "border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text)]"}`}>{item.content}</div>
-                </div>
-              ))}
-            </div>
-            {guidance?.suggested_actions.length ? <div className="mb-4 flex flex-wrap gap-2">{guidance.suggested_actions.map((action) => <Button key={action} size="xs" color="light" onClick={() => setMessage(action)}>{action}</Button>)}</div> : null}
-            <form onSubmit={sendMessage} className="flex flex-col gap-3 border-t border-[var(--color-border)] pt-4 sm:flex-row">
-              <Label htmlFor="guidance-message" className="sr-only">Mensaje</Label>
-              <Textarea id="guidance-message" rows={3} value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ej. ¿Qué documentos me faltan?" className="flex-1" />
-              <Button type="submit" className="glade-button" disabled={busy || !message.trim()}>{busy ? "Analizando..." : "Enviar"}</Button>
-            </form>
-            {guidance ? <p className="mt-3 text-xs text-[#777]">{guidance.disclaimer}</p> : null}
-          </Card>
         </TabItem>
 
         <TabItem title="Hogar">

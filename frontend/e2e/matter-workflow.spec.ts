@@ -11,12 +11,14 @@ test("client submits a bankruptcy intake and attorney reviews it", async ({ page
   await expect(page.getByRole("heading", { name: "Elena Rivera" })).toBeVisible();
   await expect(page.getByTestId("completion-score")).toBeVisible();
 
-  await page.getByRole("tab", { name: "Guía inteligente" }).click();
+  // Chat is now a persistent global panel (Block 7), not a workspace tab.
+  await page.getByRole("button", { name: "Abrir asistente de preparación" }).click();
   await page.getByLabel("Mensaje").fill("¿Qué documentos me faltan?");
   await page.getByRole("button", { name: "Enviar", exact: true }).click();
   await expect(
     page.getByText("La plantilla financiera está completa.", { exact: false }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar chat" }).click();
 
   await page.getByRole("button", { name: "Enviar al abogado" }).click();
   await expect(page.getByText("Solicitud enviada", { exact: true }).first()).toBeVisible();
