@@ -1,6 +1,4 @@
-import type { ApiOperationKey } from "./apiContracts.generated";
-import { buildPath, getEndpoint } from "./endpointRegistry";
-import { http } from "./http";
+import { environment } from "../config/environment";
 import type {
   ActivityDto,
   ConflictDto,
@@ -12,6 +10,10 @@ import type {
   MatterSummaryDto,
   ReadinessDto,
 } from "../types/api";
+import type { ApiOperationKey } from "./apiContracts.generated";
+import { demoMatterApi } from "./demoMatterApi";
+import { buildPath, getEndpoint } from "./endpointRegistry";
+import { http } from "./http";
 
 async function request<TResponse, TBody = never>(
   key: ApiOperationKey,
@@ -29,7 +31,7 @@ async function request<TResponse, TBody = never>(
   return response.data;
 }
 
-export const matterApi = {
+const remoteMatterApi = {
   listMatters: () => request<MatterSummaryDto[]>("matters.list"),
   createMatter: (body: MatterCreateDto) =>
     request<MatterDetailDto, MatterCreateDto>("matters.create", { body }),
@@ -59,3 +61,5 @@ export const matterApi = {
   listActivities: (matterId: string) =>
     request<ActivityDto[]>("activities.list", { params: { matter_id: matterId } }),
 };
+
+export const matterApi = environment.useBrowserDemoStore ? demoMatterApi : remoteMatterApi;
