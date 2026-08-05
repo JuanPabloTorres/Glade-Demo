@@ -47,27 +47,16 @@ interface MatterFormModalProps {
   onSubmit: (dto: MatterCreateDto) => Promise<void>;
 }
 
-export function MatterFormModal({
-  open,
-  busy,
-  error,
-  onClose,
-  onSubmit,
-}: MatterFormModalProps) {
+export function MatterFormModal({ open, busy, error, onClose, onSubmit }: MatterFormModalProps) {
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: EMPTY_FORM,
-  });
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY_FORM });
 
   useEffect(() => {
-    if (!open) {
-      reset(EMPTY_FORM);
-    }
+    if (!open) reset(EMPTY_FORM);
   }, [open, reset]);
 
   const submit = async (values: FormValues) => {
@@ -80,70 +69,52 @@ export function MatterFormModal({
   };
 
   return (
-    <Modal show={open} onClose={onClose}>
-      <ModalHeader>Create a new matter</ModalHeader>
+    <Modal show={open} onClose={onClose} dismissible size="2xl" position="center">
+      <ModalHeader>Start a matter</ModalHeader>
       <form onSubmit={handleSubmit(submit)}>
-        <ModalBody className="space-y-5">
+        <ModalBody className="max-h-[72vh] space-y-5 overflow-y-auto">
           <Alert color="info">
-            Begin with the client information available at intake. Additional fields and
-            supporting documents can be reviewed inside the matter workspace.
+            Create the case record first. The workspace will then guide you through intake,
+            documents, decisions, and readiness.
           </Alert>
           <MutationFeedback error={error} />
-          <div>
-            <Label htmlFor="display_name">Client name</Label>
-            <TextInput
-              id="display_name"
-              placeholder="Enter the client or matter name"
-              {...register("display_name")}
-              color={errors.display_name ? "failure" : undefined}
-            />
-            {errors.display_name ? (
-              <p className="mt-1 text-xs text-red-600">{errors.display_name.message}</p>
-            ) : null}
-          </div>
-          <div>
-            <Label htmlFor="case_type">Matter type</Label>
-            <Select id="case_type" {...register("case_type")}>
-              {CASE_TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <TextInput
-              id="email"
-              type="email"
-              placeholder="client@example.com"
-              {...register("email")}
-              color={errors.email ? "failure" : undefined}
-            />
-            {errors.email ? (
-              <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
-            ) : null}
-          </div>
-          <div>
-            <Label htmlFor="phone">Phone</Label>
-            <TextInput id="phone" placeholder="Primary contact number" {...register("phone")} />
-          </div>
-          <div>
-            <Label htmlFor="assigned_to">Assigned professional</Label>
-            <TextInput
-              id="assigned_to"
-              placeholder="Attorney, analyst, or case owner"
-              {...register("assigned_to")}
-            />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Label htmlFor="display_name">Client or matter name</Label>
+              <TextInput
+                id="display_name"
+                placeholder="Jordan Sample"
+                {...register("display_name")}
+                color={errors.display_name ? "failure" : undefined}
+              />
+              {errors.display_name ? <p className="mt-1 text-xs text-red-600">{errors.display_name.message}</p> : null}
+            </div>
+            <div>
+              <Label htmlFor="case_type">Matter type</Label>
+              <Select id="case_type" {...register("case_type")}>
+                {CASE_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="assigned_to">Assigned professional</Label>
+              <TextInput id="assigned_to" placeholder="A. Rivera" {...register("assigned_to")} />
+            </div>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <TextInput id="email" type="email" placeholder="client@example.com" {...register("email")} color={errors.email ? "failure" : undefined} />
+              {errors.email ? <p className="mt-1 text-xs text-red-600">{errors.email.message}</p> : null}
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone</Label>
+              <TextInput id="phone" placeholder="Primary contact number" {...register("phone")} />
+            </div>
           </div>
         </ModalBody>
-        <ModalFooter>
-          <Button type="submit" disabled={busy}>
-            {busy ? "Creating matter..." : "Create matter"}
-          </Button>
-          <Button color="alternative" type="button" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
+        <ModalFooter className="flex-col-reverse sm:flex-row sm:justify-end">
+          <Button color="alternative" type="button" onClick={onClose} disabled={busy} className="w-full sm:w-auto">Cancel</Button>
+          <Button type="submit" disabled={busy} className="w-full sm:w-auto">{busy ? "Creating matter..." : "Create matter and continue"}</Button>
         </ModalFooter>
       </form>
     </Modal>

@@ -6,6 +6,16 @@ export const apiContracts = {
     "method": "GET",
     "path": "/api/v1/health"
   },
+  "auth.login": {
+    "operationId": "login",
+    "method": "POST",
+    "path": "/api/v1/auth/login"
+  },
+  "auth.me": {
+    "operationId": "getCurrentSession",
+    "method": "GET",
+    "path": "/api/v1/auth/me"
+  },
   "matters.list": {
     "operationId": "listMatters",
     "method": "GET",

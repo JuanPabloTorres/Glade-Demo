@@ -1,23 +1,36 @@
 # MatterReady
 
-MatterReady is a review-first legal operations workspace that converts structured intake and document findings into human-approved decisions, readiness scoring, and an auditable case-preparation workflow.
+MatterReady is an authenticated, human-reviewed legal operations workspace that turns client intake and supporting documents into explicit decisions, readiness scoring, and an auditable review package.
 
-## What the product demonstrates
+## Human workflow
 
-- structured client intake and canonical case data;
-- document fact extraction through a replaceable provider boundary;
-- explicit conflict detection and human approval;
-- deterministic readiness scoring;
-- a professional Flowbite React interface;
-- secure, reproducible delivery with automated release verification.
+1. Sign in as a case reviewer.
+2. Create and assign a matter.
+3. Confirm the approved client record.
+4. Analyze identity and address documents.
+5. Resolve every difference explicitly.
+6. Deliver the matter when readiness reaches 100%.
+
+The system does not silently replace client information. Document intelligence identifies possible differences; a professional chooses the accepted value.
+
+## Demo access
+
+- Email: `reviewer@matterready.app`
+- Password: `MatterReady!2026`
+
+The demo uses invented data and a short-lived JWT. Set a private `JWT_SECRET` and replace the demo identity before using real information.
 
 ## Stack
 
-- React 19, TypeScript, Vite, Flowbite React, TanStack Query;
-- Python 3.13, FastAPI, Pydantic 2, SQLAlchemy 2;
-- SQLite for the evaluation environment or PostgreSQL through configuration;
-- Ruff, mypy, Pytest, ESLint, Vitest, and Playwright;
-- GitHub Actions and Vercel.
+- React 19, TypeScript, Vite, Flowbite React, TanStack Query
+- Python 3.13, FastAPI, PyJWT, pwdlib/Argon2, Pydantic 2, SQLAlchemy 2
+- SQLite for the public evaluation environment or PostgreSQL through configuration
+- Ruff, mypy, Pytest, ESLint, Vitest, and Playwright
+- GitHub Actions and Vercel Git Integration
+
+## UI policy
+
+Interactive controls and complex interface patterns use Flowbite React components: Navbar, Dropdown, Avatar, Modal, Tabs, Card, Alert, Badge, Button, Progress, Label, TextInput, Textarea, Select, Spinner, and Footer. Tailwind utilities are limited to responsive layout, spacing, and accessible surface styling.
 
 ## Local development
 
@@ -33,26 +46,8 @@ make frontend
 - API: `http://localhost:8000`
 - OpenAPI: `http://localhost:8000/docs`
 
-## Architecture boundaries
-
-- Shared API contracts keep the frontend and backend aligned.
-- DTOs isolate HTTP payloads from persistence models.
-- Services own business rules.
-- Repositories and unit of work isolate persistence.
-- A provider factory isolates document-intelligence implementation.
-- Flowbite components are organized into reusable UI layers.
-- Internal routing and diagnostic metadata are not exposed in the public UI.
-
 ## Delivery and audit
 
-See:
-
-- [`docs/RELEASE_PIPELINE.md`](docs/RELEASE_PIPELINE.md)
-- [`docs/VERSIONING.md`](docs/VERSIONING.md)
-- [`SECURITY.md`](SECURITY.md)
-- [`VALIDATION.md`](VALIDATION.md)
-- [`AGENTS.md`](AGENTS.md)
-
-The release pipeline validates locked dependencies, backend and frontend quality gates, the production build, Playwright browser behavior, semantic versioning, Vercel deployment readiness, and production security headers.
+Every delivered change must increment SemVer and pass synchronized contracts, locked dependencies, backend checks, frontend checks, production build, and the complete Playwright browser workflow.
 
 > Evaluation software only. Use invented demonstration data. Not legal advice and not affiliated with Glade.

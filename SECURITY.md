@@ -1,21 +1,21 @@
 # Security policy
 
-MatterReady is an evaluation application and must use non-sensitive demonstration data only.
+MatterReady is a portfolio evaluation environment and must use invented demonstration data only.
+
+## Authentication
+
+- The API issues signed JWT bearer tokens with issuer, audience, issued-at, and expiration claims.
+- Password verification uses Argon2 through `pwdlib`.
+- Protected matter endpoints require a valid bearer token.
+- The browser stores the short-lived demo session in `sessionStorage`, clears it on expiration, and redirects to login after a 401 response.
+- Production deployments must override `JWT_SECRET`, demo credentials, and the demo identity through environment variables before storing real information.
+
+## UI controls
+
+- The public login page is the only unauthenticated product screen.
+- Internal controller names, routing diagnostics, stack traces, and secrets are not shown in the interface.
+- Human review is required before a document value can replace the approved client record.
 
 ## Reporting
 
-Report suspected vulnerabilities privately to the repository owner. Do not include credentials, access tokens, personal records, or exploit payloads in public issues.
-
-## Controls
-
-- No credentials or deployment tokens are committed to source control.
-- Production deployment configuration is stored in Vercel or GitHub encrypted secrets and variables.
-- Dependency graphs are locked and updated through Dependabot pull requests.
-- CI runs dependency audit, linting, type checking, tests, production build, and browser validation.
-- The public interface does not expose internal controller names, routing diagnostics, stack traces, or secrets.
-- Production responses use restrictive browser security headers.
-- Production verification checks the deployed release version before recording success.
-
-## Data handling
-
-Use invented names and documents. Do not upload real legal, financial, medical, identity, or client information to this demo.
+Report suspected vulnerabilities privately to the repository owner. Do not place credentials, access tokens, personal records, or exploit payloads in public issues.

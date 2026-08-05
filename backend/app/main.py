@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routers import activities, conflicts, documents, health, matters, readiness
+from app.api.routers import activities, auth, conflicts, documents, health, matters, readiness
 from app.core.config import get_settings
 from app.core.database import engine
 from app.core.errors import DomainError, NotFoundError, ValidationError
@@ -29,8 +29,9 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
+app.include_router(health.router)
+app.include_router(auth.router)
 for router in (
-    health.router,
     matters.router,
     documents.router,
     conflicts.router,

@@ -1,6 +1,6 @@
 [project]
 name = "matter-ready-api"
-version = "0.2.3"
+version = "0.3.0"
 description = "MatterReady legal intake and readiness demo API"
 requires-python = ">=3.13"
 dependencies = [
@@ -10,6 +10,8 @@ dependencies = [
   "pydantic>=2.11,<3.0",
   "pydantic-settings>=2.10,<3.0",
   "psycopg[binary]>=3.2.9,<4.0",
+  "PyJWT>=2.10,<3.0",
+  "pwdlib[argon2]>=0.2,<1.0",
 ]
 
 [dependency-groups]
