@@ -1,9 +1,8 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { AppShell } from "./components/organisms/AppShell";
-import { DashboardPage } from "./pages/DashboardPage";
+import { CopilotPage } from "./pages/CopilotPage";
 import { LoginPage } from "./pages/LoginPage";
-import { MatterDetailPage } from "./pages/MatterDetailPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -13,10 +12,7 @@ export const router = createBrowserRouter([
       {
         path: "/",
         element: <AppShell />,
-        children: [
-          { index: true, element: <DashboardPage /> },
-          { path: "matters/:matterId", element: <MatterDetailPage /> },
-        ],
+        children: [{ index: true, element: <CopilotPage /> }],
       },
     ],
   },
