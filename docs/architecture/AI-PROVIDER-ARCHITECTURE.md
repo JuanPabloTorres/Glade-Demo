@@ -49,6 +49,8 @@ OLLAMA_EMBEDDING_MODEL=nomic-embed-text   # reserved for Block 10 (RAG embedding
 
 `AI_PROVIDER` defaults to `rule_based` everywhere, including the Vercel deployment — Ollama and transformers are opt-in for local/Docker/VPS use.
 
-## What Block 9 changes here
+## Status update (Block 9 / Block 10)
 
-`GuidanceDraft` (the providers' return type) already carries `intent`, `requested_fields`, `requested_documents`, `requires_attorney_review`, and `warnings` — fields not yet exposed through the public API. Block 9 introduces `CaseContextBuilder` (a reduced, audited context passed to providers instead of the raw case object) and upgrades `GuidanceResponseDto` to the full `AssistantResponse`/`AssistantAction` contract from master instruction §6.5, at which point these fields become visible to the frontend. No provider file described above needs to change shape for that — only `BankruptcyGuidanceService` and the schemas/router.
+Block 9 landed exactly as described above: `BaseAIProvider.generate()` now takes a `CaseContextDto` (built by `CaseContextBuilder`) instead of the raw request/analysis, and `BankruptcyGuidanceService` returns the full `AssistantResponse`/`AssistantAction` contract. See `CASE-CONTEXT-ARCHITECTURE.md`.
+
+Block 10 added `ResponseGuardrails` (`backend/app/ai/guardrails.py`), which runs on every provider's output — rule-based or model-rewritten — inside `BankruptcyGuidanceService.guide()`, softening eligibility/chapter-preference/definitive-advice phrasing and forcing `requires_attorney_review=True` when triggered. See `DOCUMENT-AND-RAG-PIPELINE.md` for the guardrails and document-pipeline details.

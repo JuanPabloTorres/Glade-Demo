@@ -4,6 +4,7 @@ from collections.abc import Iterable
 
 import pandas as pd  # type: ignore[import-untyped]
 
+from app.ai.guardrails import ResponseGuardrails
 from app.ai.providers import BaseAIProvider, get_provider_for_settings
 from app.core.config import Settings
 from app.schemas.assistant import AssistantAction, AssistantResponse
@@ -311,13 +312,18 @@ class BankruptcyGuidanceService:
         self._analysis = BankruptcyAnalysisService()
         self._context_builder = CaseContextBuilder()
         self._provider = provider or get_provider_for_settings(settings)
+        self._guardrails = ResponseGuardrails()
 
     def guide(self, request: GuidanceRequestDto) -> AssistantResponse:
         analysis = self._analysis.analyze(request.case)
         context = self._context_builder.build(request.case, analysis, request.role)
         draft = self._provider.generate(context=context, message=request.message)
+        # Guardrails run on every provider's output, rule-based or model-
+        # rewritten, before anything reaches the client (master instruction
+        # §7.7) — never skipped, never provider-specific.
+        guarded = self._guardrails.review(draft.message)
         return AssistantResponse(
-            message=draft.message,
+            message=guarded.message,
             intent=draft.intent,
             suggested_actions=[
                 AssistantAction(id=f"suggested-{index}", label=text, icon="chat", action_type="ask")
@@ -328,7 +334,7 @@ class BankruptcyGuidanceService:
             requested_documents=draft.requested_documents,
             warnings=draft.warnings,
             summary_updates=[],
-            requires_attorney_review=draft.requires_attorney_review,
+            requires_attorney_review=draft.requires_attorney_review or guarded.requires_attorney_review,
             confidence=None,
             disclaimer=(
                 "Esta orientación organiza información y preguntas. No determina elegibilidad, "
