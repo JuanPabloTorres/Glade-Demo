@@ -19,6 +19,7 @@ import { bankruptcyApi } from "../api/bankruptcyApi";
 import { useAuth } from "../auth/AuthContext";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { BankruptcyEntryModal } from "../components/organisms/BankruptcyEntryModal";
+import { CaseActionBar } from "../components/organisms/CaseActionBar";
 import { CaseTimeline } from "../components/organisms/CaseTimeline";
 import { ResponsiveDataView } from "../components/molecules/ResponsiveDataView";
 import { StageOrientation } from "../components/molecules/StageOrientation";
@@ -35,6 +36,7 @@ import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext"
 import { currency, localCompletion, monthlyAmount } from "../workspace/caseMetrics";
 
 const GUIDE_TAB_INDEX = 1;
+const ATTORNEY_REVIEW_TAB_INDEX = 11;
 
 function statusColor(status: CaseStatus): "gray" | "warning" | "success" | "info" {
   if (status === "submitted" || status === "attorney_review") return "warning";
@@ -97,6 +99,9 @@ export function CaseWorkspacePage() {
     if (prefill) setMessage(prefill);
     tabsRef.current?.setActiveTab(GUIDE_TAB_INDEX);
   };
+
+  const markUrgent = () =>
+    update((current) => ({ ...current, household: { ...current.household, urgentCollectionAction: !current.household.urgentCollectionAction } }));
 
   const sendMessage = async (event: FormEvent) => {
     event.preventDefault();
@@ -161,6 +166,19 @@ export function CaseWorkspacePage() {
       </Card>
 
       {analysisError ? <Alert color="failure">{analysisError}</Alert> : null}
+
+      {isAttorney ? (
+        <Card className="app-card">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-indigo-700">Acciones del caso</p>
+          <CaseActionBar
+            caseData={caseData}
+            analysis={analysis}
+            onUpdate={update}
+            onMarkUrgent={markUrgent}
+            onOpenAttorneyReviewTab={() => tabsRef.current?.setActiveTab(ATTORNEY_REVIEW_TAB_INDEX)}
+          />
+        </Card>
+      ) : null}
 
       <Tabs ref={tabsRef} variant="underline" className="workspace-tabs">
         <TabItem title="Comenzar" active>
