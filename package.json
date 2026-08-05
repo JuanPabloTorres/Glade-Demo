@@ -1,12 +1,17 @@
 {
   "name": "matter-ready-demo",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.1",
   "engines": {
     "node": "22.x"
   },
   "scripts": {
     "install:web": "npm --prefix frontend install --no-audit --no-fund",
-    "build": "npm --prefix frontend run build"
+    "build": "npm --prefix frontend run build",
+    "version:check": "node scripts/versioning.mjs check",
+    "version:check-bump": "node scripts/versioning.mjs check-bump",
+    "version:major": "node scripts/versioning.mjs major",
+    "version:minor": "node scripts/versioning.mjs minor",
+    "version:patch": "node scripts/versioning.mjs patch"
   }
 }

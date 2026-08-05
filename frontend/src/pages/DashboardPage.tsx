@@ -40,56 +40,60 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="overflow-hidden border border-gray-200 bg-white shadow-sm">
-        <div className="grid items-center gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-5">
-            <Badge color="info" className="w-fit">
-              AI-ready legal operations
-            </Badge>
-            <div className="space-y-3">
-              <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
-                Prepare every matter with a clear, reviewable workflow.
-              </h1>
-              <p className="max-w-2xl text-base leading-7 text-gray-600">
-                MatterReady turns client intake and document analysis into structured
-                decisions, transparent readiness, and an auditable path to professional
-                review.
+      <section id="product" className="scroll-mt-28">
+        <Card className="overflow-hidden border border-gray-200 bg-white shadow-sm">
+          <div className="grid items-center gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="space-y-5">
+              <Badge color="info" className="w-fit">
+                AI-ready legal operations
+              </Badge>
+              <div className="space-y-3">
+                <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+                  Prepare every matter with a clear, reviewable workflow.
+                </h1>
+                <p className="max-w-2xl text-base leading-7 text-gray-600">
+                  MatterReady turns client intake and document analysis into structured
+                  decisions, transparent readiness, and an auditable path to professional
+                  review.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button size="lg" onClick={() => setOpen(true)}>
+                  Create a matter
+                </Button>
+                <span className="text-sm text-gray-500">
+                  Start with verified client information, then review document findings.
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-gray-900 p-6 text-white shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-200">
+                Operational outcome
               </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button size="lg" onClick={() => setOpen(true)}>
-                Create a matter
-              </Button>
-              <span className="text-sm text-gray-500">
-                Start with verified client information, then review document findings.
-              </span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-gray-900 p-6 text-white shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-200">
-              Operational outcome
-            </p>
-            <h2 className="mt-3 text-2xl font-semibold">
-              Know what is complete, what needs review, and what action comes next.
-            </h2>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <p className="text-2xl font-semibold">{readyMatters}</p>
-                <p className="text-sm text-gray-300">Ready for professional review</p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <p className="text-2xl font-semibold">{reviewItems}</p>
-                <p className="text-sm text-gray-300">Human decisions outstanding</p>
+              <h2 className="mt-3 text-2xl font-semibold">
+                Know what is complete, what needs review, and what action comes next.
+              </h2>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-2xl font-semibold">{readyMatters}</p>
+                  <p className="text-sm text-gray-300">Ready for professional review</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-2xl font-semibold">{reviewItems}</p>
+                  <p className="text-sm text-gray-300">Human decisions outstanding</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </section>
 
-      <WorkflowOverview />
+      <section id="workflow" className="scroll-mt-28">
+        <WorkflowOverview />
+      </section>
 
-      <section className="space-y-4" aria-labelledby="portfolio-heading">
+      <section id="portfolio" className="scroll-mt-28 space-y-4" aria-labelledby="portfolio-heading">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-blue-700">Workspace overview</p>
@@ -134,7 +138,9 @@ export function DashboardPage() {
         )}
       </section>
 
-      <AutomationOverview />
+      <section id="ai-capabilities" className="scroll-mt-28">
+        <AutomationOverview />
+      </section>
 
       <MatterFormModal
         open={open}

@@ -9,6 +9,7 @@ from app.api.routers import activities, conflicts, documents, health, matters, r
 from app.core.config import get_settings
 from app.core.database import engine
 from app.core.errors import DomainError, NotFoundError, ValidationError
+from app.core.version import APP_VERSION
 from app.domain.base import Base
 
 
@@ -19,7 +20,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 settings = get_settings()
-app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+app = FastAPI(title=settings.app_name, version=APP_VERSION, lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
