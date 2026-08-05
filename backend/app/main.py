@@ -1,35 +1,14 @@
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routers import (
-    activities,
-    auth,
-    conflicts,
-    copilot,
-    documents,
-    health,
-    matters,
-    readiness,
-)
+from app.api.routers import auth, bankruptcy, health
 from app.core.config import get_settings
-from app.core.database import engine
 from app.core.errors import DomainError, NotFoundError, ValidationError
 from app.core.version import APP_VERSION
-from app.domain.base import Base
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    Base.metadata.create_all(bind=engine)
-    yield
-
 
 settings = get_settings()
-app = FastAPI(title=settings.app_name, version=APP_VERSION, lifespan=lifespan)
+app = FastAPI(title=settings.app_name, version=APP_VERSION)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -40,17 +19,7 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(auth.router)
-app.include_router(copilot.router)
-
-# Legacy matter endpoints remain available during the major-version migration.
-for router in (
-    matters.router,
-    documents.router,
-    conflicts.router,
-    readiness.router,
-    activities.router,
-):
-    app.include_router(router)
+app.include_router(bankruptcy.router)
 
 
 @app.exception_handler(DomainError)
