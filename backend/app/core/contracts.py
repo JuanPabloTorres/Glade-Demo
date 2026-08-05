@@ -41,7 +41,7 @@ class ContractRegistry:
         )
 
     @classmethod
-    def load(cls) -> "ContractRegistry":
+    def load(cls) -> ContractRegistry:
         candidates = [
             Path(__file__).resolve().parents[3] / "contracts" / "api-contracts.json",
             Path("/contracts/api-contracts.json"),

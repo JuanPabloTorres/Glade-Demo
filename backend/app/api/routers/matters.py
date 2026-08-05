@@ -2,7 +2,12 @@ from fastapi import APIRouter, status
 
 from app.api.dependencies import MatterServiceDep
 from app.core.contracts import get_contract_registry
-from app.schemas.matter import MatterCreateDto, MatterDetailDto, MatterIntakeUpdateDto, MatterSummaryDto
+from app.schemas.matter import (
+    MatterCreateDto,
+    MatterDetailDto,
+    MatterIntakeUpdateDto,
+    MatterSummaryDto,
+)
 
 router = APIRouter(tags=["Matters"])
 registry = get_contract_registry()

@@ -12,7 +12,7 @@ from app.main import app
 
 
 @pytest.fixture
-def session() -> Generator[Session, None, None]:
+def session() -> Generator[Session]:
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -28,8 +28,8 @@ def session() -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def client(session: Session) -> Generator[TestClient, None, None]:
-    def override_db() -> Generator[Session, None, None]:
+def client(session: Session) -> Generator[TestClient]:
+    def override_db() -> Generator[Session]:
         yield session
 
     app.dependency_overrides[get_db_session] = override_db

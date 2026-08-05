@@ -1,5 +1,5 @@
-from fastapi.testclient import TestClient
 from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
 
 from app.core.contracts import get_contract_registry
 from app.main import app

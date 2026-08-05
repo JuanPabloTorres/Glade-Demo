@@ -1,6 +1,6 @@
 from app.core.errors import NotFoundError, ValidationError
 from app.domain.enums import ActivityType, ConflictStatus
-from app.domain.models import Activity, Conflict
+from app.domain.models import Activity
 from app.repositories.unit_of_work import SqlAlchemyUnitOfWork
 from app.schemas.conflict import ConflictDto, ConflictResolveDto
 

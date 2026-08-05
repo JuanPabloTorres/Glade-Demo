@@ -11,7 +11,7 @@ engine = create_engine(settings.database_url, connect_args=connect_args, future=
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
 
 
-def get_db_session() -> Generator[Session, None, None]:
+def get_db_session() -> Generator[Session]:
     session = SessionLocal()
     try:
         yield session

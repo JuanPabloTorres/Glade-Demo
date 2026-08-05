@@ -2,7 +2,12 @@ from app.core.errors import NotFoundError
 from app.domain.enums import ActivityType, FactSourceType, MatterStatus
 from app.domain.models import Activity, ExtractedFact, Matter
 from app.repositories.unit_of_work import SqlAlchemyUnitOfWork
-from app.schemas.matter import MatterCreateDto, MatterDetailDto, MatterIntakeUpdateDto, MatterSummaryDto
+from app.schemas.matter import (
+    MatterCreateDto,
+    MatterDetailDto,
+    MatterIntakeUpdateDto,
+    MatterSummaryDto,
+)
 from app.services.readiness_service import ReadinessService
 
 

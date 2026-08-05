@@ -1,14 +1,10 @@
-from typing import Generic, TypeVar
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.base import Base
 
-TEntity = TypeVar("TEntity", bound=Base)
 
-
-class BaseRepository(Generic[TEntity]):
+class BaseRepository[TEntity: Base]:
     def __init__(self, session: Session, model_type: type[TEntity]) -> None:
         self._session = session
         self._model_type = model_type
