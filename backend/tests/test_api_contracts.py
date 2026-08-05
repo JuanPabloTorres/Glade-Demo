@@ -5,15 +5,11 @@ from app.main import app
 
 
 def test_every_contract_maps_to_an_openapi_operation() -> None:
-    routes = {
-        (method, route.path, route.operation_id)
-        for route in app.routes
-        if getattr(route, "operation_id", None) is not None
-        for method in (getattr(route, "methods", None) or set())
-    }
+    openapi = app.openapi()
 
     for contract in get_contract_registry().values():
-        assert (contract.method, contract.path, contract.operation_id) in routes
+        operation = openapi["paths"][contract.path][contract.method.lower()]
+        assert operation["operationId"] == contract.operation_id
 
 
 def test_response_exposes_frontend_to_backend_trace(client: TestClient) -> None:
