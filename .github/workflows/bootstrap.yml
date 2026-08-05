@@ -16,12 +16,67 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Verify replacement archive segments
+        shell: bash
+        run: |
+          set -euo pipefail
+          check() { echo "$1  $2" | sha256sum -c -; }
+
+          check f43dd9c28b657db46d868e4f4a0d694222d561a3787bf7b227acb591df9af7ec .bootstrap/fix02-00
+          check a7bf25ef8535a0235507bc7a1d3caec13d64ad15b01e638067bb766c57d30a41 .bootstrap/fix02-01
+          check 988385f8c012fb57a12ca033678694094298cd48604a526ce088599094733d63 .bootstrap/fix02-02
+          check 5fc483762aa6ea127165b8d6467e0cbd769423ccfc8bcb6c812da9ce973e8c28 .bootstrap/fix02-03
+          check 29378230cdb2433802d7fbd5b79a3ae8f04b3f5b6a93176f77109088f44187f0 .bootstrap/fix02-04
+
+          check 179163d477ddc35ad730ce07376febdfe4890c41570c63073f7cf969017c9092 .bootstrap/fix03-00
+          check cb86a109601ae4302a28ed13ab70ae19106818c8baf44204d4218b212e21116d .bootstrap/fix03-01
+          check eea198e20c141d1b89deccf5e790f320c64328e9f0bb00920fdb847484b0aa67 .bootstrap/fix03-02
+          check e98a141b32bc26aa72e61e4e19e3c329d1b26a3bba40acb51a1690388fcd4fe8 .bootstrap/fix03b-00
+          check b021ec8c5be1151ac15eb4ba195667df5508c145536c1313debe873782dcd52b .bootstrap/fix03b-01
+          check 3a874c880f4b914f47b1f7c7d470b1339a4e8487fcfbe2a72dedb76033474393 .bootstrap/fix03b-02
+          check 26971660d28be5f81d32ea8c9da5f26f53125b809516d2db222ba9ddf88e0829 .bootstrap/fix03c-03a
+          check 4daea46b8f224a440e5444fd8acef9f8c662d0149ecbcdcd670968bbceae0105 .bootstrap/fix03c-03b
+          check 10958fbf5a3c2c6caf808640ac62d53c98dde34a5c6f709da6af5e2d0e4d744e .bootstrap/fix03b-04
+          check 4595c6b9796b415115e5cdafec00f51ea25aef74ba6570a57cf6b76ce0176b86 .bootstrap/fix03b-05
+          check 3316df21652efc083cff5517140ef9acfac72a3fad14938412c7813b8019d36f .bootstrap/fix03b-06
+          check 44df80f43ea3e7788b492c4a0b36789b0381538e64cd64f5c8b41cb7eb231cca .bootstrap/fix03c-07a
+          check 29f2c489b3d136d4dfe940791d64bd60ab8fab3ce299408127aa3d99da0d1eb0 .bootstrap/fix03c-07b
+
       - name: Reconstruct and verify project archive
         shell: bash
         run: |
           set -euo pipefail
-          sha256sum .bootstrap/zip-{00..11}
-          cat .bootstrap/zip-{00..11} > /tmp/matter-ready-demo.b64
+          cat \
+            .bootstrap/zip-00 \
+            .bootstrap/zip-01 \
+            .bootstrap/fix02-00 \
+            .bootstrap/fix02-01 \
+            .bootstrap/fix02-02 \
+            .bootstrap/fix02-03 \
+            .bootstrap/fix02-04 \
+            .bootstrap/fix03-00 \
+            .bootstrap/fix03-01 \
+            .bootstrap/fix03-02 \
+            .bootstrap/fix03b-00 \
+            .bootstrap/fix03b-01 \
+            .bootstrap/fix03b-02 \
+            .bootstrap/fix03c-03a \
+            .bootstrap/fix03c-03b \
+            .bootstrap/fix03b-04 \
+            .bootstrap/fix03b-05 \
+            .bootstrap/fix03b-06 \
+            .bootstrap/fix03c-07a \
+            .bootstrap/fix03c-07b \
+            .bootstrap/zip-04 \
+            .bootstrap/zip-05 \
+            .bootstrap/zip-06 \
+            .bootstrap/zip-07 \
+            .bootstrap/zip-08 \
+            .bootstrap/zip-09 \
+            .bootstrap/zip-10 \
+            .bootstrap/zip-11 \
+            > /tmp/matter-ready-demo.b64
+
           test "$(wc -c < /tmp/matter-ready-demo.b64 | tr -d ' ')" = "117756"
           echo "38f647ab3e6a63bda7d063d12a68f16faf3d3a61d06bcb2216926940993e4600  /tmp/matter-ready-demo.b64" | sha256sum -c -
           base64 --decode /tmp/matter-ready-demo.b64 > /tmp/matter-ready-demo.zip
