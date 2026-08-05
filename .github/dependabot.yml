@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Puerto_Rico
+    open-pull-requests-limit: 5
+    labels: [dependencies, release:patch]
+    groups:
+      frontend-dependencies:
+        patterns: ["*"]
+  - package-ecosystem: uv
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:15"
+      timezone: America/Puerto_Rico
+    open-pull-requests-limit: 5
+    labels: [dependencies, release:patch]
+    groups:
+      backend-dependencies:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [dependencies, release:patch]

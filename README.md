@@ -1,24 +1,31 @@
-# MatterReady Demo
+# MatterReady
 
-A compact legal matter intake and case-readiness workspace built for a software engineering evaluation. It demonstrates canonical case data, document fact extraction, conflict detection, human resolution, readiness scoring, and end-to-end API traceability.
+MatterReady is a review-first legal operations workspace that converts structured intake and document findings into human-approved decisions, readiness scoring, and an auditable case-preparation workflow.
 
-> Synthetic demo only. Not legal advice. Not affiliated with Glade.
+## What the product demonstrates
+
+- structured client intake and canonical case data;
+- document fact extraction through a replaceable provider boundary;
+- explicit conflict detection and human approval;
+- deterministic readiness scoring;
+- a professional Flowbite React interface;
+- secure, reproducible delivery with automated release verification.
 
 ## Stack
-- React, TypeScript, Vite, Flowbite React, TanStack Query
-- Python, FastAPI, Pydantic v2, SQLAlchemy 2
-- SQLite locally or PostgreSQL through configuration
-- Pytest, Ruff, mypy, Vitest, ESLint
 
-## Why this project
-Modern legal operations platforms connect intake, documents, case data, and next actions. MatterReady focuses on one valuable slice: building a reliable canonical matter record from multiple sources while preserving conflicts and human review.
+- React 19, TypeScript, Vite, Flowbite React, TanStack Query;
+- Python 3.13, FastAPI, Pydantic 2, SQLAlchemy 2;
+- SQLite for the evaluation environment or PostgreSQL through configuration;
+- Ruff, mypy, Pytest, ESLint, Vitest, and Playwright;
+- GitHub Actions and Vercel.
 
-## Quick start
+## Local development
+
 ```bash
 cp .env.example .env
 make install
 make backend
-# another terminal
+# in another terminal
 make frontend
 ```
 
@@ -26,18 +33,26 @@ make frontend
 - API: `http://localhost:8000`
 - OpenAPI: `http://localhost:8000/docs`
 
-## Architecture guarantees
-- Shared API contract registry maps frontend call -> HTTP method/path -> controller/action.
-- Request and response trace headers prove the matched operation at runtime.
-- DTOs isolate HTTP payloads from ORM models.
-- Services contain business rules.
+## Architecture boundaries
+
+- Shared API contracts keep the frontend and backend aligned.
+- DTOs isolate HTTP payloads from persistence models.
+- Services own business rules.
 - Repositories and unit of work isolate persistence.
-- Provider factory isolates document-intelligence implementation.
-- Flowbite components are organized as atoms, molecules, organisms, and pages.
+- A provider factory isolates document-intelligence implementation.
+- Flowbite components are organized into reusable UI layers.
+- Internal routing and diagnostic metadata are not exposed in the public UI.
 
-See `docs/`, `docs/openapi.json`, `VALIDATION.md`, and `AGENTS.md` for full details.
+## Delivery and audit
 
-## Deployment adapters
-- Root `vercel.json` + `api/index.py`: one-project evaluation preview.
-- `render.yaml`: containerized API with managed PostgreSQL.
-- `frontend/vercel.json`: standalone frontend deployment when the API is hosted separately.
+See:
+
+- [`docs/RELEASE_PIPELINE.md`](docs/RELEASE_PIPELINE.md)
+- [`docs/VERSIONING.md`](docs/VERSIONING.md)
+- [`SECURITY.md`](SECURITY.md)
+- [`VALIDATION.md`](VALIDATION.md)
+- [`AGENTS.md`](AGENTS.md)
+
+The release pipeline validates locked dependencies, backend and frontend quality gates, the production build, Playwright browser behavior, semantic versioning, Vercel deployment readiness, and production security headers.
+
+> Evaluation software only. Use invented demonstration data. Not legal advice and not affiliated with Glade.

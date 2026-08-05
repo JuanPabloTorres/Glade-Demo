@@ -10,6 +10,7 @@ class ApiModel(BaseModel):
 class HealthDto(ApiModel):
     status: str
     service: str
+    version: str
 
 
 class ActivityDto(ApiModel):
