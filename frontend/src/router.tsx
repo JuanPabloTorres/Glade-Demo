@@ -1,8 +1,9 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { AppShell } from "./components/organisms/AppShell";
-import { CopilotPage } from "./pages/CopilotPage";
+import { CaseWorkspacePage } from "./pages/CaseWorkspacePage";
 import { LoginPage } from "./pages/LoginPage";
+import { RoleHomePage } from "./pages/RoleHomePage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -12,7 +13,10 @@ export const router = createBrowserRouter([
       {
         path: "/",
         element: <AppShell />,
-        children: [{ index: true, element: <CopilotPage /> }],
+        children: [
+          { index: true, element: <RoleHomePage /> },
+          { path: "case/:caseId", element: <CaseWorkspacePage /> },
+        ],
       },
     ],
   },
