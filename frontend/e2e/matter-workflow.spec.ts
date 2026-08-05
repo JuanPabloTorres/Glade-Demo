@@ -5,9 +5,9 @@ test("client submits a bankruptcy intake and attorney reviews it", async ({ page
   await expect(page).toHaveURL(/\/login$/);
   await page.getByRole("button", { name: "Entrar como cliente" }).click();
   await expect(
-    page.getByRole("heading", { name: "Prepara tu historia financiera paso a paso." }),
+    page.getByRole("heading", { name: "Así va tu expediente." }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Continuar solicitud" }).click();
+  await page.getByRole("button", { name: "Continuar expediente" }).click();
   await expect(page.getByRole("heading", { name: "Elena Rivera" })).toBeVisible();
   await expect(page.getByTestId("completion-score")).toBeVisible();
 
