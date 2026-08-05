@@ -16,70 +16,15 @@ export const apiContracts = {
     "method": "GET",
     "path": "/api/v1/auth/me"
   },
-  "copilot.message": {
-    "operationId": "sendCopilotMessage",
+  "bankruptcy.analyze": {
+    "operationId": "analyzeBankruptcyCase",
     "method": "POST",
-    "path": "/api/v1/copilot/message"
+    "path": "/api/v1/bankruptcy/analyze"
   },
-  "copilot.document": {
-    "operationId": "analyzeCopilotDocument",
+  "bankruptcy.guide": {
+    "operationId": "guideBankruptcyCase",
     "method": "POST",
-    "path": "/api/v1/copilot/document"
-  },
-  "copilot.resolveIssue": {
-    "operationId": "resolveCopilotIssue",
-    "method": "POST",
-    "path": "/api/v1/copilot/issues/{issue_id}/resolve"
-  },
-  "matters.list": {
-    "operationId": "listMatters",
-    "method": "GET",
-    "path": "/api/v1/matters"
-  },
-  "matters.create": {
-    "operationId": "createMatter",
-    "method": "POST",
-    "path": "/api/v1/matters"
-  },
-  "matters.get": {
-    "operationId": "getMatter",
-    "method": "GET",
-    "path": "/api/v1/matters/{matter_id}"
-  },
-  "matters.updateIntake": {
-    "operationId": "updateMatterIntake",
-    "method": "PUT",
-    "path": "/api/v1/matters/{matter_id}/intake"
-  },
-  "documents.create": {
-    "operationId": "createDocument",
-    "method": "POST",
-    "path": "/api/v1/matters/{matter_id}/documents"
-  },
-  "documents.list": {
-    "operationId": "listDocuments",
-    "method": "GET",
-    "path": "/api/v1/matters/{matter_id}/documents"
-  },
-  "conflicts.list": {
-    "operationId": "listConflicts",
-    "method": "GET",
-    "path": "/api/v1/matters/{matter_id}/conflicts"
-  },
-  "conflicts.resolve": {
-    "operationId": "resolveConflict",
-    "method": "POST",
-    "path": "/api/v1/matters/{matter_id}/conflicts/{conflict_id}/resolve"
-  },
-  "readiness.get": {
-    "operationId": "getReadiness",
-    "method": "GET",
-    "path": "/api/v1/matters/{matter_id}/readiness"
-  },
-  "activities.list": {
-    "operationId": "listActivities",
-    "method": "GET",
-    "path": "/api/v1/matters/{matter_id}/activities"
+    "path": "/api/v1/bankruptcy/guide"
   }
 } as const;
 export type ApiOperationKey = keyof typeof apiContracts;

@@ -1,6 +1,10 @@
+from typing import Literal
+
 from pydantic import Field, field_validator
 
 from app.schemas.common import ApiModel
+
+UserRole = Literal["client", "attorney"]
 
 
 class LoginDto(ApiModel):
@@ -14,9 +18,10 @@ class LoginDto(ApiModel):
 
 
 class AuthUserDto(ApiModel):
+    id: str
     email: str
     name: str
-    role: str
+    role: UserRole
 
 
 class AuthTokenDto(ApiModel):

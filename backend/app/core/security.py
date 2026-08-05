@@ -23,22 +23,38 @@ def get_demo_password_hash(password: str) -> str:
     return password_hash.hash(password)
 
 
-def get_demo_user(settings: Settings) -> AuthUserDto:
-    return AuthUserDto(
-        email=settings.demo_user_email.strip().lower(),
-        name=settings.demo_user_name,
-        role=settings.demo_user_role,
-    )
+def get_demo_accounts(settings: Settings) -> list[tuple[AuthUserDto, str]]:
+    return [
+        (
+            AuthUserDto(
+                id=settings.demo_client_id,
+                email=settings.demo_client_email.strip().lower(),
+                name=settings.demo_client_name,
+                role="client",
+            ),
+            settings.demo_client_password,
+        ),
+        (
+            AuthUserDto(
+                id=settings.demo_attorney_id,
+                email=settings.demo_attorney_email.strip().lower(),
+                name=settings.demo_attorney_name,
+                role="attorney",
+            ),
+            settings.demo_attorney_password,
+        ),
+    ]
 
 
 def authenticate_credentials(email: str, password: str, settings: Settings) -> AuthUserDto | None:
-    expected_email = settings.demo_user_email.strip().lower()
-    if not secrets.compare_digest(email.strip().lower(), expected_email):
-        return None
-    hashed_password = get_demo_password_hash(settings.demo_user_password)
-    if not password_hash.verify(password, hashed_password):
-        return None
-    return get_demo_user(settings)
+    normalized_email = email.strip().lower()
+    for user, expected_password in get_demo_accounts(settings):
+        if not secrets.compare_digest(normalized_email, user.email):
+            continue
+        hashed_password = get_demo_password_hash(expected_password)
+        if password_hash.verify(password, hashed_password):
+            return user
+    return None
 
 
 def create_access_token(user: AuthUserDto, settings: Settings) -> str:
@@ -46,6 +62,7 @@ def create_access_token(user: AuthUserDto, settings: Settings) -> str:
     expires_at = now + timedelta(minutes=settings.jwt_expiration_minutes)
     payload: dict[str, Any] = {
         "sub": user.email,
+        "uid": user.id,
         "name": user.name,
         "role": user.role,
         "iat": now,
@@ -73,15 +90,22 @@ def decode_access_token(token: str, settings: Settings) -> AuthUserDto:
         ) from exc
 
     subject = payload.get("sub")
+    user_id = payload.get("uid")
     name = payload.get("name")
     role = payload.get("role")
-    if not all(isinstance(value, str) and value for value in (subject, name, role)):
+    if not all(isinstance(value, str) and value for value in (subject, user_id, name, role)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="The session token is missing required claims.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return AuthUserDto(email=subject, name=name, role=role)
+    if role not in {"client", "attorney"}:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="The session role is invalid.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return AuthUserDto(id=user_id, email=subject, name=name, role=role)
 
 
 def get_current_user(
