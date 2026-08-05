@@ -1,7 +1,7 @@
 [project]
 name = "matter-ready-api"
 version = "0.4.0"
-description = "MatterReady legal intake and readiness demo API"
+description = "MatterReady conversational intake and evidence analysis API"
 requires-python = ">=3.13"
 dependencies = [
   "fastapi>=0.116,<1.0",
@@ -11,8 +11,19 @@ dependencies = [
   "pydantic-settings>=2.10,<3.0",
   "psycopg[binary]>=3.2.9,<4.0",
   "PyJWT>=2.10,<3.0",
-  "pwdlib[argon2]>=0.2,<1.0",
+  "pwdlib[argon2]>=0.3,<1.0",
+  "pandas>=3.0,<4.0",
+  "rapidfuzz>=3.14,<4.0",
 ]
+
+[project.optional-dependencies]
+ai = [
+  "torch>=2.8,<3.0",
+  "transformers>=4.55,<5.0",
+  "sentence-transformers>=5.0,<6.0",
+  "accelerate>=1.10,<2.0",
+]
+documents = ["docling>=2.60,<3.0"]
 
 [dependency-groups]
 dev = [
