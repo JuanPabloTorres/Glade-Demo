@@ -16,11 +16,13 @@ from app.ai.providers.factory import get_provider
 from app.ai.providers.ollama_provider import OllamaProvider
 from app.ai.providers.rule_based import RuleBasedProvider
 from app.ai.providers.transformers_provider import TransformersProvider
-from app.schemas.bankruptcy import BankruptcyCaseDto, CaseAnalysisDto, GuidanceRequestDto
+from app.schemas.assistant import CaseContextDto
+from app.schemas.bankruptcy import BankruptcyCaseDto, UserRole
 from app.services.bankruptcy_service import BankruptcyAnalysisService
+from app.services.case_context_builder import CaseContextBuilder
 
 
-def _request(message: str = "¿Qué me falta?", role: str = "client") -> GuidanceRequestDto:
+def _context(role: UserRole = "client") -> CaseContextDto:
     case = BankruptcyCaseDto(
         id="case-provider-test",
         owner_user_id="client-demo",
@@ -28,11 +30,8 @@ def _request(message: str = "¿Qué me falta?", role: str = "client") -> Guidanc
         client_email="client@freshstart.demo",
         status="collecting_information",
     )
-    return GuidanceRequestDto(case=case, message=message, role=role, locale="es")
-
-
-def _analysis(request: GuidanceRequestDto) -> CaseAnalysisDto:
-    return BankruptcyAnalysisService().analyze(request.case)
+    analysis = BankruptcyAnalysisService().analyze(case)
+    return CaseContextBuilder().build(case, analysis, role)
 
 
 class TestRuleBasedProvider:
@@ -41,14 +40,14 @@ class TestRuleBasedProvider:
 
     def test_generates_a_draft_for_every_branch(self) -> None:
         provider = RuleBasedProvider()
-        for message, role in [
+        cases: list[tuple[str, UserRole]] = [
             ("¿qué me falta?", "client"),
             ("tengo dudas sobre chapter 7", "client"),
             ("dudas sobre chapter 13", "client"),
             ("resumen del caso", "attorney"),
-        ]:
-            request = _request(message=message, role=role)
-            draft = provider.generate(request=request, analysis=_analysis(request))
+        ]
+        for message, role in cases:
+            draft = provider.generate(context=_context(role=role), message=message)
             assert draft.message
             assert draft.intent
             assert draft.focus_section
@@ -63,10 +62,9 @@ class TestOllamaProvider:
 
         monkeypatch.setattr("urllib.request.urlopen", raise_connection_error)
 
-        request = _request()
-        analysis = _analysis(request)
-        baseline = RuleBasedProvider().generate(request=request, analysis=analysis)
-        draft = provider.generate(request=request, analysis=analysis)
+        context = _context()
+        baseline = RuleBasedProvider().generate(context=context, message="¿qué me falta?")
+        draft = provider.generate(context=context, message="¿qué me falta?")
 
         assert draft.message == baseline.message
         assert draft.focus_section == baseline.focus_section
@@ -87,8 +85,7 @@ class TestOllamaProvider:
 
         monkeypatch.setattr("urllib.request.urlopen", lambda *_a, **_k: FakeResponse())
 
-        request = _request()
-        draft = provider.generate(request=request, analysis=_analysis(request))
+        draft = provider.generate(context=_context(), message="¿qué me falta?")
         assert draft.message == "Texto reescrito por el modelo."
 
 
@@ -101,10 +98,9 @@ class TestTransformersProvider:
 
         monkeypatch.setattr("importlib.import_module", raise_import_error)
 
-        request = _request()
-        analysis = _analysis(request)
-        baseline = RuleBasedProvider().generate(request=request, analysis=analysis)
-        draft = provider.generate(request=request, analysis=analysis)
+        context = _context()
+        baseline = RuleBasedProvider().generate(context=context, message="¿qué me falta?")
+        draft = provider.generate(context=context, message="¿qué me falta?")
 
         assert draft.message == baseline.message
         assert provider.is_available() is False

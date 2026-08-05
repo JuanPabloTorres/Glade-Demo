@@ -8,7 +8,7 @@ from app.ai.providers.base import GuidanceDraft
 from app.ai.providers.rule_based import RuleBasedProvider
 
 if TYPE_CHECKING:
-    from app.schemas.bankruptcy import CaseAnalysisDto, GuidanceRequestDto
+    from app.schemas.assistant import CaseContextDto
 
 logger = logging.getLogger(__name__)
 
@@ -52,20 +52,20 @@ class TransformersProvider:
             self._torch = torch
         return self._pipeline, self._torch
 
-    def generate(self, *, request: GuidanceRequestDto, analysis: CaseAnalysisDto) -> GuidanceDraft:
-        draft = self._fallback.generate(request=request, analysis=analysis)
-        rewritten = self._rewrite(locale=request.locale, draft_message=draft.message)
+    def generate(self, *, context: CaseContextDto, message: str) -> GuidanceDraft:
+        draft = self._fallback.generate(context=context, message=message)
+        rewritten = self._rewrite(draft_message=draft.message)
         if rewritten:
             draft.message = rewritten
         return draft
 
-    def _rewrite(self, *, locale: str, draft_message: str) -> str | None:
+    def _rewrite(self, *, draft_message: str) -> str | None:
         try:
             pipeline, torch = self._load()
             prompt = (
                 "You rewrite a draft response for a bankruptcy-preparation assistant into concise, "
                 "plain language. Do not add facts, legal advice, promises, or hidden assumptions. "
-                f"Reply in locale {locale}.\n\nDraft:\n{draft_message}\n\nRewrite:"
+                f"Keep the same language as the draft (Spanish).\n\nDraft:\n{draft_message}\n\nRewrite:"
             )
             with torch.inference_mode():
                 result = pipeline(

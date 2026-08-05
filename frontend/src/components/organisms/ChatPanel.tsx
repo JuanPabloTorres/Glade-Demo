@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { bankruptcyApi } from "../../api/bankruptcyApi";
 import { useAuth } from "../../auth/AuthContext";
 import { useChatPanel } from "../../chat/ChatPanelContext";
-import type { GuidanceResponse } from "../../types/bankruptcy";
+import type { AssistantAction, AssistantResponse } from "../../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../../workspace/BankruptcyWorkspaceContext";
 import { AppIcon } from "../atoms/AppIcon";
 import { ChatBubble } from "./ChatBubble";
@@ -22,7 +22,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const { caseData, prefill } = useChatPanel();
   const [message, setMessage] = useState(prefill);
-  const [guidance, setGuidance] = useState<GuidanceResponse | null>(null);
+  const [guidance, setGuidance] = useState<AssistantResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null);
@@ -58,7 +58,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
       setGuidance(response);
       workspace.updateCase(caseData.id, (current) => ({
         ...current,
-        messages: [...current.messages, { id: `message-${crypto.randomUUID()}`, role: "assistant", content: response.reply, createdAt: new Date().toISOString() }],
+        messages: [...current.messages, { id: `message-${crypto.randomUUID()}`, role: "assistant", content: response.message, createdAt: new Date().toISOString() }],
       }));
       setLastFailedMessage(null);
     } catch {
@@ -83,6 +83,13 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
     navigate(`/case/${caseData.id}?focus=${encodeURIComponent(guidance.focus_section)}`);
     onClose();
   };
+
+  // Every suggested_actions entry emitted by the backend today has
+  // action_type "ask" (a follow-up prompt to send verbatim) — see
+  // backend/app/schemas/assistant.py for why that type exists. Other
+  // action_types (request_document, create_note, ...) have no handler yet;
+  // Block 10 wires those up as real case-mutating actions.
+  const selectSuggestedAction = (action: AssistantAction) => setMessage(action.label);
 
   return (
     <div className="flex h-full flex-col">
@@ -137,7 +144,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
           onSubmit={submit}
           busy={busy}
           suggestedActions={guidance?.suggested_actions ?? []}
-          onSelectAction={setMessage}
+          onSelectAction={selectSuggestedAction}
         />
         {guidance ? <p className="mt-2 text-xs text-[#777]">{guidance.disclaimer}</p> : null}
       </div>

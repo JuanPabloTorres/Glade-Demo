@@ -10,7 +10,7 @@ from app.ai.providers.base import GuidanceDraft
 from app.ai.providers.rule_based import RuleBasedProvider
 
 if TYPE_CHECKING:
-    from app.schemas.bankruptcy import CaseAnalysisDto, GuidanceRequestDto
+    from app.schemas.assistant import CaseContextDto
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,8 @@ _CONNECT_TIMEOUT_SECONDS = 2.0
 _REWRITE_SYSTEM_PROMPT = (
     "You rewrite a draft response for a bankruptcy-preparation assistant into concise, plain "
     "language. Do not add facts, legal advice, promises, eligibility claims, or a chapter "
-    "recommendation. Do not invent requirements. Keep the same meaning. Reply in the given locale."
+    "recommendation. Do not invent requirements. Keep the same meaning and the same language as "
+    "the draft (the app is Spanish-only today)."
 )
 
 
@@ -48,17 +49,15 @@ class OllamaProvider:
         except Exception:  # noqa: BLE001 - availability probe must never raise
             return False
 
-    def generate(self, *, request: GuidanceRequestDto, analysis: CaseAnalysisDto) -> GuidanceDraft:
-        draft = self._fallback.generate(request=request, analysis=analysis)
-        rewritten = self._rewrite(locale=request.locale, draft_message=draft.message)
+    def generate(self, *, context: CaseContextDto, message: str) -> GuidanceDraft:
+        draft = self._fallback.generate(context=context, message=message)
+        rewritten = self._rewrite(draft_message=draft.message)
         if rewritten:
             draft.message = rewritten
         return draft
 
-    def _rewrite(self, *, locale: str, draft_message: str) -> str | None:
-        prompt = (
-            f"{_REWRITE_SYSTEM_PROMPT}\n\nLocale: {locale}\n\nDraft:\n{draft_message}\n\nRewrite:"
-        )
+    def _rewrite(self, *, draft_message: str) -> str | None:
+        prompt = f"{_REWRITE_SYSTEM_PROMPT}\n\nDraft:\n{draft_message}\n\nRewrite:"
         payload = json.dumps(
             {"model": self._model, "prompt": prompt, "stream": False}
         ).encode("utf-8")

@@ -1,15 +1,15 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.config import Settings, get_settings
 from app.core.contracts import get_contract_registry
 from app.core.security import CurrentUserDep
+from app.schemas.assistant import AssistantResponse
 from app.schemas.bankruptcy import (
     CaseAnalysisDto,
     CaseAnalysisRequestDto,
     GuidanceRequestDto,
-    GuidanceResponseDto,
 )
 from app.services.bankruptcy_service import (
     BankruptcyAnalysisService,
@@ -35,12 +35,23 @@ def analyze_case(
 
 @router.post(
     registry.get("bankruptcy.guide").path,
-    response_model=GuidanceResponseDto,
+    response_model=AssistantResponse,
     operation_id=registry.get("bankruptcy.guide").operation_id,
 )
 def guide_case(
     body: GuidanceRequestDto,
-    _: CurrentUserDep,
+    current_user: CurrentUserDep,
     settings: SettingsDep,
-) -> GuidanceResponseDto:
+) -> AssistantResponse:
+    # Security fix (docs/audits/FRESHSTART-UX-AI-REFACTOR-AUDIT.md §6): the
+    # request body's `role` was previously trusted as-is, never checked
+    # against the authenticated session. A mismatched role is rejected here
+    # rather than silently trusted — e.g. a client-authenticated session
+    # cannot request attorney-scoped guidance by setting role="attorney" in
+    # the body.
+    if body.role != current_user.role:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The requested role does not match the authenticated session.",
+        )
     return BankruptcyGuidanceService(settings).guide(body)

@@ -1,13 +1,14 @@
 import { Button, Label, Textarea } from "flowbite-react";
 import { type FormEvent } from "react";
+import type { AssistantAction } from "../../types/bankruptcy";
 import { AppIcon } from "../atoms/AppIcon";
 
 interface ChatComposerProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
-  suggestedActions: string[];
-  onSelectAction: (action: string) => void;
+  suggestedActions: AssistantAction[];
+  onSelectAction: (action: AssistantAction) => void;
   busy: boolean;
 }
 
@@ -17,7 +18,7 @@ export function ChatComposer({ value, onChange, onSubmit, suggestedActions, onSe
       {suggestedActions.length ? (
         <div className="mb-3 flex flex-wrap gap-2">
           {suggestedActions.map((action) => (
-            <Button key={action} size="xs" color="light" onClick={() => onSelectAction(action)}>{action}</Button>
+            <Button key={action.id} size="xs" color="light" onClick={() => onSelectAction(action)}>{action.label}</Button>
           ))}
         </div>
       ) : null}

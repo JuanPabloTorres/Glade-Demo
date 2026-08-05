@@ -103,7 +103,23 @@ def test_guidance_asks_for_missing_section(client: TestClient) -> None:
     )
     assert response.status_code == 200
     assert response.json()["focus_section"] == "debts-assets"
-    assert "bienes" in response.json()["reply"].casefold()
+    assert "bienes" in response.json()["message"].casefold()
+
+
+def test_guidance_rejects_role_mismatched_with_session(client: TestClient) -> None:
+    # `client` fixture authenticates as the demo client; declaring role
+    # "attorney" in the body must be rejected, not trusted (security fix,
+    # docs/audits/FRESHSTART-UX-AI-REFACTOR-AUDIT.md §6).
+    response = client.post(
+        "/api/v1/bankruptcy/guide",
+        json={
+            "case": sample_case(),
+            "message": "Resume el caso",
+            "role": "attorney",
+            "locale": "es",
+        },
+    )
+    assert response.status_code == 403
 
 
 def test_bankruptcy_endpoints_require_jwt(client: TestClient) -> None:

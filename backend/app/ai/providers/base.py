@@ -4,21 +4,16 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from app.schemas.bankruptcy import CaseAnalysisDto, GuidanceRequestDto
+    from app.schemas.assistant import CaseContextDto
 
 
 @dataclass
 class GuidanceDraft:
     """
-    Provider-agnostic result of a single guidance turn.
-
-    This is the internal representation every provider produces. Fields
-    beyond `message`/`suggested_actions`/`focus_section` (intent,
-    requested_fields, requested_documents, requires_attorney_review,
-    confidence) are populated here but not yet surfaced through the public
-    API — Block 9 upgrades `GuidanceResponseDto` to expose them and adds the
-    `CaseContextBuilder` that feeds providers a reduced, audited context
-    instead of the raw case object.
+    Provider-agnostic result of a single guidance turn. `BankruptcyGuidanceService`
+    maps this to the public `AssistantResponse` contract (app/schemas/assistant.py),
+    turning `suggested_actions` (bare strings here) into structured
+    `AssistantAction` objects with id/icon/action_type.
     """
 
     message: str
@@ -37,9 +32,15 @@ class BaseAIProvider(Protocol):
     Provider contract. Services depend on this Protocol, never on a
     concrete provider (AGENTS.md rule: services depend on protocols, not
     concrete implementations) — see `app.ai.providers.factory.get_provider`.
+
+    `generate` takes a `CaseContextDto` — the reduced, audited context from
+    `CaseContextBuilder` — and the raw user message. A provider never
+    receives the full case object, so it structurally cannot leak or act on
+    data outside what CaseContextBuilder chose to include (master
+    instruction §6.2).
     """
 
-    def generate(self, *, request: GuidanceRequestDto, analysis: CaseAnalysisDto) -> GuidanceDraft: ...
+    def generate(self, *, context: CaseContextDto, message: str) -> GuidanceDraft: ...
 
     def is_available(self) -> bool:
         """Cheap, synchronous check used for logging/tests — never required before generate()."""

@@ -6,12 +6,13 @@ import pandas as pd  # type: ignore[import-untyped]
 
 from app.ai.providers import BaseAIProvider, get_provider_for_settings
 from app.core.config import Settings
+from app.schemas.assistant import AssistantAction, AssistantResponse
 from app.schemas.bankruptcy import (
     BankruptcyCaseDto,
     CaseAnalysisDto,
     GuidanceRequestDto,
-    GuidanceResponseDto,
 )
+from app.services.case_context_builder import CaseContextBuilder
 
 FREQUENCY_MULTIPLIERS = {
     "weekly": 52 / 12,
@@ -308,15 +309,27 @@ class BankruptcyAnalysisService:
 class BankruptcyGuidanceService:
     def __init__(self, settings: Settings, provider: BaseAIProvider | None = None) -> None:
         self._analysis = BankruptcyAnalysisService()
+        self._context_builder = CaseContextBuilder()
         self._provider = provider or get_provider_for_settings(settings)
 
-    def guide(self, request: GuidanceRequestDto) -> GuidanceResponseDto:
+    def guide(self, request: GuidanceRequestDto) -> AssistantResponse:
         analysis = self._analysis.analyze(request.case)
-        draft = self._provider.generate(request=request, analysis=analysis)
-        return GuidanceResponseDto(
-            reply=draft.message,
-            suggested_actions=draft.suggested_actions,
+        context = self._context_builder.build(request.case, analysis, request.role)
+        draft = self._provider.generate(context=context, message=request.message)
+        return AssistantResponse(
+            message=draft.message,
+            intent=draft.intent,
+            suggested_actions=[
+                AssistantAction(id=f"suggested-{index}", label=text, icon="chat", action_type="ask")
+                for index, text in enumerate(draft.suggested_actions)
+            ],
             focus_section=draft.focus_section,
+            requested_fields=draft.requested_fields,
+            requested_documents=draft.requested_documents,
+            warnings=draft.warnings,
+            summary_updates=[],
+            requires_attorney_review=draft.requires_attorney_review,
+            confidence=None,
             disclaimer=(
                 "Esta orientación organiza información y preguntas. No determina elegibilidad, "
                 "no sustituye el means test oficial y no es asesoramiento legal."
