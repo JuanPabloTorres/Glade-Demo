@@ -4,9 +4,10 @@ test("completes intake, document review, and case readiness", async ({ page }) =
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
-      name: "Prepare every matter with a clear, reviewable workflow.",
+      name: "Turn client intake and documents into a review-ready matter.",
     }),
   ).toBeVisible();
+  await expect(page.getByText("What the system does")).toBeVisible();
   await page.getByRole("button", { name: "Create a matter" }).click();
 
   const modal = page.getByRole("dialog");
@@ -28,9 +29,7 @@ test("completes intake, document review, and case readiness", async ({ page }) =
   await page.getByLabel("Document type").selectOption("identity");
   await page
     .getByLabel("Document text")
-    .fill(
-      "Name: Jordan A. Sample\nDOB: 1990-05-04\nAddress: 123 Main St Apt 2, San Juan, PR",
-    );
+    .fill("Name: Jordan A. Sample\nDOB: 1990-05-04\nAddress: 123 Main St Apt 2, San Juan, PR");
   await page.getByRole("button", { name: "Analyze document" }).click();
   await expect(page.getByText("Document analysis completed.")).toBeVisible();
 
@@ -47,16 +46,12 @@ test("completes intake, document review, and case readiness", async ({ page }) =
 
   await page.getByLabel("Document name").fill("utility-bill.txt");
   await page.getByLabel("Document type").selectOption("proof_of_address");
-  await page
-    .getByLabel("Document text")
-    .fill("Address: 123 Main St Apt 2, San Juan, PR");
+  await page.getByLabel("Document text").fill("Address: 123 Main St Apt 2, San Juan, PR");
   await page.getByRole("button", { name: "Analyze document" }).click();
 
   await expect(page.getByTestId("readiness-score")).toHaveText("100%");
   await expect(page.getByTestId("matter-status")).toContainText("Ready for review");
-  await expect(
-    page.getByText("Matter ready for professional review.", { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByText("Matter ready for professional review.", { exact: false })).toBeVisible();
   await expect(page.getByText("AI-ready architecture").first()).toBeVisible();
   await expect(page.getByText("ConflictController.resolve_conflict")).toHaveCount(0);
 });

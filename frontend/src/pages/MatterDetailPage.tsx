@@ -1,5 +1,6 @@
 import { Alert, Badge, Button, Card } from "flowbite-react";
 import { Link, useParams } from "react-router";
+import { AppIcon } from "../components/atoms/AppIcon";
 import { ErrorState, LoadingState } from "../components/atoms/AsyncState";
 import { MutationFeedback } from "../components/atoms/MutationFeedback";
 import { PageTitle } from "../components/atoms/PageTitle";
@@ -26,9 +27,7 @@ export function MatterDetailPage() {
   const createDocument = useCreateDocument(matterId);
   const resolveConflict = useResolveConflict(matterId);
 
-  if (workspace.matter.isLoading) {
-    return <LoadingState label="Loading matter workspace" />;
-  }
+  if (workspace.matter.isLoading) return <LoadingState label="Loading matter workspace" />;
   if (workspace.matter.isError || !workspace.matter.data) {
     return <ErrorState message="This matter could not be found." />;
   }
@@ -66,29 +65,40 @@ export function MatterDetailPage() {
         };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-3">
-          <Button as={Link} to="/" color="alternative" size="xs">
-            ← Back to matters
-          </Button>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge color="gray" className="capitalize">
-              {matter.case_type}
-            </Badge>
-            <span className="text-sm text-gray-500">
-              Assigned to {matter.assigned_to ?? "the intake team"}
-            </span>
+    <div className="space-y-7 lg:space-y-8">
+      <Card className="border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <div className="max-w-3xl space-y-4">
+            <Button as={Link} to="/" color="alternative" size="xs">
+              <span className="flex items-center gap-2">
+                <span aria-hidden="true">←</span>
+                Back to matters
+              </span>
+            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge color="gray" className="capitalize">
+                {matter.case_type}
+              </Badge>
+              <span className="flex items-center gap-2 text-sm text-slate-500">
+                <AppIcon name="user" size={16} className="text-blue-700" />
+                Assigned to {matter.assigned_to ?? "the intake team"}
+              </span>
+            </div>
+            <div className="flex items-start gap-4">
+              <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-700 sm:flex">
+                <AppIcon name="portfolio" size={24} />
+              </span>
+              <PageTitle
+                title={matter.display_name}
+                subtitle="Confirm the client record, analyze supporting documents, and record professional decisions in one guided workspace."
+              />
+            </div>
           </div>
-          <PageTitle
-            title={matter.display_name}
-            subtitle="Review client information, analyze documents, and record decisions in one workspace."
-          />
+          <div data-testid="matter-status" className="pt-1">
+            <StatusBadge value={matter.status} />
+          </div>
         </div>
-        <div data-testid="matter-status" className="pt-1">
-          <StatusBadge value={matter.status} />
-        </div>
-      </div>
+      </Card>
 
       <Alert color={nextAction.color}>
         <span className="font-semibold">{nextAction.title}. </span>
@@ -101,36 +111,34 @@ export function MatterDetailPage() {
         <ReadinessPanel readiness={readiness} />
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="space-y-6">
+      <div className="grid gap-7 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="space-y-7">
           <MutationFeedback
             success={updateIntake.isSuccess ? "Client information saved." : null}
             error={updateIntake.error}
           />
-          <IntakeForm
-            matter={matter}
-            busy={updateIntake.isPending}
-            onSubmit={saveIntake}
-          />
+          <IntakeForm matter={matter} busy={updateIntake.isPending} onSubmit={saveIntake} />
 
           <MutationFeedback
             success={createDocument.isSuccess ? "Document analysis completed." : null}
             error={createDocument.error}
           />
-          <DocumentForm
-            busy={createDocument.isPending}
-            onSubmit={processDocument}
-          />
+          <DocumentForm busy={createDocument.isPending} onSubmit={processDocument} />
 
-          <Card className="border border-gray-200 shadow-sm">
-            <div className="mb-4">
-              <Badge color="gray" className="mb-2 w-fit">
-                Document portfolio
-              </Badge>
-              <h2 className="text-xl font-semibold text-gray-900">Analyzed documents</h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Review extracted fields and confirm whether each document still needs attention.
-              </p>
+          <Card className="border border-slate-200 bg-white shadow-sm">
+            <div className="mb-5 flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                <AppIcon name="document" size={20} />
+              </span>
+              <div>
+                <Badge color="gray" className="mb-2 w-fit">
+                  Document portfolio
+                </Badge>
+                <h2 className="text-xl font-semibold tracking-tight text-slate-950">Analyzed documents</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  Review extracted fields and confirm whether each document still needs attention.
+                </p>
+              </div>
             </div>
             {workspace.documents.isLoading ? (
               <LoadingState label="Loading analyzed documents" />
@@ -142,21 +150,25 @@ export function MatterDetailPage() {
           </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-7">
           <MutationFeedback
             success={resolveConflict.isSuccess ? "Review decision recorded." : null}
             error={resolveConflict.error}
           />
-          <Card className="border border-gray-200 shadow-sm">
-            <div className="mb-4">
-              <Badge color="info" className="mb-2 w-fit">
-                Step 3
-              </Badge>
-              <h2 className="text-xl font-semibold text-gray-900">Review document findings</h2>
-              <p className="mt-1 text-sm leading-6 text-gray-600">
-                Compare the approved client record with extracted document values and record the
-                correct outcome.
-              </p>
+          <Card className="border border-slate-200 bg-white shadow-sm">
+            <div className="mb-5 flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+                <AppIcon name="review" size={20} />
+              </span>
+              <div>
+                <Badge color="info" className="mb-2 w-fit">
+                  Human decision
+                </Badge>
+                <h2 className="text-xl font-semibold tracking-tight text-slate-950">Review document findings</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Compare the approved client record with extracted values and record the correct outcome.
+                </p>
+              </div>
             </div>
             {workspace.conflicts.isLoading ? (
               <LoadingState label="Loading review items" />
@@ -171,15 +183,20 @@ export function MatterDetailPage() {
             )}
           </Card>
 
-          <Card className="border border-gray-200 shadow-sm">
-            <div className="mb-4">
-              <Badge color="gray" className="mb-2 w-fit">
-                Audit history
-              </Badge>
-              <h2 className="text-xl font-semibold text-gray-900">Decision timeline</h2>
-              <p className="mt-1 text-sm text-gray-500">
-                A clear record of important workflow updates and human decisions.
-              </p>
+          <Card className="border border-slate-200 bg-white shadow-sm">
+            <div className="mb-5 flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                <AppIcon name="history" size={20} />
+              </span>
+              <div>
+                <Badge color="gray" className="mb-2 w-fit">
+                  Audit history
+                </Badge>
+                <h2 className="text-xl font-semibold tracking-tight text-slate-950">Decision timeline</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  A clear record of important workflow updates and human decisions.
+                </p>
+              </div>
             </div>
             {workspace.activities.isLoading ? (
               <LoadingState label="Loading decision history" />

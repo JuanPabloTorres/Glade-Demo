@@ -1,7 +1,7 @@
 {
   "name": "matter-ready-web",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "scripts": {
     "contracts:generate": "node scripts/generate-api-contracts.mjs",
