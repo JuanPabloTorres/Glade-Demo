@@ -11,7 +11,7 @@ from app.schemas.copilot import (
     DocumentAnalyzeRequestDto,
     ResolveIssueRequestDto,
 )
-from app.services.copilot_service import CopilotService
+from app.services.intake_copilot_service import IntakeCopilotService
 
 router = APIRouter(tags=["AI Intake Copilot"])
 registry = get_contract_registry()
@@ -27,7 +27,7 @@ def send_message(
     _: CurrentUserDep,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> CopilotResponseDto:
-    return CopilotService(settings).respond(body)
+    return IntakeCopilotService(settings).respond(body)
 
 
 @router.post(
@@ -40,7 +40,7 @@ def analyze_document(
     _: CurrentUserDep,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> CopilotResponseDto:
-    return CopilotService(settings).analyze_document(body)
+    return IntakeCopilotService(settings).analyze_document(body)
 
 
 @router.post(
@@ -54,4 +54,4 @@ def resolve_issue(
     _: CurrentUserDep,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> CopilotResponseDto:
-    return CopilotService(settings).resolve_issue(issue_id, body)
+    return IntakeCopilotService(settings).resolve_issue(issue_id, body)
