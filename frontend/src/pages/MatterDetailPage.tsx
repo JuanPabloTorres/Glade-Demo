@@ -1,5 +1,6 @@
 import { Alert, Badge, Button, Card, TabItem, Tabs } from "flowbite-react";
 import { Link, useParams } from "react-router";
+import { GUIDED_DEMO_MATTER_ID } from "../api/demoMatterApi";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { ErrorState, LoadingState } from "../components/atoms/AsyncState";
 import { MutationFeedback } from "../components/atoms/MutationFeedback";
@@ -11,6 +12,7 @@ import { ConflictList } from "../components/organisms/ConflictList";
 import { DocumentForm } from "../components/organisms/DocumentForm";
 import { DocumentsList } from "../components/organisms/DocumentsList";
 import { IntakeForm } from "../components/organisms/IntakeForm";
+import { environment } from "../config/environment";
 import {
   useCreateDocument,
   useMatterWorkspace,
@@ -28,7 +30,31 @@ export function MatterDetailPage() {
 
   if (workspace.matter.isLoading) return <LoadingState label="Loading matter workspace" />;
   if (workspace.matter.isError || !workspace.matter.data) {
-    return <ErrorState message="This matter could not be found." />;
+    return (
+      <Card className="mx-auto max-w-2xl border border-slate-200 bg-white shadow-sm">
+        <Badge color="warning" className="w-fit">Workspace recovery</Badge>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+            This saved link is no longer connected to an evaluation matter.
+          </h1>
+          <p className="mt-3 text-base leading-7 text-slate-600">
+            A previous serverless deployment may have created that link with temporary data. Your
+            current browser workspace is stable and can continue from the portfolio or guided example.
+          </p>
+        </div>
+        <Alert color="info">
+          No client information was exposed or deleted. This portfolio uses invented evaluation data.
+        </Alert>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button as={Link} to="/">Return to matter portfolio</Button>
+          {environment.useBrowserDemoStore ? (
+            <Button as={Link} to={`/matters/${GUIDED_DEMO_MATTER_ID}`} color="alternative">
+              Open guided example
+            </Button>
+          ) : null}
+        </div>
+      </Card>
+    );
   }
 
   const matter = workspace.matter.data;
