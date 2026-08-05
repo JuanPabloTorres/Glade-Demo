@@ -5,7 +5,16 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routers import activities, auth, conflicts, copilot, documents, health, matters, readiness
+from app.api.routers import (
+    activities,
+    auth,
+    conflicts,
+    copilot,
+    documents,
+    health,
+    matters,
+    readiness,
+)
 from app.core.config import get_settings
 from app.core.database import engine
 from app.core.errors import DomainError, NotFoundError, ValidationError
