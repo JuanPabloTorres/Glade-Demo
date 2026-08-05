@@ -20,7 +20,7 @@ const DEFAULT_VALUES: DocumentCreateDto = {
 
 interface DocumentFormProps {
   busy: boolean;
-  onSubmit: (dto: DocumentCreateDto) => void;
+  onSubmit: (dto: DocumentCreateDto) => Promise<void>;
 }
 
 export function DocumentForm({ busy, onSubmit }: DocumentFormProps) {
@@ -28,11 +28,11 @@ export function DocumentForm({ busy, onSubmit }: DocumentFormProps) {
     defaultValues: DEFAULT_VALUES,
   });
 
-  const submit = (dto: DocumentCreateDto) => {
-    onSubmit(dto);
+  const submit = async (dto: DocumentCreateDto) => {
+    await onSubmit(dto);
     reset({
       original_name: "document.txt",
-      document_type: "supporting",
+      document_type: DEFAULT_DOCUMENT_TYPE,
       content: "",
     });
   };
@@ -42,8 +42,8 @@ export function DocumentForm({ busy, onSubmit }: DocumentFormProps) {
       <div>
         <h2 className="text-lg font-semibold">Add document text</h2>
         <p className="text-sm text-gray-500">
-          The deterministic provider extracts labeled facts so the demo works without paid
-          AI credentials.
+          The deterministic provider extracts labeled facts. Missing or different
+          canonical values require explicit review.
         </p>
       </div>
 
@@ -51,11 +51,14 @@ export function DocumentForm({ busy, onSubmit }: DocumentFormProps) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="doc-name">File name</Label>
-            <TextInput id="doc-name" {...register("original_name", { required: true })} />
+            <TextInput
+              id="doc-name"
+              {...register("original_name", { required: true, minLength: 1 })}
+            />
           </div>
           <div>
             <Label htmlFor="doc-type">Document type</Label>
-            <Select id="doc-type" {...register("document_type")}>
+            <Select id="doc-type" {...register("document_type") }>
               {DOCUMENT_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -70,7 +73,7 @@ export function DocumentForm({ busy, onSubmit }: DocumentFormProps) {
           <Textarea
             id="doc-content"
             rows={7}
-            {...register("content", { required: true })}
+            {...register("content", { required: true, minLength: 1 })}
           />
         </div>
 

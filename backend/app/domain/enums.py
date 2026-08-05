@@ -49,3 +49,5 @@ class ActivityType(StrEnum):
     DOCUMENT_PROCESSED = "document_processed"
     CONFLICT_DETECTED = "conflict_detected"
     CONFLICT_RESOLVED = "conflict_resolved"
+    DOCUMENT_REVIEW_COMPLETED = "document_review_completed"
+    MATTER_STATUS_CHANGED = "matter_status_changed"

@@ -9,7 +9,7 @@ from app.core.contracts import get_contract_registry
 
 
 class ApiTraceabilityMiddleware(BaseHTTPMiddleware):
-    """Expose the shared operation mapping on every registered API response."""
+    """Expose and verify the shared operation mapping on registered API responses."""
 
     async def dispatch(
         self,
@@ -30,10 +30,18 @@ class ApiTraceabilityMiddleware(BaseHTTPMiddleware):
         response.headers["X-Backend-Controller"] = contract.controller
         response.headers["X-Backend-Action"] = contract.action
 
-        frontend_operation = request.headers.get("X-Frontend-Operation-Id")
-        response.headers["X-Trace-Match"] = (
-            "not-provided"
-            if frontend_operation is None
-            else str(frontend_operation == contract.operation_id).lower()
-        )
+        frontend_values = {
+            "operation": request.headers.get("X-Frontend-Operation-Id"),
+            "controller": request.headers.get("X-Frontend-Controller"),
+            "action": request.headers.get("X-Frontend-Action"),
+        }
+        if all(value is None for value in frontend_values.values()):
+            trace_match = "not-provided"
+        else:
+            trace_match = str(
+                frontend_values["operation"] == contract.operation_id
+                and frontend_values["controller"] == contract.controller
+                and frontend_values["action"] == contract.action
+            ).lower()
+        response.headers["X-Trace-Match"] = trace_match
         return response

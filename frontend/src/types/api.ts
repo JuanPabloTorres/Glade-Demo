@@ -76,6 +76,7 @@ export interface DocumentDto {
 
 export interface ConflictDto {
   id: string;
+  document_id: string | null;
   field_name: string;
   canonical_value: string;
   conflicting_value: string;

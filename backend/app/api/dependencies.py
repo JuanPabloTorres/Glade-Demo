@@ -12,6 +12,7 @@ from app.services.conflict_service import ConflictService
 from app.services.document_service import DocumentService
 from app.services.matter_service import MatterService
 from app.services.readiness_service import ReadinessService
+from app.services.workflow_service import MatterWorkflowService
 
 SessionDep = Annotated[Session, Depends(get_db_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
@@ -31,17 +32,40 @@ def get_readiness_service() -> ReadinessService:
 ReadinessServiceDep = Annotated[ReadinessService, Depends(get_readiness_service)]
 
 
-def get_matter_service(uow: UowDep, readiness: ReadinessServiceDep) -> MatterService:
-    return MatterService(uow, readiness)
+def get_workflow_service(
+    uow: UowDep,
+    readiness: ReadinessServiceDep,
+) -> MatterWorkflowService:
+    return MatterWorkflowService(uow, readiness)
 
 
-def get_document_service(uow: UowDep, settings: SettingsDep) -> DocumentService:
-    provider = DocumentIntelligenceProviderFactory.create(settings.document_intelligence_provider)
-    return DocumentService(uow, provider)
+WorkflowServiceDep = Annotated[MatterWorkflowService, Depends(get_workflow_service)]
 
 
-def get_conflict_service(uow: UowDep) -> ConflictService:
-    return ConflictService(uow)
+def get_matter_service(
+    uow: UowDep,
+    readiness: ReadinessServiceDep,
+    workflow: WorkflowServiceDep,
+) -> MatterService:
+    return MatterService(uow, readiness, workflow)
+
+
+def get_document_service(
+    uow: UowDep,
+    settings: SettingsDep,
+    workflow: WorkflowServiceDep,
+) -> DocumentService:
+    provider = DocumentIntelligenceProviderFactory.create(
+        settings.document_intelligence_provider
+    )
+    return DocumentService(uow, provider, workflow)
+
+
+def get_conflict_service(
+    uow: UowDep,
+    workflow: WorkflowServiceDep,
+) -> ConflictService:
+    return ConflictService(uow, workflow)
 
 
 def get_activity_service(uow: UowDep) -> ActivityService:

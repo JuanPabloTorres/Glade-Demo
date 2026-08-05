@@ -11,5 +11,7 @@ class DocumentIntelligenceProviderFactory:
         try:
             provider_type = providers[provider_name]
         except KeyError as exc:
-            raise ValueError(f"Unsupported document intelligence provider: {provider_name}") from exc
+            raise ValueError(
+                f"Unsupported document intelligence provider: {provider_name}"
+            ) from exc
         return provider_type()

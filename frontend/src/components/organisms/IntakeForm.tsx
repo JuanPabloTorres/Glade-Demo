@@ -6,7 +6,7 @@ import type { MatterDetailDto, MatterIntakeUpdateDto } from "../../types/api";
 interface IntakeFormProps {
   matter: MatterDetailDto;
   busy: boolean;
-  onSubmit: (dto: MatterIntakeUpdateDto) => void;
+  onSubmit: (dto: MatterIntakeUpdateDto) => Promise<void>;
 }
 
 export function IntakeForm({ matter, busy, onSubmit }: IntakeFormProps) {
@@ -29,7 +29,7 @@ export function IntakeForm({ matter, busy, onSubmit }: IntakeFormProps) {
         <h2 className="text-lg font-semibold">Canonical intake</h2>
         <p className="text-sm text-gray-500">
           This record is the source of truth. Document differences become reviewable
-          conflicts.
+          conflicts and are never applied silently.
         </p>
       </div>
 
@@ -38,7 +38,7 @@ export function IntakeForm({ matter, busy, onSubmit }: IntakeFormProps) {
           <Label htmlFor="intake-name">Client name</Label>
           <TextInput
             id="intake-name"
-            {...register("display_name", { required: true })}
+            {...register("display_name", { required: true, minLength: 2 })}
           />
         </div>
         <div>
@@ -51,11 +51,7 @@ export function IntakeForm({ matter, busy, onSubmit }: IntakeFormProps) {
         </div>
         <div>
           <Label htmlFor="intake-dob">Date of birth</Label>
-          <TextInput
-            id="intake-dob"
-            placeholder="YYYY-MM-DD"
-            {...register("date_of_birth")}
-          />
+          <TextInput id="intake-dob" type="date" {...register("date_of_birth")} />
         </div>
         <div className="sm:col-span-2">
           <Label htmlFor="intake-address">Address</Label>

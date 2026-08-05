@@ -18,6 +18,7 @@ import {
   DEFAULT_CASE_TYPE,
 } from "../../config/domainOptions";
 import type { MatterCreateDto } from "../../types/api";
+import { MutationFeedback } from "../atoms/MutationFeedback";
 
 const EMPTY_FORM: MatterCreateDto = {
   case_type: DEFAULT_CASE_TYPE,
@@ -28,11 +29,11 @@ const EMPTY_FORM: MatterCreateDto = {
 };
 
 const schema = z.object({
-  display_name: z.string().min(2, "Client name is required."),
+  display_name: z.string().trim().min(2, "Client name is required."),
   case_type: z.enum(CASE_TYPE_VALUES),
-  email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().optional(),
-  assigned_to: z.string().optional(),
+  email: z.string().trim().email("Enter a valid email.").optional().or(z.literal("")),
+  phone: z.string().trim().optional(),
+  assigned_to: z.string().trim().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -40,13 +41,15 @@ type FormValues = z.infer<typeof schema>;
 interface MatterFormModalProps {
   open: boolean;
   busy: boolean;
+  error?: unknown;
   onClose: () => void;
-  onSubmit: (dto: MatterCreateDto) => void;
+  onSubmit: (dto: MatterCreateDto) => Promise<void>;
 }
 
 export function MatterFormModal({
   open,
   busy,
+  error,
   onClose,
   onSubmit,
 }: MatterFormModalProps) {
@@ -66,8 +69,13 @@ export function MatterFormModal({
     }
   }, [open, reset]);
 
-  const submit = (values: FormValues) => {
-    onSubmit({ ...values, email: values.email || undefined });
+  const submit = async (values: FormValues) => {
+    await onSubmit({
+      ...values,
+      email: values.email || undefined,
+      phone: values.phone || undefined,
+      assigned_to: values.assigned_to || undefined,
+    });
   };
 
   return (
@@ -75,6 +83,7 @@ export function MatterFormModal({
       <ModalHeader>Create matter</ModalHeader>
       <form onSubmit={handleSubmit(submit)}>
         <ModalBody className="space-y-4">
+          <MutationFeedback error={error} />
           <div>
             <Label htmlFor="display_name">Client name</Label>
             <TextInput
@@ -83,12 +92,12 @@ export function MatterFormModal({
               color={errors.display_name ? "failure" : undefined}
             />
             {errors.display_name ? (
-              <p className="mt-1 text-sm text-red-600">{errors.display_name.message}</p>
+              <p className="mt-1 text-xs text-red-600">{errors.display_name.message}</p>
             ) : null}
           </div>
           <div>
             <Label htmlFor="case_type">Case type</Label>
-            <Select id="case_type" {...register("case_type")}>
+            <Select id="case_type" {...register("case_type") }>
               {CASE_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -105,7 +114,7 @@ export function MatterFormModal({
               color={errors.email ? "failure" : undefined}
             />
             {errors.email ? (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
             ) : null}
           </div>
           <div>
@@ -121,7 +130,7 @@ export function MatterFormModal({
           <Button type="submit" disabled={busy}>
             {busy ? "Creating..." : "Create"}
           </Button>
-          <Button color="alternative" type="button" onClick={onClose}>
+          <Button color="alternative" type="button" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
         </ModalFooter>

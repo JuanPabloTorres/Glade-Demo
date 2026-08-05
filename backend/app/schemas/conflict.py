@@ -8,6 +8,7 @@ from app.schemas.common import ApiModel
 
 class ConflictDto(ApiModel):
     id: str
+    document_id: str | None
     field_name: str
     canonical_value: str
     conflicting_value: str

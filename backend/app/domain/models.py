@@ -46,6 +46,7 @@ class Document(EntityBase, Base):
     facts: Mapped[list[ExtractedFact]] = relationship(
         back_populates="document", cascade="all, delete-orphan"
     )
+    conflicts: Mapped[list[Conflict]] = relationship(back_populates="document")
 
 
 class ExtractedFact(EntityBase, Base):
@@ -67,6 +68,7 @@ class Conflict(EntityBase, Base):
     __tablename__ = "conflicts"
 
     matter_id: Mapped[str] = mapped_column(ForeignKey("matters.id"), nullable=False, index=True)
+    document_id: Mapped[str | None] = mapped_column(ForeignKey("documents.id"), index=True)
     field_name: Mapped[str] = mapped_column(String(100), nullable=False)
     canonical_value: Mapped[str] = mapped_column(Text, nullable=False)
     conflicting_value: Mapped[str] = mapped_column(Text, nullable=False)
@@ -76,6 +78,7 @@ class Conflict(EntityBase, Base):
     resolved_value: Mapped[str | None] = mapped_column(Text)
 
     matter: Mapped[Matter] = relationship(back_populates="conflicts")
+    document: Mapped[Document | None] = relationship(back_populates="conflicts")
 
 
 class Activity(EntityBase, Base):

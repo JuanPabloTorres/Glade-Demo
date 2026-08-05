@@ -22,3 +22,9 @@ frontend/.env
 coverage.xml
 htmlcov/
 .env
+
+# Browser test artifacts
+frontend/playwright-report/
+frontend/test-results/
+backend/matter_ready_e2e.db
+frontend/.flowbite-react/

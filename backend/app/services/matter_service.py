@@ -1,6 +1,6 @@
 from app.core.errors import NotFoundError
 from app.domain.enums import ActivityType, FactSourceType, MatterStatus
-from app.domain.models import Activity, ExtractedFact, Matter
+from app.domain.models import Activity, Matter
 from app.repositories.unit_of_work import SqlAlchemyUnitOfWork
 from app.schemas.matter import (
     MatterCreateDto,
@@ -9,12 +9,19 @@ from app.schemas.matter import (
     MatterSummaryDto,
 )
 from app.services.readiness_service import ReadinessService
+from app.services.workflow_service import MatterWorkflowService
 
 
 class MatterService:
-    def __init__(self, uow: SqlAlchemyUnitOfWork, readiness_service: ReadinessService) -> None:
+    def __init__(
+        self,
+        uow: SqlAlchemyUnitOfWork,
+        readiness_service: ReadinessService,
+        workflow_service: MatterWorkflowService,
+    ) -> None:
         self._uow = uow
         self._readiness_service = readiness_service
+        self._workflow_service = workflow_service
 
     def list_matters(self) -> list[MatterSummaryDto]:
         matters = self._uow.matters.list_recent()
@@ -42,16 +49,30 @@ class MatterService:
 
     def create_matter(self, dto: MatterCreateDto) -> MatterDetailDto:
         matter = Matter(
-            display_name=dto.display_name,
+            display_name=dto.display_name.strip(),
             case_type=dto.case_type.value,
             status=MatterStatus.INTAKE.value,
-            email=str(dto.email) if dto.email else None,
-            phone=dto.phone,
-            assigned_to=dto.assigned_to,
+            assigned_to=self._clean(dto.assigned_to),
         )
         self._uow.matters.add(matter)
         self._uow.flush()
-        self._sync_intake_facts(matter)
+
+        initial_values = {
+            "display_name": dto.display_name,
+            "email": str(dto.email) if dto.email else None,
+            "phone": dto.phone,
+            "address": None,
+            "date_of_birth": None,
+        }
+        for field_name, value in initial_values.items():
+            self._workflow_service.apply_canonical_value(
+                matter,
+                field_name,
+                value,
+                source_type=FactSourceType.INTAKE,
+                source_label="Client intake",
+            )
+
         self._uow.activities.add(
             Activity(
                 matter_id=matter.id,
@@ -68,18 +89,34 @@ class MatterService:
 
     def update_intake(self, matter_id: str, dto: MatterIntakeUpdateDto) -> MatterDetailDto:
         matter = self._get_or_raise(matter_id)
-        matter.display_name = dto.display_name
-        matter.email = str(dto.email) if dto.email else None
-        matter.phone = dto.phone
-        matter.address = dto.address
-        matter.date_of_birth = dto.date_of_birth
-        matter.summary = dto.summary
-        self._sync_intake_facts(matter)
+        values = {
+            "display_name": dto.display_name,
+            "email": str(dto.email) if dto.email else None,
+            "phone": dto.phone,
+            "address": dto.address,
+            "date_of_birth": dto.date_of_birth,
+        }
+        auto_resolved = 0
+        for field_name, value in values.items():
+            result = self._workflow_service.apply_canonical_value(
+                matter,
+                field_name,
+                value,
+                source_type=FactSourceType.INTAKE,
+                source_label="Client intake",
+            )
+            auto_resolved += result.auto_resolved_conflicts
+
+        matter.summary = self._clean(dto.summary)
+        self._workflow_service.synchronize_status(matter, activate=True)
+        message = "Canonical intake data updated"
+        if auto_resolved:
+            message += f"; {auto_resolved} matching conflict(s) reconciled"
         self._uow.activities.add(
             Activity(
                 matter_id=matter.id,
                 event_type=ActivityType.INTAKE_UPDATED.value,
-                message="Canonical intake data updated",
+                message=message,
             )
         )
         self._uow.commit()
@@ -91,22 +128,6 @@ class MatterService:
             raise NotFoundError(f"Matter {matter_id} was not found")
         return matter
 
-    def _sync_intake_facts(self, matter: Matter) -> None:
-        field_names = ("display_name", "email", "phone", "address", "date_of_birth")
-        for fact in matter.facts:
-            if fact.source_type == FactSourceType.INTAKE.value:
-                fact.is_current = False
-        for field_name in field_names:
-            value = getattr(matter, field_name)
-            if value:
-                self._uow.facts.add(
-                    ExtractedFact(
-                        matter_id=matter.id,
-                        document_id=None,
-                        field_name=field_name,
-                        value=str(value),
-                        source_type=FactSourceType.INTAKE.value,
-                        source_label="Client intake",
-                        is_current=True,
-                    )
-                )
+    @staticmethod
+    def _clean(value: str | None) -> str | None:
+        return value.strip() if value and value.strip() else None

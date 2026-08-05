@@ -1,4 +1,4 @@
-from app.domain.enums import CaseType, ConflictStatus, DocumentType
+from app.domain.enums import CaseType, ConflictStatus, DocumentStatus, DocumentType
 from app.domain.models import Matter
 from app.domain.requirements import CaseRequirementFactory
 from app.schemas.readiness import ReadinessDto, ReadinessItemDto
@@ -29,27 +29,39 @@ class ReadinessService:
                     key=f"field:{field.value}",
                     label=self._field_labels[field.value],
                     complete=bool(value and str(value).strip()),
-                    source="intake",
+                    source="canonical data",
                 )
             )
 
-        available_types = {DocumentType(document.document_type) for document in matter.documents}
+        processed_types = {
+            DocumentType(document.document_type)
+            for document in matter.documents
+            if document.status == DocumentStatus.PROCESSED.value
+        }
         for document_type in requirements.required_documents:
             items.append(
                 ReadinessItemDto(
                     key=f"document:{document_type.value}",
                     label=self._document_labels[document_type],
-                    complete=document_type in available_types,
-                    source="document",
+                    complete=document_type in processed_types,
+                    source="processed document",
                 )
             )
 
         open_conflicts = sum(
             1 for conflict in matter.conflicts if conflict.status == ConflictStatus.OPEN.value
         )
+        items.append(
+            ReadinessItemDto(
+                key="review:conflicts",
+                label="Canonical data review",
+                complete=open_conflicts == 0,
+                source="human review",
+            )
+        )
+
         complete_items = sum(1 for item in items if item.complete)
-        base_score = round((complete_items / len(items)) * 100) if items else 100
-        score = max(0, base_score - (open_conflicts * 10))
+        score = round((complete_items / len(items)) * 100) if items else 100
         return ReadinessDto(
             score=score,
             complete_items=complete_items,

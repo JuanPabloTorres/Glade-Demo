@@ -15,13 +15,10 @@ export function DashboardPage() {
   const matters = useMatters();
   const create = useCreateMatter();
 
-  const handleCreate = (dto: MatterCreateDto) => {
-    create.mutate(dto, {
-      onSuccess: (matter) => {
-        setOpen(false);
-        navigate(`/matters/${matter.id}`);
-      },
-    });
+  const handleCreate = async (dto: MatterCreateDto) => {
+    const matter = await create.mutateAsync(dto);
+    setOpen(false);
+    navigate(`/matters/${matter.id}`);
   };
 
   if (matters.isLoading) {
@@ -50,7 +47,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <MetricCard label="Active matters" value={data.length} />
+        <MetricCard label="Matters" value={data.length} />
         <MetricCard label="Average readiness" value={`${averageReadiness}%`} />
         <MetricCard label="Open conflicts" value={openConflicts} />
       </div>
@@ -68,6 +65,7 @@ export function DashboardPage() {
       <MatterFormModal
         open={open}
         busy={create.isPending}
+        error={create.error}
         onClose={() => setOpen(false)}
         onSubmit={handleCreate}
       />

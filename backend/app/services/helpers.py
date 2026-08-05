@@ -1,5 +1,3 @@
-import re
+from app.core.normalization import normalize_value
 
-
-def normalize_value(value: str) -> str:
-    return re.sub(r"[^a-z0-9]", "", value.casefold())
+__all__ = ["normalize_value"]
