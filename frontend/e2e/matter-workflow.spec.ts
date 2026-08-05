@@ -14,7 +14,9 @@ test("client submits a bankruptcy intake and attorney reviews it", async ({ page
   await page.getByRole("tab", { name: "Guía inteligente" }).click();
   await page.getByLabel("Mensaje").fill("¿Qué documentos me faltan?");
   await page.getByRole("button", { name: "Enviar", exact: true }).click();
-  await expect(page.getByText("próximo paso", { exact: false })).toBeVisible();
+  await expect(
+    page.getByText("La plantilla financiera está completa.", { exact: false }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Enviar al abogado" }).click();
   await expect(page.getByText("Solicitud enviada", { exact: true }).first()).toBeVisible();
