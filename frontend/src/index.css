@@ -2,19 +2,21 @@
 @source "../.flowbite-react/class-list.json";
 
 :root {
-  --glade-black: #111111;
+  --glade-black: #111827;
   --glade-white: #ffffff;
-  --glade-surface: #f5f5f3;
-  --glade-border: #e2e2de;
-  --glade-muted: #5f5f5f;
-  --glade-blue: #33b7fa;
-  --glade-periwinkle: #9095fe;
-  --glade-violet: #d371fb;
-  --glade-magenta: #f54dd8;
-  --glade-coral: #f85e59;
-  --glade-orange: #ee9d00;
-  --glade-yellow: #f5c128;
-  --glade-gradient: linear-gradient(135deg, #33b7fa, #9095fe, #d371fb, #f54dd8, #f85e59, #ee9d00, #f5c128);
+  --glade-surface: #f3f6fb;
+  --glade-surface-raised: #ffffff;
+  --glade-border: #dce3ee;
+  --glade-border-strong: #c6d0df;
+  --glade-muted: #5f6b7b;
+  --glade-primary: #2563eb;
+  --glade-primary-dark: #1d4ed8;
+  --glade-indigo: #4f46e5;
+  --glade-violet: #7c3aed;
+  --glade-coral: #e95550;
+  --glade-success: #15803d;
+  --glade-warning: #b45309;
+  --glade-gradient: linear-gradient(135deg, #2563eb 0%, #4f46e5 52%, #7c3aed 100%);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--glade-black);
   background: var(--glade-surface);
@@ -23,12 +25,196 @@
   text-rendering: optimizeLegibility;
 }
 
-html { scroll-behavior: smooth; overflow-x: hidden; }
-body { margin: 0; min-width: 320px; min-height: 100vh; overflow-x: hidden; background: var(--glade-surface); }
-button, input, textarea, select { font: inherit; }
-.glade-gradient { background: var(--glade-gradient); }
-.glade-button { border: 0 !important; background: var(--glade-gradient) !important; color: #111111 !important; font-weight: 700 !important; }
-.glade-button:hover { filter: saturate(1.05) brightness(0.98); }
-.glade-button:focus-visible { outline: 3px solid #9095fe; outline-offset: 2px; }
-.workspace-tabs [role="tablist"] { overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; }
-::selection { background: #d371fb; color: #111111; }
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(79, 70, 229, 0.07), transparent 28rem),
+    var(--glade-surface);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.brand-mark,
+.glade-gradient {
+  background: var(--glade-gradient);
+}
+
+.glade-button,
+.primary-action {
+  min-height: 2.75rem;
+  border: 0 !important;
+  border-radius: 0.75rem !important;
+  background: var(--glade-gradient) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 10px 24px rgba(55, 48, 163, 0.2);
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.glade-button:hover,
+.primary-action:hover {
+  filter: brightness(1.04) saturate(1.04);
+  box-shadow: 0 14px 30px rgba(55, 48, 163, 0.27);
+  transform: translateY(-1px);
+}
+
+.glade-button:active,
+.primary-action:active {
+  transform: translateY(0);
+}
+
+.glade-button:focus-visible,
+.primary-action:focus-visible,
+.secondary-action:focus-visible {
+  outline: 3px solid rgba(79, 70, 229, 0.28);
+  outline-offset: 2px;
+}
+
+.secondary-action {
+  min-height: 2.75rem;
+  border: 1px solid var(--glade-border-strong) !important;
+  border-radius: 0.75rem !important;
+  background: #ffffff !important;
+  color: #253044 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.secondary-action:hover {
+  border-color: #9aa9bf !important;
+  background: #f8fafc !important;
+  transform: translateY(-1px);
+}
+
+.app-shell-background {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(79, 70, 229, 0.07), transparent 32rem),
+    radial-gradient(circle at 92% 12%, rgba(37, 99, 235, 0.05), transparent 25rem),
+    var(--glade-surface);
+}
+
+.app-card {
+  border: 1px solid var(--glade-border) !important;
+  border-radius: 1rem !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06) !important;
+}
+
+.interactive-card {
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.interactive-card:hover {
+  border-color: #c2cddd !important;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.09) !important;
+  transform: translateY(-2px);
+}
+
+.metric-tile {
+  border: 1px solid var(--glade-border) !important;
+  border-radius: 1rem !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%) !important;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.045) !important;
+}
+
+.icon-tile {
+  background: linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%);
+  color: #3730a3;
+}
+
+.app-input input,
+.app-input textarea,
+.app-input select,
+input.app-input,
+textarea.app-input,
+select.app-input {
+  min-height: 2.75rem;
+  border-color: var(--glade-border-strong) !important;
+  border-radius: 0.75rem !important;
+  background: #ffffff !important;
+  color: #172033 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.app-input input:focus,
+.app-input textarea:focus,
+.app-input select:focus,
+input.app-input:focus,
+textarea.app-input:focus,
+select.app-input:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14) !important;
+}
+
+.workspace-tabs [role="tablist"] {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  gap: 0.25rem;
+  border: 1px solid var(--glade-border);
+  border-radius: 0.9rem;
+  background: #ffffff;
+  padding: 0.35rem;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.045);
+}
+
+.workspace-tabs [role="tab"] {
+  min-height: 2.6rem;
+  border-radius: 0.65rem !important;
+  white-space: nowrap;
+}
+
+.workspace-tabs [role="tabpanel"] {
+  padding-top: 1.25rem;
+}
+
+.app-table table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.app-table thead th {
+  background: #f7f9fc !important;
+  color: #536071 !important;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-table tbody tr {
+  transition: background 140ms ease;
+}
+
+.app-table tbody tr:hover {
+  background: #f8faff !important;
+}
+
+::selection {
+  background: #c7d2fe;
+  color: #172033;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
