@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from itertools import combinations
 from uuid import uuid4
 
-import pandas as pd
+import pandas as pd  # type: ignore[import-untyped]
 from rapidfuzz.fuzz import ratio
 
 from app.ai.text_generation import TextGenerator, get_text_generator
@@ -280,7 +280,7 @@ class CopilotService:
                 EvidenceValueDto(
                     value=str(row["value"]),
                     source=str(row["source"]),
-                    confidence=float(row["confidence"]),
+                    confidence=float(str(row["confidence"])),
                 )
                 for row in rows
             ]
