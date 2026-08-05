@@ -21,7 +21,7 @@ test("client submits a bankruptcy intake and attorney reviews it", async ({ page
   await page.getByRole("button", { name: "Enviar al abogado" }).click();
   await expect(page.getByText("Solicitud enviada", { exact: true }).first()).toBeVisible();
 
-  await page.evaluate(() => localStorage.removeItem("matterready.auth.session"));
+  await page.evaluate(() => sessionStorage.removeItem("matterready.auth.session"));
   await page.goto("/login");
   await page.getByRole("button", { name: "Entrar como abogado" }).click();
   await expect(
