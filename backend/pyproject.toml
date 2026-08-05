@@ -1,6 +1,6 @@
 [project]
 name = "matter-ready-api"
-version = "0.3.0"
+version = "0.3.1"
 description = "MatterReady legal intake and readiness demo API"
 requires-python = ">=3.13"
 dependencies = [
