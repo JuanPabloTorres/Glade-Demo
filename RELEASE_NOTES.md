@@ -12,7 +12,8 @@ Agent-governance and architecture release (`chore/agent-governance-v2`).
 - Added Flowbite and new-flow governance, templates, schemas and agent-system documentation.
 - Added CI governance and i18n gates while preserving backend, frontend and Playwright gates.
 - Parallel worktrees now use change fragments; only the integration owner performs the final SemVer bump.
-- `VERSION`, root/frontend package manifests and backend metadata are release authorities. Lockfile root version is informational; dependency integrity remains enforced by `npm ci`, and local version commands refresh its metadata.
+- `VERSION` and the root/frontend application manifests are runtime release authorities. The backend API reads `VERSION`; Python package metadata remains lock-consistent and `uv lock --check` preserves dependency reproducibility.
+- Frontend lockfile root version is informational; dependency integrity remains enforced by `npm ci`, and local version commands refresh its metadata.
 
 # FreshStart 3.1.0
 

@@ -8,7 +8,7 @@ const versionPath = resolve(root, "VERSION");
 const rootPackagePath = resolve(root, "package.json");
 const frontendPackagePath = resolve(root, "frontend/package.json");
 const frontendLockPath = resolve(root, "frontend/package-lock.json");
-const pyprojectPath = resolve(root, "backend/pyproject.toml");
+const backendProjectPath = resolve(root, "backend/pyproject.toml");
 const semverPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 function readVersion() { return readFileSync(versionPath, "utf8").trim(); }
@@ -23,10 +23,9 @@ function compareVersions(left, right) {
 }
 function readJson(path) { return JSON.parse(readFileSync(path, "utf8")); }
 function writeJson(path, value) { writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`); }
-function readPyprojectVersion() {
-  const match = readFileSync(pyprojectPath, "utf8").match(/^version = "([^"]+)"$/m);
-  if (!match) throw new Error("backend/pyproject.toml does not declare a project version");
-  return match[1];
+function readBackendPackageVersion() {
+  const match = readFileSync(backendProjectPath, "utf8").match(/^version = "([^"]+)"$/m);
+  return match?.[1] ?? "unknown";
 }
 function synchronize(version) {
   parseVersion(version);
@@ -38,8 +37,6 @@ function synchronize(version) {
     if (lock.packages?.[""]) lock.packages[""].version = version;
     writeJson(frontendLockPath, lock);
   }
-  const pyproject = readFileSync(pyprojectPath, "utf8").replace(/^version = "[^"]+"$/m, `version = "${version}"`);
-  writeFileSync(pyprojectPath, pyproject);
 }
 function checkConsistency() {
   const version = readVersion(); parseVersion(version);
@@ -47,15 +44,16 @@ function checkConsistency() {
     VERSION: version,
     "package.json": readJson(rootPackagePath).version,
     "frontend/package.json": readJson(frontendPackagePath).version,
-    "backend/pyproject.toml": readPyprojectVersion(),
   };
   const mismatches = Object.entries(values).filter(([, value]) => value !== version);
   if (mismatches.length) throw new Error(`Version mismatch. Expected ${version}; found ${mismatches.map(([file, value]) => `${file}=${value}`).join(", ")}`);
   if (existsSync(frontendLockPath)) {
     const lockVersion = readJson(frontendLockPath).packages?.[""]?.version;
-    if (lockVersion && lockVersion !== version) console.warn(`Lockfile root metadata is ${lockVersion}; release authority remains VERSION/package manifests. A local version command will refresh it.`);
+    if (lockVersion && lockVersion !== version) console.warn(`Lockfile root metadata is ${lockVersion}; release authority remains VERSION and application package manifests. A local version command will refresh it.`);
   }
-  console.log(`Version ${version} is synchronized across release-authority files.`);
+  const backendPackageVersion = readBackendPackageVersion();
+  if (backendPackageVersion !== version) console.warn(`backend/pyproject.toml package metadata is ${backendPackageVersion}; runtime/API release version is read from VERSION and uv.lock remains dependency-reproducible.`);
+  console.log(`Version ${version} is synchronized across runtime release-authority files.`);
 }
 function readVersionAtRef(ref) {
   return execFileSync("git", ["show", `${ref}:VERSION`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] }).trim();
