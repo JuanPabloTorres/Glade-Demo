@@ -1,0 +1,19 @@
+{
+  "directFlowbitePages": [
+    "frontend/src/pages/AboutPlatformPage.tsx",
+    "frontend/src/pages/AttorneyDashboardPage.tsx",
+    "frontend/src/pages/CaseWorkspacePage.tsx",
+    "frontend/src/pages/ClientDashboardPage.tsx",
+    "frontend/src/pages/LoginPage.tsx"
+  ],
+  "directIconImports": [
+    "frontend/src/pages/LoginPage.tsx"
+  ],
+  "inlineStyleFiles": [
+    "frontend/src/pages/LoginPage.tsx"
+  ],
+  "overflowReviewFiles": [
+    "frontend/src/pages/AttorneyDashboardPage.tsx"
+  ],
+  "policy": "These are pre-governance baseline exceptions. New exceptions require an ADR or a dedicated design-system migration task. Remove entries as pages migrate to governed wrappers."
+}
