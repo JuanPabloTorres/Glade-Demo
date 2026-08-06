@@ -1,0 +1,79 @@
+{
+  "generic": {
+    "select": "Select",
+    "required": "Required"
+  },
+  "frequencies": {
+    "weekly": "Weekly",
+    "biweekly": "Every two weeks",
+    "semimonthly": "Twice per month",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "annual": "Annual"
+  },
+  "household": {
+    "maritalStatus": "Marital status",
+    "housingStatus": "Housing",
+    "householdSize": "People in household",
+    "dependents": "Dependents",
+    "filingJointly": "Considering joint filing",
+    "urgentAction": "Urgent collection",
+    "recentTransfer": "Recent transfer",
+    "clientGoal": "What do you want to resolve or understand?",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "municipality": "Municipality"
+  },
+  "maritalStatus": {
+    "single": "Single",
+    "married": "Married",
+    "separated": "Separated",
+    "divorced": "Divorced",
+    "widowed": "Widowed"
+  },
+  "housingStatus": {
+    "rent": "Rent",
+    "own": "Own with mortgage",
+    "own-free": "Own free and clear",
+    "family": "With family",
+    "other": "Other"
+  },
+  "entryModal": {
+    "addIncome": "Add income",
+    "addExpense": "Add monthly expense",
+    "addDebt": "Add debt",
+    "addAsset": "Add asset",
+    "addEvidence": "Add evidence",
+    "incomeCategory": "Category",
+    "incomeSource": "Source or employer",
+    "grossIncome": "Gross income",
+    "netIncome": "Net income",
+    "frequency": "Frequency",
+    "expenseCategory": "Category",
+    "expenseDescription": "Description",
+    "monthlyAmount": "Monthly amount",
+    "essentialExpense": "This is a necessary household expense",
+    "creditor": "Creditor",
+    "debtDescription": "Description",
+    "debtType": "Type",
+    "balance": "Balance",
+    "monthlyPayment": "Monthly payment",
+    "delinquentAmount": "Delinquent amount",
+    "collateral": "Collateral property",
+    "collectionAction": "There is a lawsuit, garnishment, or collection action",
+    "assetCategory": "Category",
+    "assetDescription": "Description",
+    "estimatedValue": "Estimated value",
+    "loanBalance": "Loan or lien balance",
+    "jointOwnership": "Joint ownership",
+    "evidenceType": "Evidence type",
+    "evidenceFile": "File",
+    "evidenceFileHint": "The demo stores only the file name and status in this browser.",
+    "documentName": "Document name",
+    "evidenceStatus": "Status",
+    "note": "Note",
+    "save": "Save",
+    "cancel": "Cancel"
+  }
+}

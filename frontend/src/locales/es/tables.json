@@ -1,0 +1,37 @@
+{
+  "toolbar": {
+    "search": "Buscar",
+    "searchPlaceholder": "Buscar...",
+    "sort": "Ordenar",
+    "rowsPerPage": "Filas por página",
+    "clearFilters": "Limpiar filtros"
+  },
+  "sort": {
+    "urgentFirst": "Más urgente primero",
+    "completionDesc": "Avance: mayor a menor",
+    "completionAsc": "Avance: menor a mayor",
+    "nameAsc": "Cliente A-Z",
+    "nameDesc": "Cliente Z-A"
+  },
+  "columns": {
+    "actions": "Acciones",
+    "client": "Cliente",
+    "status": "Estado",
+    "completion": "Avance",
+    "alerts": "Alertas",
+    "source": "Fuente",
+    "frequency": "Frecuencia",
+    "grossMonthly": "Bruto mensual",
+    "netMonthly": "Neto mensual",
+    "category": "Categoría",
+    "description": "Descripción",
+    "amount": "Monto",
+    "essential": "Necesario"
+  },
+  "states": {
+    "noResults": "No se encontraron resultados",
+    "noRows": "No hay registros todavía.",
+    "loading": "Cargando registros...",
+    "error": "No se pudo cargar la tabla."
+  }
+}

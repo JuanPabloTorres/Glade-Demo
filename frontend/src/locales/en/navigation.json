@@ -1,0 +1,50 @@
+{
+  "header": {
+    "progressTooltip": "Completed information in your request",
+    "progress": "Progress {{count}}%",
+    "pendingDocumentsTooltip": "The attorney requested these documents",
+    "pendingDocuments": "Pending documents {{count}}",
+    "attorneyNoteTooltip": "The attorney left a professional note in your case",
+    "attorneyNote": "Attorney note",
+    "assignedCasesTooltip": "Assigned cases",
+    "assignedCases": "Cases {{count}}",
+    "urgentCasesTooltip": "Cases with urgent collections or lawsuit",
+    "urgentCases": "Urgent {{count}}",
+    "requestedDocumentsTooltip": "Documents requested from clients, not yet received",
+    "requestedDocuments": "Requests {{count}}",
+    "aiStatusLoading": "Checking assistant status...",
+    "aiStatusUnavailable": "Could not fetch assistant status",
+    "aiProvider": "Provider: {{provider}} · Model: {{model}}",
+    "refreshAiStatus": "Refresh assistant status",
+    "aiConnected": "AI connected",
+    "aiDisconnected": "AI offline",
+    "searchClient": "Search by client",
+    "searchClientPlaceholder": "Search client...",
+    "roleAttorney": "Attorney",
+    "roleClient": "Client",
+    "homeAttorney": "Case queue",
+    "homeClient": "My request",
+    "help": "Help",
+    "logout": "Sign out",
+    "queue": "Queue",
+    "workspace": "Case file"
+  },
+  "footer": {
+    "title": "FreshStart Bankruptcy Guide",
+    "subtitle": "Financial preparation and attorney collaboration.",
+    "disclaimer": "FreshStart is not a law firm and does not provide legal advice. It organizes information and questions for professional consultation; it does not file cases, run the official means test, or provide automated legal advice.",
+    "portal": "Portal",
+    "about": "About the platform",
+    "privacy": "Privacy",
+    "security": "Security",
+    "accessibility": "Accessibility",
+    "terms": "Terms",
+    "help": "Help"
+  },
+  "languageSelector": {
+    "tooltip": "Change language",
+    "label": "Language",
+    "es": "Español",
+    "en": "English"
+  }
+}

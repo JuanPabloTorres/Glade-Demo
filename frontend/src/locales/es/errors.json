@@ -1,0 +1,18 @@
+{
+  "codes": {
+    "VALIDATION_ERROR": "Error de validación.",
+    "UNAUTHORIZED": "Tu sesión no es válida o expiró.",
+    "FORBIDDEN": "No tienes permisos para realizar esta acción.",
+    "RESOURCE_NOT_FOUND": "No se encontró el recurso solicitado.",
+    "RESOURCE_ALREADY_EXISTS": "El recurso ya existe.",
+    "CONFLICT": "Existe un conflicto con el estado actual.",
+    "DELETE_NOT_ALLOWED": "No se permite eliminar este recurso.",
+    "OLLAMA_UNAVAILABLE": "El servicio de inteligencia artificial no está disponible.",
+    "OLLAMA_TIMEOUT": "La respuesta de inteligencia artificial tardó demasiado.",
+    "INTERNAL_ERROR": "Ocurrió un error interno inesperado."
+  },
+  "users": {
+    "notFound": "No se encontró el usuario {{id}}."
+  },
+  "fallback": "No fue posible completar la operación."
+}

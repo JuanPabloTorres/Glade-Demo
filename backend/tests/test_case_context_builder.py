@@ -40,21 +40,21 @@ def _case(**overrides: object) -> BankruptcyCaseDto:
 def test_attorney_notes_visible_to_attorney() -> None:
     case = _case()
     analysis = BankruptcyAnalysisService().analyze(case)
-    context = CaseContextBuilder().build(case, analysis, "attorney")
+    context = CaseContextBuilder().build(case, analysis, "attorney", "es-PR")
     assert context.attorney_notes == case.attorney_notes
 
 
 def test_attorney_notes_redacted_for_client() -> None:
     case = _case()
     analysis = BankruptcyAnalysisService().analyze(case)
-    context = CaseContextBuilder().build(case, analysis, "client")
+    context = CaseContextBuilder().build(case, analysis, "client", "es-PR")
     assert context.attorney_notes is None
 
 
 def test_household_summary_omits_raw_municipality_and_phone() -> None:
     case = _case()
     analysis = BankruptcyAnalysisService().analyze(case)
-    context = CaseContextBuilder().build(case, analysis, "client")
+    context = CaseContextBuilder().build(case, analysis, "client", "es-PR")
     # The reduced context is a case summary, not the raw case — it must not
     # carry fields CaseContextDto doesn't declare (client_phone, municipality,
     # client_email) even though they exist on the source BankruptcyCaseDto.
@@ -66,7 +66,7 @@ def test_household_summary_omits_raw_municipality_and_phone() -> None:
 def test_pending_documents_reflects_requested_evidence_only() -> None:
     case = _case()
     analysis = BankruptcyAnalysisService().analyze(case)
-    context = CaseContextBuilder().build(case, analysis, "client")
+    context = CaseContextBuilder().build(case, analysis, "client", "es-PR")
     assert context.pending_documents == ["id.pdf"]
 
 
@@ -76,8 +76,8 @@ def test_two_different_cases_never_share_context_state() -> None:
     case_b = _case(id="case-b", client_name="Miguel Santos", attorney_notes="Nota privada de B")
     builder = CaseContextBuilder()
 
-    context_a = builder.build(case_a, BankruptcyAnalysisService().analyze(case_a), "attorney")
-    context_b = builder.build(case_b, BankruptcyAnalysisService().analyze(case_b), "attorney")
+    context_a = builder.build(case_a, BankruptcyAnalysisService().analyze(case_a), "attorney", "es-PR")
+    context_b = builder.build(case_b, BankruptcyAnalysisService().analyze(case_b), "attorney", "es-PR")
 
     assert context_a.case_id == "case-a"
     assert context_a.client_name == "Elena Rivera"

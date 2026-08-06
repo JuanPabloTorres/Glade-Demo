@@ -1,0 +1,50 @@
+{
+  "header": {
+    "progressTooltip": "Información completada de tu solicitud",
+    "progress": "Progreso {{count}}%",
+    "pendingDocumentsTooltip": "El abogado solicitó estos documentos",
+    "pendingDocuments": "Documentos pendientes {{count}}",
+    "attorneyNoteTooltip": "El abogado dejó una nota profesional en tu expediente",
+    "attorneyNote": "Nota del abogado",
+    "assignedCasesTooltip": "Casos asignados",
+    "assignedCases": "Casos {{count}}",
+    "urgentCasesTooltip": "Casos con cobro urgente o demanda",
+    "urgentCases": "Urgentes {{count}}",
+    "requestedDocumentsTooltip": "Documentos solicitados a clientes, aún no recibidos",
+    "requestedDocuments": "Solicitudes {{count}}",
+    "aiStatusLoading": "Consultando estado del asistente...",
+    "aiStatusUnavailable": "No se pudo consultar estado del asistente",
+    "aiProvider": "Proveedor: {{provider}} · Modelo: {{model}}",
+    "refreshAiStatus": "Actualizar estado del asistente",
+    "aiConnected": "IA conectada",
+    "aiDisconnected": "IA sin conexión",
+    "searchClient": "Buscar por cliente",
+    "searchClientPlaceholder": "Buscar cliente...",
+    "roleAttorney": "Abogado",
+    "roleClient": "Cliente",
+    "homeAttorney": "Bandeja de casos",
+    "homeClient": "Mi solicitud",
+    "help": "Ayuda",
+    "logout": "Cerrar sesión",
+    "queue": "Bandeja",
+    "workspace": "Expediente"
+  },
+  "footer": {
+    "title": "FreshStart Bankruptcy Guide",
+    "subtitle": "Preparación financiera y colaboración con el abogado.",
+    "disclaimer": "FreshStart no es un bufete y no ofrece asesoramiento legal. Organiza información y preguntas para una consulta profesional; no presenta casos, no ejecuta el means test oficial y no ofrece asesoramiento legal automático.",
+    "portal": "Portal",
+    "about": "Acerca de la plataforma",
+    "privacy": "Privacidad",
+    "security": "Seguridad",
+    "accessibility": "Accesibilidad",
+    "terms": "Términos",
+    "help": "Ayuda"
+  },
+  "languageSelector": {
+    "tooltip": "Cambiar idioma",
+    "label": "Idioma",
+    "es": "Español",
+    "en": "English"
+  }
+}

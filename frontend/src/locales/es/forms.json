@@ -1,0 +1,79 @@
+{
+  "generic": {
+    "select": "Seleccione",
+    "required": "Obligatorio"
+  },
+  "frequencies": {
+    "weekly": "Semanal",
+    "biweekly": "Cada dos semanas",
+    "semimonthly": "Dos veces al mes",
+    "monthly": "Mensual",
+    "quarterly": "Trimestral",
+    "annual": "Anual"
+  },
+  "household": {
+    "maritalStatus": "Estado civil",
+    "housingStatus": "Vivienda",
+    "householdSize": "Personas en el hogar",
+    "dependents": "Dependientes",
+    "filingJointly": "Considera presentación conjunta",
+    "urgentAction": "Cobro urgente",
+    "recentTransfer": "Transferencia reciente",
+    "clientGoal": "¿Qué quieres resolver o entender?",
+    "name": "Nombre",
+    "email": "Correo",
+    "phone": "Teléfono",
+    "municipality": "Municipio"
+  },
+  "maritalStatus": {
+    "single": "Soltero/a",
+    "married": "Casado/a",
+    "separated": "Separado/a",
+    "divorced": "Divorciado/a",
+    "widowed": "Viudo/a"
+  },
+  "housingStatus": {
+    "rent": "Alquiler",
+    "own": "Propia con hipoteca",
+    "own-free": "Propia sin hipoteca",
+    "family": "Con familiar",
+    "other": "Otra"
+  },
+  "entryModal": {
+    "addIncome": "Añadir ingreso",
+    "addExpense": "Añadir gasto mensual",
+    "addDebt": "Añadir deuda",
+    "addAsset": "Añadir bien o activo",
+    "addEvidence": "Añadir evidencia",
+    "incomeCategory": "Categoría",
+    "incomeSource": "Fuente o patrono",
+    "grossIncome": "Ingreso bruto",
+    "netIncome": "Ingreso neto",
+    "frequency": "Frecuencia",
+    "expenseCategory": "Categoría",
+    "expenseDescription": "Descripción",
+    "monthlyAmount": "Monto mensual",
+    "essentialExpense": "Es un gasto necesario para el hogar",
+    "creditor": "Acreedor",
+    "debtDescription": "Descripción",
+    "debtType": "Tipo",
+    "balance": "Balance",
+    "monthlyPayment": "Pago mensual",
+    "delinquentAmount": "Atraso",
+    "collateral": "Propiedad que garantiza la deuda",
+    "collectionAction": "Existe demanda, embargo o acción de cobro",
+    "assetCategory": "Categoría",
+    "assetDescription": "Descripción",
+    "estimatedValue": "Valor estimado",
+    "loanBalance": "Préstamo o gravamen",
+    "jointOwnership": "Propiedad conjunta",
+    "evidenceType": "Tipo de evidencia",
+    "evidenceFile": "Archivo",
+    "evidenceFileHint": "El demo conserva únicamente el nombre y estado del archivo en este navegador.",
+    "documentName": "Nombre del documento",
+    "evidenceStatus": "Estado",
+    "note": "Nota",
+    "save": "Guardar",
+    "cancel": "Cancelar"
+  }
+}

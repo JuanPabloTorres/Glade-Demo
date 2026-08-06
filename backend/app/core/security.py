@@ -31,6 +31,7 @@ def get_demo_accounts(settings: Settings) -> list[tuple[AuthUserDto, str]]:
                 email=settings.demo_client_email.strip().lower(),
                 name=settings.demo_client_name,
                 role="client",
+                preferred_language="es",
             ),
             settings.demo_client_password,
         ),
@@ -40,6 +41,12 @@ def get_demo_accounts(settings: Settings) -> list[tuple[AuthUserDto, str]]:
                 email=settings.demo_attorney_email.strip().lower(),
                 name=settings.demo_attorney_name,
                 role="attorney",
+                # Both demo personas default to Spanish, matching the rest of
+                # this Puerto Rico-market demo — the LanguageSelector already
+                # covers showcasing English, so this shouldn't silently flip
+                # the UI language on attorney login (was "en", likely a
+                # leftover test value).
+                preferred_language="es",
             ),
             settings.demo_attorney_password,
         ),

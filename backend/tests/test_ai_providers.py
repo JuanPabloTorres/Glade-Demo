@@ -22,7 +22,7 @@ from app.services.bankruptcy_service import BankruptcyAnalysisService
 from app.services.case_context_builder import CaseContextBuilder
 
 
-def _context(role: UserRole = "client") -> CaseContextDto:
+def _context(role: UserRole = "client", locale: str = "es-PR") -> CaseContextDto:
     case = BankruptcyCaseDto(
         id="case-provider-test",
         owner_user_id="client-demo",
@@ -31,7 +31,7 @@ def _context(role: UserRole = "client") -> CaseContextDto:
         status="collecting_information",
     )
     analysis = BankruptcyAnalysisService().analyze(case)
-    return CaseContextBuilder().build(case, analysis, role)
+    return CaseContextBuilder().build(case, analysis, role, locale)
 
 
 class TestRuleBasedProvider:
@@ -55,7 +55,7 @@ class TestRuleBasedProvider:
 
 class TestOllamaProvider:
     def test_unavailable_falls_back_to_deterministic_draft(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        provider = OllamaProvider(base_url="http://localhost:11434", model="qwen3:4b")
+        provider = OllamaProvider(base_url="http://localhost:11434", model="qwen3:4b", timeout_ms=2000)
 
         def raise_connection_error(*_args: object, **_kwargs: object) -> None:
             raise urllib.error.URLError("connection refused")
@@ -71,7 +71,7 @@ class TestOllamaProvider:
         assert provider.is_available() is False
 
     def test_rewrite_replaces_message_when_ollama_responds(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        provider = OllamaProvider(base_url="http://localhost:11434", model="qwen3:4b")
+        provider = OllamaProvider(base_url="http://localhost:11434", model="qwen3:4b", timeout_ms=2000)
 
         class FakeResponse:
             def __enter__(self) -> FakeResponse:
@@ -108,17 +108,17 @@ class TestTransformersProvider:
 
 class TestProviderFactory:
     def test_defaults_to_rule_based(self) -> None:
-        provider = get_provider("rule_based", "http://localhost:11434", "qwen3:4b", "model", 180)
+        provider = get_provider("rule_based", "http://localhost:11434", "qwen3:4b", 60000, "model", 180)
         assert isinstance(provider, RuleBasedProvider)
 
     def test_unknown_provider_name_defaults_to_rule_based(self) -> None:
-        provider = get_provider("something-unrecognized", "http://localhost:11434", "qwen3:4b", "model", 180)
+        provider = get_provider("something-unrecognized", "http://localhost:11434", "qwen3:4b", 60000, "model", 180)
         assert isinstance(provider, RuleBasedProvider)
 
     def test_selects_ollama(self) -> None:
-        provider = get_provider("ollama", "http://localhost:11434", "qwen3:4b", "model", 180)
+        provider = get_provider("ollama", "http://localhost:11434", "qwen3:4b", 60000, "model", 180)
         assert isinstance(provider, OllamaProvider)
 
     def test_selects_transformers(self) -> None:
-        provider = get_provider("transformers", "http://localhost:11434", "qwen3:4b", "model", 180)
+        provider = get_provider("transformers", "http://localhost:11434", "qwen3:4b", 60000, "model", 180)
         assert isinstance(provider, TransformersProvider)

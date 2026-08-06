@@ -82,6 +82,8 @@ class CaseContextDto(ApiModel):
 
     case_id: str
     role: UserRole
+    locale: str
+    language: Literal["es", "en"]
     status: CaseStatus
     client_name: str
     objective: str | None

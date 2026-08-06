@@ -1,10 +1,14 @@
-from fastapi import FastAPI, Request
+from uuid import uuid4
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routers import auth, bankruptcy, documents, health
+from app.api.routers import ai, auth, bankruptcy, documents, health
 from app.core.config import get_settings
 from app.core.errors import DomainError, NotFoundError, ValidationError
+from app.core.i18n import localize_message, resolve_locale
 from app.core.version import APP_VERSION
 
 settings = get_settings()
@@ -18,14 +22,69 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(ai.router)
 app.include_router(auth.router)
 app.include_router(bankruptcy.router)
 app.include_router(documents.router)
 
 
 @app.exception_handler(DomainError)
-def handle_domain_error(_: Request, exc: DomainError) -> JSONResponse:
+def handle_domain_error(request: Request, exc: DomainError) -> JSONResponse:
     status_code = 404 if isinstance(exc, NotFoundError) else 400
     if isinstance(exc, ValidationError):
         status_code = 422
-    return JSONResponse(status_code=status_code, content={"detail": str(exc)})
+    locale = resolve_locale(request.headers.get("Accept-Language"))
+    trace_id = str(uuid4())
+    message = localize_message(exc.message_key, locale, exc.parameters)
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "code": exc.code,
+            "messageKey": exc.message_key,
+            "message": message,
+            "parameters": exc.parameters,
+            "traceId": trace_id,
+        },
+    )
+
+
+@app.exception_handler(HTTPException)
+def handle_http_exception(request: Request, exc: HTTPException) -> JSONResponse:
+    locale = resolve_locale(request.headers.get("Accept-Language"))
+    trace_id = str(uuid4())
+    status_to_error = {
+        401: ("UNAUTHORIZED", "errors.codes.UNAUTHORIZED"),
+        403: ("FORBIDDEN", "errors.codes.FORBIDDEN"),
+        404: ("RESOURCE_NOT_FOUND", "errors.codes.RESOURCE_NOT_FOUND"),
+        409: ("CONFLICT", "errors.codes.CONFLICT"),
+        422: ("VALIDATION_ERROR", "errors.codes.VALIDATION_ERROR"),
+    }
+    code, message_key = status_to_error.get(exc.status_code, ("INTERNAL_ERROR", "errors.codes.INTERNAL_ERROR"))
+    message = localize_message(message_key, locale)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "code": code,
+            "messageKey": message_key,
+            "message": message,
+            "parameters": {},
+            "traceId": trace_id,
+        },
+        headers=exc.headers,
+    )
+
+
+@app.exception_handler(RequestValidationError)
+def handle_request_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+    locale = resolve_locale(request.headers.get("Accept-Language"))
+    trace_id = str(uuid4())
+    return JSONResponse(
+        status_code=422,
+        content={
+            "code": "VALIDATION_ERROR",
+            "messageKey": "errors.codes.VALIDATION_ERROR",
+            "message": localize_message("errors.codes.VALIDATION_ERROR", locale),
+            "parameters": {"errors": exc.errors()},
+            "traceId": trace_id,
+        },
+    )

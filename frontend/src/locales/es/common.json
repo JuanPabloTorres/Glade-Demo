@@ -1,0 +1,62 @@
+{
+  "app": {
+    "name": "FreshStart",
+    "subtitle": "Bankruptcy case guidance"
+  },
+  "actions": {
+    "create": "Crear",
+    "view": "Ver",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "retry": "Intentar nuevamente",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "clearFilters": "Limpiar filtros",
+    "open": "Abrir",
+    "close": "Cerrar",
+    "moreActions": "Más acciones",
+    "continue": "Continuar",
+    "back": "Volver",
+    "send": "Enviar",
+    "submit": "Enviar",
+    "start": "Iniciar",
+    "signOut": "Cerrar sesión"
+  },
+  "labels": {
+    "language": "Idioma",
+    "spanish": "Español",
+    "english": "English",
+    "esCode": "ES",
+    "enCode": "EN",
+    "demo": "Ambiente demo",
+    "comingSoon": "Próximamente",
+    "status": "Estado",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "badges": {
+    "version": "v{{version}}",
+    "demo": "Ambiente demo",
+    "operational": "Servicio operativo",
+    "humanReviewRequired": "Revisión humana obligatoria"
+  },
+  "messages": {
+    "noData": "No hay registros todavía.",
+    "loading": "Cargando...",
+    "updating": "Actualizando...",
+    "error": "Ocurrió un error inesperado."
+  },
+  "pagination": {
+    "rowsPerPage": "Filas por página",
+    "rows": "{{count}} filas",
+    "pageOf": "Página {{page}} de {{total}}"
+  },
+  "a11y": {
+    "openLanguageMenu": "Cambiar idioma",
+    "switchLanguage": "Seleccionar idioma",
+    "closeDialog": "Cerrar diálogo"
+  }
+}

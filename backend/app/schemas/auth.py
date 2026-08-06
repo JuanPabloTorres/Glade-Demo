@@ -22,6 +22,7 @@ class AuthUserDto(ApiModel):
     email: str
     name: str
     role: UserRole
+    preferred_language: str = "es"
 
 
 class AuthTokenDto(ApiModel):

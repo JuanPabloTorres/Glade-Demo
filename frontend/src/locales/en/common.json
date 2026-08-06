@@ -1,0 +1,62 @@
+{
+  "app": {
+    "name": "FreshStart",
+    "subtitle": "Bankruptcy case guidance"
+  },
+  "actions": {
+    "create": "Create",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "retry": "Try again",
+    "search": "Search",
+    "filter": "Filter",
+    "clearFilters": "Clear filters",
+    "open": "Open",
+    "close": "Close",
+    "moreActions": "More actions",
+    "continue": "Continue",
+    "back": "Back",
+    "send": "Send",
+    "submit": "Submit",
+    "start": "Start",
+    "signOut": "Sign out"
+  },
+  "labels": {
+    "language": "Language",
+    "spanish": "Español",
+    "english": "English",
+    "esCode": "ES",
+    "enCode": "EN",
+    "demo": "Demo environment",
+    "comingSoon": "Coming soon",
+    "status": "Status",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "badges": {
+    "version": "v{{version}}",
+    "demo": "Demo environment",
+    "operational": "Operational service",
+    "humanReviewRequired": "Human review required"
+  },
+  "messages": {
+    "noData": "No records yet.",
+    "loading": "Loading...",
+    "updating": "Updating...",
+    "error": "An unexpected error occurred."
+  },
+  "pagination": {
+    "rowsPerPage": "Rows per page",
+    "rows": "{{count}} rows",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
+  "a11y": {
+    "openLanguageMenu": "Change language",
+    "switchLanguage": "Select language",
+    "closeDialog": "Close dialog"
+  }
+}
