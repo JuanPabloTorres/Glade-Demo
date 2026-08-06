@@ -20,6 +20,50 @@
   --color-warning: #b45309;
   --color-danger: #b91c1c;
 
+  /* Typography scale (docs/ux/FLOWBITE-COMPONENT-STANDARDS.md §7). Each
+     role pairs a size + weight + line-height, so a component reaches for
+     one semantic var pair instead of inventing an arbitrary px value.
+     Convention: --font-size-<role> / --font-weight-<role> / --font-leading-<role>,
+     applied together wherever that role appears (see AppTypography usage). */
+  --font-size-display: 2.75rem;
+  --font-weight-display: 600;
+  --font-leading-display: 1.08;
+  --font-size-page-title: 2rem;
+  --font-weight-page-title: 600;
+  --font-leading-page-title: 1.15;
+  --font-size-section-title: 1.375rem;
+  --font-weight-section-title: 600;
+  --font-leading-section-title: 1.25;
+  --font-size-card-title: 1.125rem;
+  --font-weight-card-title: 600;
+  --font-leading-card-title: 1.3;
+  --font-size-body: 1rem;
+  --font-weight-body: 400;
+  --font-leading-body: 1.6;
+  --font-size-supporting: 0.875rem;
+  --font-weight-supporting: 400;
+  --font-leading-supporting: 1.55;
+  --font-size-label: 0.8125rem;
+  --font-weight-label: 600;
+  --font-leading-label: 1.4;
+  --font-size-caption: 0.75rem;
+  --font-weight-caption: 500;
+  --font-leading-caption: 1.4;
+
+  /* Spacing scale (4/8/12/16/20/24/32/40/48/64 per the architecture guide
+     §8 — --space-1..8 map to the first eight steps; --space-9/--space-10
+     cover the remaining 48/64 steps used by a few full-bleed layouts). */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-7: 2rem;     /* 32px */
+  --space-8: 2.5rem;   /* 40px */
+  --space-9: 3rem;     /* 48px */
+  --space-10: 4rem;    /* 64px */
+
   --glade-black: var(--color-text);
   --glade-white: var(--color-surface);
   --glade-surface: var(--color-page);
@@ -46,6 +90,61 @@
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
+}
+
+/* Typography scale utility classes — the actual consumption point for the
+   --font-size-N, --font-weight-N, --font-leading-N token triads above. Use
+   these instead of one-off text-[Npx] classes on new/changed components. */
+.text-display {
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-display);
+  line-height: var(--font-leading-display);
+  letter-spacing: -0.03em;
+}
+
+.text-page-title {
+  font-size: var(--font-size-page-title);
+  font-weight: var(--font-weight-page-title);
+  line-height: var(--font-leading-page-title);
+  letter-spacing: -0.025em;
+}
+
+.text-section-title {
+  font-size: var(--font-size-section-title);
+  font-weight: var(--font-weight-section-title);
+  line-height: var(--font-leading-section-title);
+}
+
+.text-card-title {
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-card-title);
+  line-height: var(--font-leading-card-title);
+}
+
+.text-body {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-body);
+  line-height: var(--font-leading-body);
+}
+
+.text-supporting {
+  font-size: var(--font-size-supporting);
+  font-weight: var(--font-weight-supporting);
+  line-height: var(--font-leading-supporting);
+}
+
+.text-label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  line-height: var(--font-leading-label);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.text-caption {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-caption);
+  line-height: var(--font-leading-caption);
 }
 
 body {

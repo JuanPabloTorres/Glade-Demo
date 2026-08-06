@@ -49,7 +49,15 @@
     "send": "Enviar",
     "close": "Cerrar"
   },
+  "stageStepper": {
+    "title": "Flujo guiado",
+    "stepOf": "Paso {{current}} de {{total}}"
+  },
   "stages": {
+    "askAssistant": "Preguntar al asistente",
+    "estimatedMinutesLabel": "~{{minutes}} min",
+    "percentCompleteLabel": "{{percent}}% completo",
+    "exampleLabel": "Ejemplo:",
     "householdTitle": "Hogar y perfil",
     "householdDescription": "Cuéntanos quién vive en el hogar y tu situación de vivienda. Esto ayuda a calcular gastos permitidos.",
     "incomeTitle": "Ingresos",

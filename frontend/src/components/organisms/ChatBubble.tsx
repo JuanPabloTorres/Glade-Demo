@@ -48,7 +48,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
         >
           {message.content}
         </div>
-        <div className="flex items-center gap-2 px-1 text-[11px] text-(--color-text-muted) opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="text-caption flex items-center gap-2 px-1 text-(--color-text-muted) opacity-0 transition-opacity group-hover:opacity-100">
           <span>{formatTime(message.createdAt, locale)}</span>
           <Tooltip content={copied ? t("chat.copied") : t("chat.copy")}>
             <button type="button" onClick={copy} aria-label={t("chat.copyToClipboard")} className="hover:text-(--color-text)">

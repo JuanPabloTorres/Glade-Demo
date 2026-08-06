@@ -1,8 +1,9 @@
-import { Button, Label, Textarea } from "flowbite-react";
+import { Label, Textarea } from "flowbite-react";
 import { type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { AssistantAction } from "../../types/bankruptcy";
 import { AppIcon } from "../atoms/AppIcon";
+import { AppButton } from "../ui/AppButton";
 
 interface ChatComposerProps {
   value: string;
@@ -21,7 +22,7 @@ export function ChatComposer({ value, onChange, onSubmit, suggestedActions, onSe
       {suggestedActions.length ? (
         <div className="mb-3 flex flex-wrap gap-2">
           {suggestedActions.map((action) => (
-            <Button key={action.id} size="xs" color="light" onClick={() => onSelectAction(action)}>{action.label}</Button>
+            <AppButton key={action.id} size="xs" color="light" onClick={() => onSelectAction(action)}>{action.label}</AppButton>
           ))}
         </div>
       ) : null}
@@ -35,10 +36,10 @@ export function ChatComposer({ value, onChange, onSubmit, suggestedActions, onSe
           placeholder={t("chat.inputPlaceholder")}
           className="flex-1"
         />
-        <Button type="submit" className="glade-button shrink-0" disabled={busy || !value.trim()}>
+        <AppButton type="submit" className="glade-button shrink-0" disabled={busy || !value.trim()}>
           {busy ? <AppIcon name="calculator" size={16} className="mr-2 animate-spin" /> : null}
           {busy ? t("chat.analyzing") : t("chat.send")}
-        </Button>
+        </AppButton>
       </form>
     </div>
   );

@@ -49,7 +49,15 @@
     "send": "Send",
     "close": "Close"
   },
+  "stageStepper": {
+    "title": "Guided flow",
+    "stepOf": "Step {{current}} of {{total}}"
+  },
   "stages": {
+    "askAssistant": "Ask the assistant",
+    "estimatedMinutesLabel": "~{{minutes}} min",
+    "percentCompleteLabel": "{{percent}}% complete",
+    "exampleLabel": "Example:",
     "householdTitle": "Household and profile",
     "householdDescription": "Tell us who lives in the household and your housing situation. This helps estimate allowed expenses.",
     "incomeTitle": "Income",

@@ -1,5 +1,7 @@
-import { Badge, Button } from "flowbite-react";
+import { Badge } from "flowbite-react";
+import { useTranslation } from "react-i18next";
 import { AppIcon } from "../atoms/AppIcon";
+import { AppButton } from "../ui/AppButton";
 
 interface StageOrientationProps {
   title: string;
@@ -30,39 +32,40 @@ export function StageOrientation({
   onPrimaryAction,
   onOpenChat,
 }: StageOrientationProps) {
+  const { t } = useTranslation("workspace");
   return (
     <div className="mb-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">{title}</h2>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">{description}</p>
+          <h2 className="text-card-title text-[var(--color-text)]">{title}</h2>
+          <p className="mt-1 max-w-2xl text-supporting text-[var(--color-text-muted)]">{description}</p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Badge color="gray">~{estimatedMinutes} min</Badge>
-          <Badge color={percentComplete >= 100 ? "success" : "indigo"}>{percentComplete}% completo</Badge>
+          <Badge color="gray">{t("workspace:stages.estimatedMinutesLabel", { minutes: estimatedMinutes })}</Badge>
+          <Badge color={percentComplete >= 100 ? "success" : "indigo"}>{t("workspace:stages.percentCompleteLabel", { percent: percentComplete })}</Badge>
         </div>
       </div>
 
       {missingItems.length ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {missingItems.map((item) => (
-            <span key={item} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-medium text-[var(--color-warning)] ring-1 ring-inset ring-amber-200">
+            <span key={item} className="text-caption flex items-center gap-1.5 rounded-full bg-white px-3 py-1 font-medium text-[var(--color-warning)] ring-1 ring-inset ring-amber-200">
               <AppIcon name="alert" size={13} /> {item}
             </span>
           ))}
         </div>
       ) : null}
 
-      {example ? <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]"><span className="font-semibold">Ejemplo:</span> {example}</p> : null}
+      {example ? <p className="text-caption mt-3 text-[var(--color-text-muted)]"><span className="font-semibold">{t("workspace:stages.exampleLabel")}</span> {example}</p> : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
         {primaryActionLabel && onPrimaryAction ? (
-          <Button size="sm" className="primary-action" onClick={onPrimaryAction}>{primaryActionLabel}</Button>
+          <AppButton size="sm" className="primary-action" onClick={onPrimaryAction}>{primaryActionLabel}</AppButton>
         ) : null}
         {onOpenChat ? (
-          <Button size="sm" color="light" onClick={onOpenChat}>
-            <AppIcon name="chat" size={16} className="mr-2" /> Preguntar al asistente
-          </Button>
+          <AppButton size="sm" color="light" iconLeft="chat" onClick={onOpenChat}>
+            {t("workspace:stages.askAssistant")}
+          </AppButton>
         ) : null}
       </div>
     </div>

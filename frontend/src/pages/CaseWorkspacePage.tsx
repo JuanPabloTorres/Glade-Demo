@@ -1,7 +1,6 @@
 import {
   Alert,
   Badge,
-  Button,
   Card,
   Checkbox,
   Label,
@@ -20,12 +19,14 @@ import { bankruptcyApi } from "../api/bankruptcyApi";
 import { useAuth } from "../auth/AuthContext";
 import { useChatPanel } from "../chat/ChatPanelContext";
 import { AppIcon } from "../components/atoms/AppIcon";
+import { AppButton } from "../components/ui/AppButton";
 import { BankruptcyEntryModal } from "../components/organisms/BankruptcyEntryModal";
 import { CaseActionBar } from "../components/organisms/CaseActionBar";
 import { CaseTimeline } from "../components/organisms/CaseTimeline";
 import { CaseStageStepper } from "../components/molecules/CaseStageStepper";
 import { ResponsiveDataView } from "../components/molecules/ResponsiveDataView";
 import { StageOrientation } from "../components/molecules/StageOrientation";
+import { ROUTES } from "../config/routes";
 import type {
   BankruptcyCase,
   CaseAnalysis,
@@ -99,8 +100,8 @@ export function CaseWorkspacePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  if (!caseData || !user) return <Navigate to="/" replace />;
-  if (user.role === "client" && caseData.ownerUserId !== user.id) return <Navigate to="/" replace />;
+  if (!caseData || !user) return <Navigate to={ROUTES.home} replace />;
+  if (user.role === "client" && caseData.ownerUserId !== user.id) return <Navigate to={ROUTES.home} replace />;
 
   const update = (updater: (value: BankruptcyCase) => BankruptcyCase) => workspace.updateCase(caseData.id, updater);
   const addEntry = (submission: EntrySubmission) => {
@@ -160,7 +161,7 @@ export function CaseWorkspacePage() {
         <div className="glade-gradient absolute inset-x-0 top-0 h-1.5" />
         <div className="flex flex-col gap-5 pt-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <Button color="light" size="xs" onClick={() => navigate("/")}>← {t("workspace:header.back")}</Button>
+            <AppButton color="light" size="xs" onClick={() => navigate(ROUTES.home)}>← {t("workspace:header.back")}</AppButton>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <Badge color={statusColor(caseData.status)}>{t(`workspace:status.${caseData.status}`)}</Badge>
               {caseData.household.urgentCollectionAction ? <Badge color="failure">{t("workspace:header.urgentAttention")}</Badge> : null}
@@ -177,7 +178,7 @@ export function CaseWorkspacePage() {
             </div>
             <Progress progress={completion} color="purple" className="mt-3" />
             {!isAttorney && caseData.status !== "submitted" ? (
-              <Button className="glade-button mt-4 w-full" onClick={() => workspace.submitCase(caseData.id)}>{t("workspace:header.submitToAttorney")}</Button>
+              <AppButton className="glade-button mt-4 w-full" onClick={() => workspace.submitCase(caseData.id)}>{t("workspace:header.submitToAttorney")}</AppButton>
             ) : null}
           </div>
         </div>
@@ -187,7 +188,7 @@ export function CaseWorkspacePage() {
 
       {isAttorney ? (
         <Card className="app-card">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-indigo-700">Acciones del caso</p>
+          <p className="text-label mb-3 text-indigo-700">{t("workspace:actions.caseActions")}</p>
           <CaseActionBar
             caseData={caseData}
             analysis={analysis}
@@ -319,7 +320,7 @@ export function CaseWorkspacePage() {
             emptyMessage={t("workspace:caseWorkspace.empty.incomes")}
             rows={caseData.incomes}
             rowKey={(item) => item.id}
-            renderActions={(item) => <Button size="xs" color="light" onClick={() => removeEntry("income", item.id)}>{t("common:actions.delete")}</Button>}
+            renderActions={(item) => <AppButton size="xs" color="light" onClick={() => removeEntry("income", item.id)}>{t("common:actions.delete")}</AppButton>}
             columns={[
               { key: "source", header: t("workspace:caseWorkspace.columns.source"), hideLabelOnCard: true, render: (item) => <div><p className="font-semibold">{item.source}</p><p className="text-xs text-[var(--color-text-muted)]">{t(`workspace:entryModal.incomeCategories.${item.category}`)}</p></div> },
               { key: "frequency", header: t("workspace:caseWorkspace.columns.frequency"), render: (item) => t(`workspace:entryModal.frequencies.${item.frequency}`) },
@@ -345,7 +346,7 @@ export function CaseWorkspacePage() {
             emptyMessage={t("workspace:caseWorkspace.empty.expenses")}
             rows={caseData.expenses}
             rowKey={(item) => item.id}
-            renderActions={(item) => <Button size="xs" color="light" onClick={() => removeEntry("expense", item.id)}>{t("common:actions.delete")}</Button>}
+            renderActions={(item) => <AppButton size="xs" color="light" onClick={() => removeEntry("expense", item.id)}>{t("common:actions.delete")}</AppButton>}
             columns={[
               { key: "category", header: t("workspace:caseWorkspace.columns.category"), hideLabelOnCard: true, render: (item) => <p className="font-semibold">{t(`workspace:entryModal.expenseCategories.${item.category}`)}</p> },
               { key: "description", header: t("workspace:caseWorkspace.columns.description"), render: (item) => item.description },
@@ -378,7 +379,7 @@ export function CaseWorkspacePage() {
                   <div><p className="text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.labels.balance")}</p><p className="font-semibold">{currency(item.balance)}</p></div>
                   <div><p className="text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.labels.delinquent")}</p><p className="font-semibold">{currency(item.delinquentAmount)}</p></div>
                 </div>
-                <Button size="xs" color="light" className="mt-4" onClick={() => removeEntry("debt", item.id)}>{t("common:actions.delete")}</Button>
+                <AppButton size="xs" color="light" className="mt-4" onClick={() => removeEntry("debt", item.id)}>{t("common:actions.delete")}</AppButton>
               </Card>
             ))}
             {!caseData.debts.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)] lg:col-span-2">{t("workspace:caseWorkspace.empty.debts")}</p> : null}
@@ -402,7 +403,7 @@ export function CaseWorkspacePage() {
               <Card key={item.id} className="border border-[var(--color-border)] bg-[var(--color-surface-muted)] shadow-none">
                 <p className="font-semibold">{item.description}</p><p className="text-sm text-[var(--color-text-muted)]">{t(`workspace:entryModal.assetCategories.${item.category}`)}</p>
                 <div className="mt-3 flex justify-between text-sm"><span>{t("workspace:caseWorkspace.labels.value")} {currency(item.estimatedValue)}</span><span>{t("workspace:caseWorkspace.labels.lien")} {currency(item.loanBalance)}</span></div>
-                <Button size="xs" color="light" className="mt-4" onClick={() => removeEntry("asset", item.id)}>{t("common:actions.delete")}</Button>
+                <AppButton size="xs" color="light" className="mt-4" onClick={() => removeEntry("asset", item.id)}>{t("common:actions.delete")}</AppButton>
               </Card>
             ))}
             {!caseData.assets.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)] lg:col-span-2">{t("workspace:caseWorkspace.empty.assets")}</p> : null}
@@ -432,7 +433,7 @@ export function CaseWorkspacePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge color={item.status === "reviewed" ? "success" : item.status === "received" ? "info" : item.status === "requested" ? "warning" : "gray"}>{t(`workspace:entryModal.evidenceStatus.${item.status}`)}</Badge>
-                      <Button size="xs" color="light" onClick={() => removeEntry("evidence", item.id)}>{t("common:actions.delete")}</Button>
+                      <AppButton size="xs" color="light" onClick={() => removeEntry("evidence", item.id)}>{t("common:actions.delete")}</AppButton>
                     </div>
                   </div>
                 ))}

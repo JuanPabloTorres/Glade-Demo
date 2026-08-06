@@ -59,7 +59,10 @@ export function AttorneyDashboardPage() {
   const auth = useAuth();
   const { cases, updateCase, deleteCase, createCase } = useBankruptcyWorkspace();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [view, setView] = useState<ViewKey>("all");
+  // Initial `view` reads from the URL so sidebar deep links (?view=urgent,
+  // ?view=waiting_client) land on the matching filter instead of always
+  // resetting to "all" — mirrors the `q` search param, already URL-driven.
+  const [view, setView] = useState<ViewKey>(() => (searchParams.get("view") as ViewKey) || "all");
   const [sort, setSort] = useState<SortKey>("urgent-first");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(8);
@@ -121,6 +124,10 @@ export function AttorneyDashboardPage() {
   const setView_ = (key: ViewKey) => {
     setView(key);
     setPage(1);
+    const next = new URLSearchParams(searchParams);
+    if (key === "all") next.delete("view");
+    else next.set("view", key);
+    setSearchParams(next, { replace: true });
   };
 
   const clearFilters = () => {

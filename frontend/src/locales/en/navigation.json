@@ -46,5 +46,29 @@
     "label": "Language",
     "es": "Español",
     "en": "English"
+  },
+  "sidebar": {
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu",
+    "menuTitle": "Menu",
+    "groupClient": "Client",
+    "groupAttorney": "Attorney workspace",
+    "disabledNoCase": "Available once you have an active request",
+    "disabledNoActivityFeed": "Not available yet in this demo",
+    "client": {
+      "home": "Home",
+      "myCase": "My case",
+      "documents": "Documents",
+      "tasks": "Tasks",
+      "activity": "Activity",
+      "help": "Help"
+    },
+    "attorney": {
+      "queue": "Case queue",
+      "urgent": "Urgent",
+      "requestedDocuments": "Requested documents",
+      "activity": "Activity",
+      "help": "Help"
+    }
   }
 }

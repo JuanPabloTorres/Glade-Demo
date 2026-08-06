@@ -31,6 +31,23 @@ class Settings(BaseSettings):
     demo_attorney_password: str = "Counsel!2026"
     demo_attorney_name: str = "Lic. Andrea Morales"
 
+    # Persistence (docs/audits/GLADE-DEMO-GROUNDED-STATE-2026-08-06.md §3: this
+    # field previously did not exist on Settings at all, so `DATABASE_URL`
+    # set by api/index.py's Vercel entrypoint was silently dropped by
+    # `extra="ignore"` — dead config, no real connection. It is read for
+    # real now by app.repositories.database.
+    #
+    # SQLite (file-based) is intentionally the only backend wired up for
+    # this demo: zero infra to stand up, trivial to reset (see
+    # backend/scripts/seed_demo_data.py), good enough for the case volumes a
+    # demo ever sees. Upgrade path to Postgres: swap this URL to a
+    # `postgresql+psycopg://` DSN (add `psycopg[binary]` to pyproject
+    # dependencies), then run `alembic upgrade head` against it — every
+    # model in app/repositories/orm_models.py uses portable SQLAlchemy
+    # column types (no SQLite-only features), so no schema changes are
+    # required, only the connection string and driver.
+    database_url: str = "sqlite:///./data/freshstart.db"
+
     # AI provider selection (master instruction §7.2): "rule_based" (default,
     # deterministic, no network/model dependency), "ollama", or "transformers".
     # Never hardcode a model id here beyond these defaults — override via env.

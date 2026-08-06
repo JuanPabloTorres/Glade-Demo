@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Modal, ModalBody, ModalHeader, Spinner, Tooltip } from "flowbite-react";
+import { Alert, Badge, Modal, ModalBody, ModalHeader, Spinner, Tooltip } from "flowbite-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
@@ -9,6 +9,7 @@ import { useAiHealth } from "../../hooks/useAiHealth";
 import type { AssistantAction, AssistantResponse } from "../../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../../workspace/BankruptcyWorkspaceContext";
 import { AppIcon } from "../atoms/AppIcon";
+import { AppButton } from "../ui/AppButton";
 import { ChatBubble } from "./ChatBubble";
 import { ChatComposer } from "./ChatComposer";
 
@@ -130,7 +131,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
           <Alert color="failure" className="mb-3">
             <div className="flex items-center justify-between gap-3">
               <span>{error}</span>
-              <Button size="xs" color="light" onClick={retry}>{t("chat.retry")}</Button>
+              <AppButton size="xs" color="light" onClick={retry}>{t("chat.retry")}</AppButton>
             </div>
           </Alert>
         </div>
@@ -144,7 +145,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
                 {t("chat.serviceUnavailable")}
               </span>
               <div>
-                <Button size="xs" color="light" onClick={() => void aiHealth.refresh()}>{t("chat.retryConnection")}</Button>
+                <AppButton size="xs" color="light" onClick={() => void aiHealth.refresh()}>{t("chat.retryConnection")}</AppButton>
               </div>
             </div>
           </Alert>
@@ -153,9 +154,9 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
 
       {guidance?.focus_section ? (
         <div className="px-4 pb-2">
-          <Button size="xs" color="light" onClick={openFocusSection}>
+          <AppButton size="xs" color="light" onClick={openFocusSection}>
             <AppIcon name="arrow-right" size={14} className="mr-1.5" /> {t("chat.openRecommendedSection")}
-          </Button>
+          </AppButton>
         </div>
       ) : null}
 
