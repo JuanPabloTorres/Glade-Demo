@@ -51,14 +51,19 @@ export function parseArgs(argv = process.argv.slice(2)) {
   return result;
 }
 
-function escapeRegExp(value) { return value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&"); }
+function escapeCharacter(value) { return /[|\\{}()[\]^$+?.]/.test(value) ? `\\${value}` : value; }
 
 export function matchesGlob(pattern, filePath) {
-  const normalizedPattern = pattern.replaceAll("\\", "/");
-  const normalizedPath = filePath.replaceAll("\\", "/").replace(/^\.\//, "");
-  if (normalizedPattern === "**") return true;
-  const source = escapeRegExp(normalizedPattern).replaceAll("\\*\\*", ".*").replaceAll("\\*", "[^/]*");
-  return new RegExp(`^${source}$`).test(normalizedPath);
+  const candidate = filePath.replaceAll("\\", "/").replace(/^\.\//, "");
+  const glob = pattern.replaceAll("\\", "/").replace(/^\.\//, "");
+  if (glob === "**") return true;
+  let source = "";
+  for (let index = 0; index < glob.length; index += 1) {
+    if (glob[index] === "*" && glob[index + 1] === "*") { source += ".*"; index += 1; }
+    else if (glob[index] === "*") source += "[^/]*";
+    else source += escapeCharacter(glob[index]);
+  }
+  return new RegExp(`^${source}$`).test(candidate);
 }
 
 export function repoRelative(filePath) {

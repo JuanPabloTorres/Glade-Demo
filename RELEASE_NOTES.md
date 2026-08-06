@@ -1,3 +1,19 @@
+# FreshStart 3.2.0
+
+Agent-governance and architecture release (`chore/agent-governance-v2`).
+
+- Added native Claude Code context through root and nested `CLAUDE.md` files plus path-aware `.claude/rules`.
+- Added governed lifecycle skills for baseline, task start/planning, Flowbite, feature flows, API/backend/AI/i18n changes, ADRs, verification, worktree integration, versioning and completion.
+- Added specialized read-only, isolated implementation, security, testing, integration and independent release-gate agents.
+- Added Claude hooks that protect `main`, reject destructive/non-selective Git commands, require task ownership, protect shared version files and block incomplete task closure.
+- Added cross-platform Node tooling for repository context, task manifests, ownership, change fragments, architecture/Flowbite checks, worktrees and verification.
+- Added Conventional Commit, pre-commit and full pre-push Git hooks.
+- Replaced stale MatterReady/TanStack/React Hook Form/Zod/SQLAlchemy-UoW skill assumptions with pointers to the actual FreshStart architecture.
+- Added Flowbite and new-flow governance, templates, schemas and agent-system documentation.
+- Added CI governance and i18n gates while preserving backend, frontend and Playwright gates.
+- Parallel worktrees now use change fragments; only the integration owner performs the final SemVer bump.
+- `VERSION`, root/frontend package manifests and backend metadata are release authorities. Lockfile root version is informational; dependency integrity remains enforced by `npm ci`, and local version commands refresh its metadata.
+
 # FreshStart 3.1.0
 
 Glade interview-demo audit (`fix/glade-demo-audit-i18n-ai-health`) — full bilingual rollout plus the regressions caught while wiring it up.
@@ -52,7 +68,7 @@ Major pivot: replaced the legal-matter-intake domain (MatterReady) with the Fres
 # MatterReady AI Intake Copilot 1.0.0
 
 - Introduced the AI Intake Copilot: a stateless, chat-first case-packet engine, replacing the prior matter workflow.
-- Isolated heavyweight AI dependencies from the production API runtime (the Vercel-safe dependency split this refactor's `docs/architecture/AI-PROVIDER-ARCHITECTURE.md` continues).
+- Isolated heavyweight AI dependencies from the production API runtime.
 
 # MatterReady 0.4.0
 

@@ -1,10 +1,8 @@
 {
   "name": "matter-ready-demo",
   "private": true,
-  "version": "3.1.0",
-  "engines": {
-    "node": "22.x"
-  },
+  "version": "3.2.0",
+  "engines": { "node": "22.x" },
   "scripts": {
     "install:web": "npm --prefix frontend ci --no-audit --no-fund",
     "build": "npm --prefix frontend run build",
@@ -14,6 +12,16 @@
     "version:current": "node scripts/versioning.mjs current",
     "version:major": "node scripts/versioning.mjs major",
     "version:minor": "node scripts/versioning.mjs minor",
-    "version:patch": "node scripts/versioning.mjs patch"
+    "version:patch": "node scripts/versioning.mjs patch",
+    "agent:context": "node scripts/agent/context.mjs",
+    "agent:start": "node scripts/agent/task.mjs",
+    "agent:status": "node scripts/agent/task.mjs status",
+    "agent:architecture": "node scripts/agent/architecture-check.mjs",
+    "agent:flowbite": "node scripts/agent/flowbite-check.mjs",
+    "agent:ownership": "node scripts/agent/ownership.mjs",
+    "agent:worktree": "node scripts/agent/worktree.mjs",
+    "agent:changeset": "node scripts/agent/changeset.mjs",
+    "agent:validate": "node scripts/agent/verify.mjs governance",
+    "agent:verify": "node scripts/agent/verify.mjs"
   }
 }
