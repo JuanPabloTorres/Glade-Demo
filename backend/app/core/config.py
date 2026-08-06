@@ -1,8 +1,11 @@
+import logging
 from functools import lru_cache
 from typing import ClassVar
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -17,11 +20,12 @@ class Settings(BaseSettings):
     # inline default, so `_reject_default_jwt_secret_in_production` below can
     # compare against the exact same value without duplicating the string.
     DEFAULT_JWT_SECRET: ClassVar[str] = "freshstart-public-demo-signing-key-change-before-real-data"
+    DEFAULT_CORS_ORIGINS: ClassVar[str] = "http://localhost:5173"
 
     app_name: str = "FreshStart Bankruptcy Guide"
     environment: str = "development"
     api_v1_prefix: str = "/api/v1"
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = DEFAULT_CORS_ORIGINS
 
     jwt_secret: str = DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
@@ -94,6 +98,33 @@ class Settings(BaseSettings):
                 "JWT_SECRET must be overridden before running with ENVIRONMENT=production. "
                 "Refusing to boot with the public demo signing key "
                 f"({self.DEFAULT_JWT_SECRET!r})."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _warn_default_cors_origin_in_production(self) -> "Settings":
+        # QA release gate finding: no production CORS origin is committed
+        # anywhere in the repo (render.yaml deliberately leaves CORS_ORIGINS
+        # unsynced/manual; Vercel's api/index.py never sets it, relying on
+        # vercel.json's same-origin rewrite instead). Unlike the JWT secret
+        # above, a stale default here does not automatically mean the app is
+        # broken or insecure in every deployment topology — a same-origin
+        # deployment (frontend and API behind one Vercel domain, per
+        # vercel.json's rewrite) never triggers the browser's CORS checks at
+        # all. So this is a loud, non-fatal warning rather than a boot
+        # refusal: it would be wrong to crash a working same-origin
+        # deployment that simply never needed to set CORS_ORIGINS, but any
+        # deployment that DOES split frontend/API across origins (e.g. the
+        # Render backend) needs to see this before assuming CORS is handled.
+        if self.environment == "production" and self.cors_origins == self.DEFAULT_CORS_ORIGINS:
+            logger.warning(
+                "CORS_ORIGINS is still the localhost default (%r) while "
+                "ENVIRONMENT=production. This is fine for a same-origin "
+                "deployment (frontend and API on one domain) but will "
+                "silently break any cross-origin frontend. Set CORS_ORIGINS "
+                "explicitly if the frontend is served from a different "
+                "origin than this API.",
+                self.DEFAULT_CORS_ORIGINS,
             )
         return self
 

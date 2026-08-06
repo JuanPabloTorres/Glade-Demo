@@ -262,7 +262,7 @@ export function CaseWorkspacePage() {
               {caseData.clientGoal || t("workspace:header.goalFallback")}
             </p>
           </div>
-          <div className="min-w-[260px] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+          <div className="min-w-64 rounded-2xl border border-(--color-border) bg-(--color-surface) p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-[var(--color-text-muted)]">{t("workspace:header.preparation")}</span>
               <span data-testid="completion-score" className="text-2xl font-semibold text-[var(--color-text)]">{completion}%</span>
