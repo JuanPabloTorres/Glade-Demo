@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+python -m compileall -q backend/app backend/tests
+
+if command -v npm >/dev/null 2>&1 && [ -d frontend/node_modules ]; then
+  (cd frontend && npm run build)
+fi
