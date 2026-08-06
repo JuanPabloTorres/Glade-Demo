@@ -30,3 +30,4 @@ backend/matter_ready_e2e.db
 frontend/.flowbite-react/
 frontend/.tmp-screenshots/
 .gstack/
+.vercel
