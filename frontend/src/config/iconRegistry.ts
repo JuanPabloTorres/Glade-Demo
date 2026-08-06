@@ -1,20 +1,26 @@
 import {
   HiArrowRight,
+  HiBars3,
   HiBuildingLibrary,
   HiCalculator,
+  HiChartBar,
   HiChatBubbleLeftRight,
   HiCheckCircle,
   HiClipboardDocumentCheck,
+  HiClipboardDocumentList,
   HiCreditCard,
   HiClock,
   HiDocument,
   HiDocumentText,
+  HiEye,
+  HiEyeSlash,
   HiExclamationTriangle,
   HiFolderOpen,
   HiHandRaised,
   HiHome,
   HiInboxStack,
   HiInformationCircle,
+  HiLanguage,
   HiLockClosed,
   HiMagnifyingGlass,
   HiQuestionMarkCircle,
@@ -60,6 +66,15 @@ export const iconRegistry = {
   lock: HiLockClosed, // "Privacidad"
   accessibility: HiHandRaised, // "Accesibilidad"
   terms: HiClipboardDocumentCheck, // "Términos"
+  // Sidebar navigation (frontend-shell-engineer, phase 1):
+  tasks: HiClipboardDocumentList, // "Tareas" / task checklist
+  activity: HiChartBar, // "Actividad" / recent activity feed
+  urgent: HiExclamationTriangle, // "Urgentes" — same glyph as "alert", named for context
+  menu: HiBars3, // mobile sidebar drawer trigger
+  // Previously-bypassed inline react-icons imports, now routed centrally:
+  "eye-show": HiEye, // LoginPage password visibility toggle
+  "eye-hide": HiEyeSlash, // LoginPage password visibility toggle
+  language: HiLanguage, // LanguageSelector trigger
 } as const satisfies Record<string, IconType>;
 
 export type IconRegistryName = keyof typeof iconRegistry;

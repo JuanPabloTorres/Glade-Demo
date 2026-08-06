@@ -1,12 +1,13 @@
-import { Alert, Badge, Button, Card, Label, TextInput } from "flowbite-react";
+import { Alert, Badge, Card, Label, TextInput } from "flowbite-react";
 import axios from "axios";
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, useLocation, useNavigate } from "react-router";
-import { HiEye, HiEyeSlash } from "react-icons/hi2";
 import { useAuth } from "../auth/AuthContext";
 import { AppIcon } from "../components/atoms/AppIcon";
+import { AppButton } from "../components/ui/AppButton";
 import { LanguageSelector } from "../components/molecules/LanguageSelector";
+import { ROUTES } from "../config/routes";
 import { resolveApiErrorMessage } from "../i18n/backendErrors";
 
 const CLIENT = { email: "client@freshstart.demo", password: "FreshStart!2026" };
@@ -14,6 +15,12 @@ const ATTORNEY = { email: "attorney@freshstart.demo", password: "Counsel!2026" }
 const LOGIN_BACKGROUND =
   "https://media.istockphoto.com/id/1304258192/photo/get-out-of-debt-and-get-back-the-life-you-deserve.jpg?s=612x612&w=0&k=20&c=9Zscc_cCnJepabv5iX2UfjJE3TSqHxQUW7enENs57JM=";
 
+// Deliberately NOT wrapped in AppShell (see router.tsx: "/login" is a
+// sibling of the ProtectedRoute tree, not a child). Login is a full-bleed,
+// unauthenticated hero layout with its own background image and two-column
+// grid — forcing it through the authenticated sidebar+header+footer shell
+// would mean hiding all three behind conditionals for a single page. Kept
+// as its own layout on purpose, not an oversight.
 export function LoginPage() {
   const { t } = useTranslation(["auth", "validation"]);
   const auth = useAuth();
@@ -29,14 +36,14 @@ export function LoginPage() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const steps = t("auth:login.steps.items", { returnObjects: true }) as Array<{ title: string; detail: string }>;
 
-  if (auth.isAuthenticated) return <Navigate to="/" replace />;
+  if (auth.isAuthenticated) return <Navigate to={ROUTES.home} replace />;
 
   const openSession = async (credentials: typeof CLIENT) => {
     setBusy(true);
     setError(null);
     try {
-      await auth.login(credentials);
-      const destination = (location.state as { from?: string } | null)?.from ?? "/";
+      await auth.login(credentials, rememberMe);
+      const destination = (location.state as { from?: string } | null)?.from ?? ROUTES.home;
       navigate(destination, { replace: true });
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -140,19 +147,17 @@ export function LoginPage() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Button type="button" size="lg" className="primary-action w-full" disabled={busy} onClick={() => openSession(CLIENT)}>
-                    <AppIcon name="client" className="mr-2" />
+                  <AppButton type="button" size="lg" className="primary-action w-full" disabled={busy} iconLeft="client" onClick={() => openSession(CLIENT)}>
                     {t("auth:login.asClient")}
-                  </Button>
+                  </AppButton>
                   <p className="mt-1.5 text-xs leading-4 text-(--color-text-muted)">
                     {t("auth:login.clientHint")}
                   </p>
                 </div>
                 <div>
-                  <Button type="button" size="lg" color="light" className="secondary-action w-full" disabled={busy} onClick={() => openSession(ATTORNEY)}>
-                    <AppIcon name="attorney" className="mr-2" />
+                  <AppButton type="button" size="lg" color="light" className="secondary-action w-full" disabled={busy} iconLeft="attorney" onClick={() => openSession(ATTORNEY)}>
                     {t("auth:login.asAttorney")}
-                  </Button>
+                  </AppButton>
                   <p className="mt-1.5 text-xs leading-4 text-(--color-text-muted)">
                     {t("auth:login.attorneyHint")}
                   </p>
@@ -187,7 +192,7 @@ export function LoginPage() {
                     className="absolute inset-y-0 right-3 flex items-center text-slate-500"
                     onClick={() => setShowPassword((value) => !value)}
                   >
-                    {showPassword ? <HiEyeSlash size={18} /> : <HiEye size={18} />}
+                    <AppIcon name={showPassword ? "eye-hide" : "eye-show"} size={18} />
                   </button>
                 </div>
               </div>
@@ -205,10 +210,9 @@ export function LoginPage() {
                 <span className="text-xs text-(--color-text-muted)">{t("auth:login.forgotPassword")}</span>
               </div>
 
-              <Button type="submit" size="lg" className="primary-action w-full" disabled={busy}>
+              <AppButton type="submit" size="lg" className="primary-action w-full" disabled={busy} iconRight={!busy ? "arrow-right" : undefined}>
                 {busy ? t("auth:login.openingPortal") : t("auth:login.openPortal")}
-                {!busy ? <AppIcon name="arrow-right" className="ml-2" /> : null}
-              </Button>
+              </AppButton>
 
               <Alert color="info" rounded>
                 {t("auth:login.disclaimer")}

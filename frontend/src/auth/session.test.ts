@@ -7,6 +7,7 @@ const user: AuthUserDto = { id: "client-demo", email: "client@freshstart.demo", 
 describe("session storage (expiry handling)", () => {
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   it("returns null when nothing is stored", () => {
@@ -35,5 +36,26 @@ describe("session storage (expiry handling)", () => {
     writeSession({ accessToken: "token-123", expiresAt: Date.now() + 60_000, user });
     clearSession();
     expect(readSession()).toBeNull();
+  });
+
+  it("remember=true persists to localStorage instead of sessionStorage", () => {
+    writeSession({ accessToken: "token-123", expiresAt: Date.now() + 60_000, user }, true);
+    expect(sessionStorage.getItem("matterready.auth.session")).toBeNull();
+    expect(localStorage.getItem("matterready.auth.session")).not.toBeNull();
+    expect(readSession()?.accessToken).toBe("token-123");
+  });
+
+  it("switching remember preference clears the previous storage's copy", () => {
+    writeSession({ accessToken: "remembered", expiresAt: Date.now() + 60_000, user }, true);
+    writeSession({ accessToken: "not-remembered", expiresAt: Date.now() + 60_000, user }, false);
+    expect(localStorage.getItem("matterready.auth.session")).toBeNull();
+    expect(readSession()?.accessToken).toBe("not-remembered");
+  });
+
+  it("clearSession removes a remembered (localStorage) session too", () => {
+    writeSession({ accessToken: "token-123", expiresAt: Date.now() + 60_000, user }, true);
+    clearSession();
+    expect(readSession()).toBeNull();
+    expect(localStorage.getItem("matterready.auth.session")).toBeNull();
   });
 });

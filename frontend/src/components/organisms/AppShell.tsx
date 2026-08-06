@@ -6,6 +6,7 @@ import { AppIcon } from "../atoms/AppIcon";
 import { ChatPanel } from "./ChatPanel";
 import { ModernFooter } from "./ModernFooter";
 import { ModernHeader } from "./ModernHeader";
+import { Sidebar } from "./navigation/Sidebar";
 
 function ChatEntryPoint() {
   const { t } = useTranslation("ai");
@@ -31,15 +32,25 @@ function ChatEntryPoint() {
   );
 }
 
+/**
+ * Desktop layout: persistent sidebar column + (header, page content, footer)
+ * stacked to its right. Below 768px the sidebar collapses into its own
+ * Drawer (see Sidebar.tsx) instead of a permanently-visible column. The
+ * chat drawer (ChatEntryPoint) is unrelated to this layout — it stays a
+ * fixed-position overlay regardless of sidebar/header changes.
+ */
 export function AppShell() {
   return (
     <ChatPanelProvider>
-      <div className="app-shell-background flex min-h-screen flex-col text-(--color-text)">
-        <ModernHeader />
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-          <Outlet />
-        </main>
-        <ModernFooter />
+      <div className="app-shell-background flex min-h-screen text-(--color-text)">
+        <Sidebar />
+        <div className="flex min-h-screen flex-1 flex-col">
+          <ModernHeader />
+          <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <Outlet />
+          </main>
+          <ModernFooter />
+        </div>
         <ChatEntryPoint />
       </div>
     </ChatPanelProvider>

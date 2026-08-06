@@ -46,5 +46,29 @@
     "label": "Idioma",
     "es": "Español",
     "en": "English"
+  },
+  "sidebar": {
+    "openMenu": "Abrir menú de navegación",
+    "closeMenu": "Cerrar menú de navegación",
+    "menuTitle": "Menú",
+    "groupClient": "Cliente",
+    "groupAttorney": "Panel del abogado",
+    "disabledNoCase": "Disponible cuando tengas una solicitud activa",
+    "disabledNoActivityFeed": "Aún no disponible en este demo",
+    "client": {
+      "home": "Inicio",
+      "myCase": "Mi caso",
+      "documents": "Documentos",
+      "tasks": "Tareas",
+      "activity": "Actividad",
+      "help": "Ayuda"
+    },
+    "attorney": {
+      "queue": "Bandeja de casos",
+      "urgent": "Urgentes",
+      "requestedDocuments": "Documentos solicitados",
+      "activity": "Actividad",
+      "help": "Ayuda"
+    }
   }
 }

@@ -1,5 +1,4 @@
 import {
-  Button,
   Label,
   Modal,
   ModalBody,
@@ -12,6 +11,7 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppIcon } from "../atoms/AppIcon";
+import { AppButton } from "../ui/AppButton";
 import { EVIDENCE_TYPES } from "../../config/bankruptcyOptions";
 import type { BankruptcyCase, CaseAnalysis } from "../../types/bankruptcy";
 import { formatDate } from "../../i18n/format";
@@ -167,16 +167,16 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
     <>
       <div className="flex flex-wrap gap-2">
         {actions.map((action) => (
-          <Button key={action.kind} size="xs" color="light" onClick={action.onClick}>
+          <AppButton key={action.kind} size="xs" color="light" onClick={action.onClick}>
             <AppIcon name={action.icon} size={15} className="mr-1.5" /> {action.label}
-          </Button>
+          </AppButton>
         ))}
-        <Button size="xs" color={caseData.household.urgentCollectionAction ? "failure" : "light"} onClick={onMarkUrgent}>
+        <AppButton size="xs" color={caseData.household.urgentCollectionAction ? "failure" : "light"} onClick={onMarkUrgent}>
           <AppIcon name="alert" size={15} className="mr-1.5" /> {caseData.household.urgentCollectionAction ? t("workspace:actions.removeUrgency") : t("workspace:actions.markUrgent")}
-        </Button>
-        <Button size="xs" color="light" onClick={onOpenAttorneyReviewTab}>
+        </AppButton>
+        <AppButton size="xs" color="light" onClick={onOpenAttorneyReviewTab}>
           <AppIcon name="check" size={15} className="mr-1.5" /> {t("workspace:actions.changeStatus")}
-        </Button>
+        </AppButton>
       </div>
 
       <Modal show={openAction === "request-document"} onClose={close}>
@@ -189,8 +189,8 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
           </Select>
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}><AppIcon name="arrow-right" size={15} className="mr-2 rotate-180" />{t("common:actions.cancel")}</Button>
-          <Button className="primary-action" onClick={submitRequestDocument}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actionBar.requestDocument.submit")}</Button>
+          <AppButton color="light" onClick={close}><AppIcon name="arrow-right" size={15} className="mr-2 rotate-180" />{t("common:actions.cancel")}</AppButton>
+          <AppButton className="primary-action" onClick={submitRequestDocument}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actionBar.requestDocument.submit")}</AppButton>
         </ModalFooter>
       </Modal>
 
@@ -201,10 +201,10 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
           <Textarea id="note-text" rows={5} value={noteText} onChange={(event) => setNoteText(event.target.value)} placeholder={openAction === "request-clarification" ? t("workspace:actionBar.placeholders.requestClarification") : t("workspace:actionBar.placeholders.addNote")} />
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}>{t("common:actions.cancel")}</Button>
-          <Button className="primary-action" onClick={openAction === "request-clarification" ? submitRequestClarification : submitAddNote} disabled={!noteText.trim()}>
+          <AppButton color="light" onClick={close}>{t("common:actions.cancel")}</AppButton>
+          <AppButton className="primary-action" onClick={openAction === "request-clarification" ? submitRequestClarification : submitAddNote} disabled={!noteText.trim()}>
             <AppIcon name="check" size={15} className="mr-2" />{t("common:actions.save")}
-          </Button>
+          </AppButton>
         </ModalFooter>
       </Modal>
 
@@ -215,8 +215,8 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
           <TextInput id="consultation-date" type="date" value={consultationDate} onChange={(event) => setConsultationDate(event.target.value)} />
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}>{t("common:actions.cancel")}</Button>
-          <Button className="primary-action" onClick={submitScheduleConsultation}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actions.scheduleConsultation")}</Button>
+          <AppButton color="light" onClick={close}>{t("common:actions.cancel")}</AppButton>
+          <AppButton className="primary-action" onClick={submitScheduleConsultation}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actions.scheduleConsultation")}</AppButton>
         </ModalFooter>
       </Modal>
 
@@ -227,8 +227,8 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
           <TextInput id="assign-attorney-name" value={attorneyName} onChange={(event) => setAttorneyName(event.target.value)} placeholder={t("workspace:actionBar.placeholders.attorneyName")} />
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}>{t("common:actions.cancel")}</Button>
-          <Button className="primary-action" onClick={submitAssignAttorney}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actions.assignAttorney")}</Button>
+          <AppButton color="light" onClick={close}>{t("common:actions.cancel")}</AppButton>
+          <AppButton className="primary-action" onClick={submitAssignAttorney}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actions.assignAttorney")}</AppButton>
         </ModalFooter>
       </Modal>
 
@@ -239,8 +239,8 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
           <Textarea rows={14} value={summaryDraft} onChange={(event) => setSummaryDraft(event.target.value)} className="font-mono text-xs" />
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}>{t("common:actions.close")}</Button>
-          <Button
+          <AppButton color="light" onClick={close}>{t("common:actions.close")}</AppButton>
+          <AppButton
             className="primary-action"
             onClick={() => {
               appendNote(timestampNote(t("workspace:actionBar.notes.summaryGenerated"), summaryDraft));
@@ -248,7 +248,7 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
             }}
           >
             <AppIcon name="check" size={15} className="mr-2" />{t("workspace:actionBar.summary.saveInNotes")}
-          </Button>
+          </AppButton>
         </ModalFooter>
       </Modal>
 
@@ -260,10 +260,10 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
           <Textarea id="client-message" rows={4} value={clientMessage} onChange={(event) => setClientMessage(event.target.value)} />
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}>{t("common:actions.cancel")}</Button>
-          <Button className="primary-action" disabled={busy || !clientMessage.trim()} onClick={() => { setBusy(true); submitMessageClient(); setBusy(false); }}>
+          <AppButton color="light" onClick={close}>{t("common:actions.cancel")}</AppButton>
+          <AppButton className="primary-action" disabled={busy || !clientMessage.trim()} onClick={() => { setBusy(true); submitMessageClient(); setBusy(false); }}>
             <AppIcon name="chat" size={15} className="mr-2" />{t("common:actions.send")}
-          </Button>
+          </AppButton>
         </ModalFooter>
       </Modal>
     </>

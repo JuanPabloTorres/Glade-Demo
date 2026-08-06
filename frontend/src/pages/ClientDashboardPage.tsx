@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Card, Progress } from "flowbite-react";
+import { Alert, Badge, Card, Progress } from "flowbite-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
@@ -6,7 +6,9 @@ import { bankruptcyApi } from "../api/bankruptcyApi";
 import { useAuth } from "../auth/AuthContext";
 import { useChatPanel } from "../chat/ChatPanelContext";
 import { AppIcon } from "../components/atoms/AppIcon";
+import { AppButton } from "../components/ui/AppButton";
 import { CaseTimeline } from "../components/organisms/CaseTimeline";
+import { ROUTES } from "../config/routes";
 import type { CaseAnalysis } from "../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
 import { currency, localCompletion } from "../workspace/caseMetrics";
@@ -44,7 +46,7 @@ export function ClientDashboardPage() {
 
   const start = () => {
     if (!user) return;
-    navigate(`/case/${workspace.createCase(user)}`);
+    navigate(ROUTES.case(workspace.createCase(user)));
   };
 
   const firstName = user?.name.split(" ")[0] ?? "";
@@ -66,10 +68,10 @@ export function ClientDashboardPage() {
             <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-muted)]">
               {t("workspace:clientDashboard.empty.description")}
             </p>
-            <Button size="lg" className="primary-action mt-6" onClick={start}>
+            <AppButton size="lg" className="primary-action mt-6" onClick={start}>
               <AppIcon name="arrow-right" className="mr-2" />
               {t("workspace:clientDashboard.empty.startRequest")}
-            </Button>
+            </AppButton>
           </div>
         </Card>
       </div>
@@ -111,9 +113,9 @@ export function ClientDashboardPage() {
               </p>
             </div>
           </div>
-          <Button className="primary-action shrink-0" onClick={() => navigate(`/case/${activeCase.id}`)}>
+          <AppButton className="primary-action shrink-0" onClick={() => navigate(ROUTES.case(activeCase.id))}>
             {t("common:actions.continue")} <AppIcon name="arrow-right" className="ml-2" />
-          </Button>
+          </AppButton>
         </div>
       </Card>
 
@@ -129,7 +131,7 @@ export function ClientDashboardPage() {
               <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
                 {t("workspace:clientDashboard.assistant.description")}
               </p>
-              <Button size="xs" color="light" className="mt-3" onClick={(event) => { event.stopPropagation(); openChat(); }}>{t("workspace:clientDashboard.assistant.openChat")}</Button>
+              <AppButton size="xs" color="light" className="mt-3" onClick={(event) => { event.stopPropagation(); openChat(); }}>{t("workspace:clientDashboard.assistant.openChat")}</AppButton>
             </div>
           </div>
         </Card>
@@ -210,7 +212,7 @@ export function ClientDashboardPage() {
       <Card className="app-card">
         <h2 className="text-lg font-semibold text-[var(--color-text)]">{t("workspace:clientDashboard.recentActivity")}</h2>
         {recentEvents.length ? <CaseTimeline events={recentEvents} /> : <p className="mt-3 text-sm text-[var(--color-text-muted)]">{t("workspace:clientDashboard.noRecentActivity")}</p>}
-        <Button color="light" size="sm" className="mt-2" onClick={() => navigate(`/case/${activeCase.id}`)}>{t("workspace:clientDashboard.viewFullCase")}</Button>
+        <AppButton color="light" size="sm" className="mt-2" onClick={() => navigate(ROUTES.case(activeCase.id))}>{t("workspace:clientDashboard.viewFullCase")}</AppButton>
       </Card>
 
       {cases.length > 1 ? (
@@ -226,7 +228,7 @@ export function ClientDashboardPage() {
                   <div><p className="text-lg font-semibold text-[var(--color-text)]">{caseData.clientName}</p><p className="mt-1 text-sm text-[var(--color-text-muted)]">{caseData.clientGoal || t("workspace:clientDashboard.goalShortFallback")}</p></div>
                   <Badge color={caseData.status === "submitted" ? "success" : "warning"}>{t(`workspace:status.${caseData.status}`)}</Badge>
                 </div>
-                <Button className="primary-action mt-4" onClick={() => navigate(`/case/${caseData.id}`)}>{t("common:actions.open")} <AppIcon name="arrow-right" className="ml-2" /></Button>
+                <AppButton className="primary-action mt-4" onClick={() => navigate(ROUTES.case(caseData.id))}>{t("common:actions.open")} <AppIcon name="arrow-right" className="ml-2" /></AppButton>
               </Card>
             ))}
           </div>
@@ -234,7 +236,7 @@ export function ClientDashboardPage() {
       ) : null}
 
       <div className="flex justify-end">
-        <Button color="light" size="sm" onClick={start}><AppIcon name="brand" size={16} className="mr-2" />{t("workspace:clientDashboard.startAnother")}</Button>
+        <AppButton color="light" size="sm" onClick={start}><AppIcon name="brand" size={16} className="mr-2" />{t("workspace:clientDashboard.startAnother")}</AppButton>
       </div>
     </div>
   );

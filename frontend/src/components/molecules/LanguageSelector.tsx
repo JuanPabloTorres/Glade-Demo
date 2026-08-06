@@ -1,6 +1,6 @@
 import { Dropdown, DropdownItem, Tooltip } from "flowbite-react";
-import { FaLanguage } from "react-icons/fa6";
 import { useTranslation } from "react-i18next";
+import { AppIcon } from "../atoms/AppIcon";
 import { useLanguage } from "../../i18n/LanguageContext";
 
 interface LanguageSelectorProps {
@@ -23,7 +23,7 @@ export function LanguageSelector({ compact = false }: LanguageSelectorProps) {
             aria-label={t("common:a11y.switchLanguage")}
             className="inline-flex items-center gap-2 rounded-md border border-(--color-border) px-2.5 py-1 text-xs font-semibold text-(--color-text)"
           >
-            <FaLanguage aria-hidden="true" />
+            <AppIcon name="language" size={16} />
             <span>{currentCode}</span>
             {!compact ? <span className="hidden sm:inline">{currentLabel}</span> : null}
           </span>

@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from app.core.i18n import resolve_language
-from app.schemas.assistant import CaseContextDto
+from app.domain.entities import AIConversationMessageEntity, TimelineEventEntity
+from app.schemas.assistant import CaseContextDto, ConversationTurnDto, TimelineEventDto
 from app.schemas.bankruptcy import BankruptcyCaseDto, CaseAnalysisDto, UserRole
 
 
 class CaseContextBuilder:
     """
-    Reduces a full `BankruptcyCaseDto` + its computed `CaseAnalysisDto` into
-    the typed, audited `CaseContextDto` that AI providers actually receive
-    — never the raw case (master instruction §6.2). See CaseContextDto's
-    docstring for the one documented gap (no timeline in context today).
+    Reduces a full `BankruptcyCaseDto` + its computed `CaseAnalysisDto` (plus
+    already-fetched timeline/conversation/retrieval slices — this builder
+    never talks to a repository or the RAG index itself, it only shapes what
+    the caller hands it) into the typed, audited `CaseContextDto` that AI
+    providers actually receive — never the raw case (master instruction
+    §6.2). See `CaseContextDto`'s docstring for how the timeline/
+    conversation/retrieval gaps were closed.
     """
 
     def build(
@@ -19,6 +25,10 @@ class CaseContextBuilder:
         analysis: CaseAnalysisDto,
         role: UserRole,
         locale: str,
+        *,
+        timeline: Sequence[TimelineEventEntity] = (),
+        recent_conversation: Sequence[AIConversationMessageEntity] = (),
+        retrieved_documents: Sequence[str] = (),
     ) -> CaseContextDto:
         return CaseContextDto(
             case_id=case.id,
@@ -49,6 +59,19 @@ class CaseContextBuilder:
             # Redaction by role (§6.2/§8.2): a client never sees the
             # attorney's private notes verbatim through the AI context.
             attorney_notes=case.attorney_notes if role == "attorney" else None,
+            timeline=[
+                TimelineEventDto(
+                    event_type=event.event_type.value,
+                    message=event.message,
+                    created_at=event.created_at.isoformat(),
+                )
+                for event in timeline
+            ],
+            recent_conversation=[
+                ConversationTurnDto(role=turn.role.value, message=turn.message)
+                for turn in recent_conversation
+            ],
+            retrieved_documents=list(retrieved_documents),
         )
 
     def _household_summary(self, case: BankruptcyCaseDto) -> str:

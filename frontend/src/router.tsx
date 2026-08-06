@@ -1,18 +1,19 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { AppShell } from "./components/organisms/AppShell";
+import { ROUTES } from "./config/routes";
 import { AboutPlatformPage } from "./pages/AboutPlatformPage";
 import { CaseWorkspacePage } from "./pages/CaseWorkspacePage";
 import { LoginPage } from "./pages/LoginPage";
 import { RoleHomePage } from "./pages/RoleHomePage";
 
 export const router = createBrowserRouter([
-  { path: "/login", element: <LoginPage /> },
+  { path: ROUTES.login, element: <LoginPage /> },
   {
     element: <ProtectedRoute />,
     children: [
       {
-        path: "/",
+        path: ROUTES.home,
         element: <AppShell />,
         children: [
           { index: true, element: <RoleHomePage /> },
@@ -22,5 +23,5 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  { path: "*", element: <Navigate to="/" replace /> },
+  { path: "*", element: <Navigate to={ROUTES.home} replace /> },
 ]);

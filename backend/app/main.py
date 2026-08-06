@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
@@ -5,14 +7,25 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routers import ai, auth, bankruptcy, documents, health
+from app.api.routers import admin, ai, auth, bankruptcy, documents, health
 from app.core.config import get_settings
 from app.core.errors import DomainError, NotFoundError, ValidationError
 from app.core.i18n import localize_message, resolve_locale
 from app.core.version import APP_VERSION
+from app.repositories.database import init_db
 
 settings = get_settings()
-app = FastAPI(title=settings.app_name, version=APP_VERSION)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    # Demo-convenience schema bootstrap — see app.repositories.database.init_db
+    # docstring for why this coexists with Alembic instead of replacing it.
+    init_db(settings)
+    yield
+
+
+app = FastAPI(title=settings.app_name, version=APP_VERSION, lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -26,6 +39,7 @@ app.include_router(ai.router)
 app.include_router(auth.router)
 app.include_router(bankruptcy.router)
 app.include_router(documents.router)
+app.include_router(admin.router)
 
 
 @app.exception_handler(DomainError)
@@ -58,6 +72,11 @@ def handle_http_exception(request: Request, exc: HTTPException) -> JSONResponse:
         404: ("RESOURCE_NOT_FOUND", "errors.codes.RESOURCE_NOT_FOUND"),
         409: ("CONFLICT", "errors.codes.CONFLICT"),
         422: ("VALIDATION_ERROR", "errors.codes.VALIDATION_ERROR"),
+        # Login rate limiting (audit finding #2) raises this from
+        # app.api.routers.auth.login; routed through the same translatable
+        # {code, messageKey, message, parameters, traceId} DTO as every
+        # other error response.
+        429: ("RATE_LIMITED", "errors.codes.RATE_LIMITED"),
     }
     code, message_key = status_to_error.get(exc.status_code, ("INTERNAL_ERROR", "errors.codes.INTERNAL_ERROR"))
     message = localize_message(message_key, locale)

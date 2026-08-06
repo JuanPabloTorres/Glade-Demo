@@ -7,6 +7,10 @@ second case's data" since this service is stateless per call).
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
+from app.domain.entities import AIConversationMessageEntity, TimelineEventEntity
+from app.domain.value_objects import ConversationRole, TimelineEventType
 from app.schemas.bankruptcy import BankruptcyCaseDto
 from app.services.bankruptcy_service import BankruptcyAnalysisService
 from app.services.case_context_builder import CaseContextBuilder
@@ -86,3 +90,55 @@ def test_two_different_cases_never_share_context_state() -> None:
     assert context_b.case_id == "case-b"
     assert context_b.client_name == "Miguel Santos"
     assert context_b.attorney_notes == "Nota privada de B"
+
+
+def test_timeline_conversation_and_retrieved_documents_default_to_empty() -> None:
+    """Closes docs/audits/GLADE-DEMO-GROUNDED-STATE-2026-08-06.md §4's
+    documented gap: these fields exist and default safely when the caller
+    (e.g. a test, or a request for a brand-new case with no history) has
+    nothing to pass in."""
+    case = _case()
+    analysis = BankruptcyAnalysisService().analyze(case)
+    context = CaseContextBuilder().build(case, analysis, "client", "es-PR")
+    assert context.timeline == []
+    assert context.recent_conversation == []
+    assert context.retrieved_documents == []
+
+
+def test_timeline_conversation_and_retrieved_documents_are_folded_into_context() -> None:
+    case = _case()
+    analysis = BankruptcyAnalysisService().analyze(case)
+    timeline = [
+        TimelineEventEntity(
+            id="t1",
+            case_id=case.id,
+            event_type=TimelineEventType.CASE_CREATED,
+            message="Caso creado.",
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+    ]
+    conversation = [
+        AIConversationMessageEntity(
+            id="c1",
+            case_id=case.id,
+            role=ConversationRole.USER,
+            message="¿Qué me falta?",
+            created_at=datetime(2026, 1, 2, tzinfo=UTC),
+        )
+    ]
+
+    context = CaseContextBuilder().build(
+        case,
+        analysis,
+        "client",
+        "es-PR",
+        timeline=timeline,
+        recent_conversation=conversation,
+        retrieved_documents=["fragmento indexado uno"],
+    )
+
+    assert context.timeline[0].event_type == "case_created"
+    assert context.timeline[0].message == "Caso creado."
+    assert context.recent_conversation[0].role == "user"
+    assert context.recent_conversation[0].message == "¿Qué me falta?"
+    assert context.retrieved_documents == ["fragmento indexado uno"]

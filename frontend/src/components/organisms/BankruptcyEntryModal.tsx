@@ -1,5 +1,4 @@
 import {
-  Button,
   Checkbox,
   FileInput,
   Label,
@@ -12,6 +11,7 @@ import {
 } from "flowbite-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { AppButton } from "../ui/AppButton";
 import {
   ASSET_CATEGORIES,
   DEBT_TYPES,
@@ -155,7 +155,7 @@ export function BankruptcyEntryModal({ open, kind, onClose, onSave }: Props) {
             </>
           ) : null}
         </ModalBody>
-        <ModalFooter><Button type="submit" className="glade-button">{t("common:actions.save")}</Button><Button type="button" color="alternative" onClick={onClose}>{t("common:actions.cancel")}</Button></ModalFooter>
+        <ModalFooter><AppButton type="submit" className="glade-button">{t("common:actions.save")}</AppButton><AppButton type="button" color="alternative" onClick={onClose}>{t("common:actions.cancel")}</AppButton></ModalFooter>
       </form>
     </Modal>
   );
