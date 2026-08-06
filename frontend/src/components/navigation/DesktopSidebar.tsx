@@ -12,9 +12,9 @@ export function DesktopSidebar() {
     <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-slate-200 bg-white p-5 lg:flex lg:flex-col">
       <div className="flex items-center gap-3 px-2 py-3">
         <div className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-600 text-white"><Sparkles className="h-5 w-5" /></div>
-        <div><p className="font-bold text-slate-900">{t("brand")}</p><p className="text-xs text-slate-500">Bankruptcy intake demo</p></div>
+        <div><p className="font-bold text-slate-900">{t("brand")}</p><p className="text-xs text-slate-500">{t("brandTagline")}</p></div>
       </div>
-      <nav className="mt-8 space-y-2" aria-label="Primary navigation">
+      <nav className="mt-8 space-y-2" aria-label={t("common.primaryNavigation")}>
         {navigationItems.map(({ to, labelKey, icon: Icon }) => (
           <NavLink key={to} to={to} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${isActive ? "bg-cyan-50 text-cyan-800" : "text-slate-600 hover:bg-slate-100"}`}>
             <Icon className="h-5 w-5" aria-hidden="true" />{t(labelKey)}

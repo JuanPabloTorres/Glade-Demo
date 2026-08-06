@@ -49,6 +49,8 @@ export function CaseFormModal({ open, item, role, onClose, onSave, saving }: {
     });
   }
 
+  const statuses: CaseStatus[] = ["draft", "in_progress", "ready_for_review", "under_review", "closed"];
+
   return (
     <Modal show={open} onClose={onClose} size="lg">
       <Modal.Header>{item ? t("cases.edit") : t("cases.create")}</Modal.Header>
@@ -56,7 +58,7 @@ export function CaseFormModal({ open, item, role, onClose, onSave, saving }: {
         <form id="case-form" onSubmit={submit} className="space-y-5">
           {role !== "applicant" && !item && (
             <div>
-              <Label htmlFor="case-applicant">Applicant</Label>
+              <Label htmlFor="case-applicant">{t("cases.applicant")}</Label>
               <Select id="case-applicant" value={applicantId} onChange={(event) => setApplicantId(event.target.value)} required>
                 {(applicants.data || []).map((applicant) => <option key={applicant.id} value={applicant.id}>{applicant.full_name}</option>)}
               </Select>
@@ -76,7 +78,7 @@ export function CaseFormModal({ open, item, role, onClose, onSave, saving }: {
             <div>
               <Label htmlFor="case-status">{t("cases.status")}</Label>
               <Select id="case-status" value={status} onChange={(event) => setStatus(event.target.value as CaseStatus)}>
-                <option value="draft">Draft</option><option value="in_progress">In progress</option><option value="ready_for_review">Ready for review</option><option value="under_review">Under review</option>
+                {statuses.map((value) => <option key={value} value={value}>{t(`status.${value}`)}</option>)}
               </Select>
             </div>
           )}

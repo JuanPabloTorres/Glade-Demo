@@ -17,6 +17,7 @@ class CaseStatus(StrEnum):
     IN_PROGRESS = "in_progress"
     READY_FOR_REVIEW = "ready_for_review"
     UNDER_REVIEW = "under_review"
+    CLOSED = "closed"
 
 
 class IntakeSectionKey(StrEnum):
@@ -29,6 +30,41 @@ class IntakeSectionKey(StrEnum):
     RECENT_ACTIVITY = "recent_activity"
     DOCUMENTS = "documents"
     REVIEW = "review"
+
+
+class DocumentCategory(StrEnum):
+    IDENTITY = "identity"
+    INCOME = "income"
+    BANK = "bank"
+    TAX = "tax"
+    ASSET = "asset"
+    DEBT = "debt"
+    OTHER = "other"
+
+
+class DocumentStatus(StrEnum):
+    REQUESTED = "requested"
+    UPLOADED = "uploaded"
+    VERIFIED = "verified"
+    NEEDS_ATTENTION = "needs_attention"
+
+
+class TaskStatus(StrEnum):
+    TODO = "todo"
+    IN_PROGRESS = "in_progress"
+    DONE = "done"
+
+
+class TaskPriority(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class AlertSeverity(StrEnum):
+    INFO = "info"
+    WARNING = "warning"
+    CRITICAL = "critical"
 
 
 INTAKE_SECTION_ORDER: tuple[IntakeSectionKey, ...] = (

@@ -7,7 +7,7 @@ import { MobileBottomBar } from "../components/navigation/MobileBottomBar";
 import { useAuth } from "../features/auth/AuthContext";
 
 export function AppLayout() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { logout } = useAuth();
   function toggleLanguage() {
     const next = i18n.language === "es" ? "en" : "es";
@@ -18,10 +18,10 @@ export function AppLayout() {
     <div className="min-h-screen bg-slate-50">
       <DesktopSidebar />
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur lg:ml-72 lg:px-8">
-        <p className="font-bold text-slate-900 lg:hidden">FreshStart AI</p>
+        <p className="font-bold text-slate-900 lg:hidden">{t("brand")}</p>
         <div className="ml-auto flex gap-2">
-          <Button color="light" size="sm" onClick={toggleLanguage} aria-label="Change language"><Languages className="h-4 w-4" /></Button>
-          <Button color="light" size="sm" className="lg:hidden" onClick={logout} aria-label="Sign out"><LogOut className="h-4 w-4" /></Button>
+          <Button color="light" size="sm" onClick={toggleLanguage} aria-label={t("common.changeLanguage")}><Languages className="h-4 w-4" /></Button>
+          <Button color="light" size="sm" className="lg:hidden" onClick={logout} aria-label={t("nav.logout")}><LogOut className="h-4 w-4" /></Button>
         </div>
       </header>
       <main className="px-4 pb-24 pt-6 lg:ml-72 lg:px-8 lg:pb-10"><Outlet /></main>

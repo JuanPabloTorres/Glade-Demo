@@ -48,4 +48,4 @@ class CaseRead(BaseModel):
     summary: str
     created_at: datetime
     updated_at: datetime
-    sections: list[IntakeSectionRead] = []
+    sections: list[IntakeSectionRead] = Field(default_factory=list)

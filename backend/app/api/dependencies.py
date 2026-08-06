@@ -14,9 +14,12 @@ from app.domain.enums import UserRole
 from app.domain.models import User
 from app.repositories.case_repository import CaseRepository
 from app.repositories.user_repository import UserRepository
+from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.assistant_service import AssistantService
 from app.services.auth_service import AuthService
 from app.services.case_service import CaseService
+from app.services.dashboard_service import DashboardService
+from app.services.workspace_service import WorkspaceService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -27,6 +30,10 @@ def get_user_repository(db: Session = Depends(get_db)) -> UserRepository:
 
 def get_case_repository(db: Session = Depends(get_db)) -> CaseRepository:
     return CaseRepository(db)
+
+
+def get_workspace_repository(db: Session = Depends(get_db)) -> WorkspaceRepository:
+    return WorkspaceRepository(db)
 
 
 def get_auth_service(
@@ -41,6 +48,20 @@ def get_case_service(
     users: UserRepository = Depends(get_user_repository),
 ) -> CaseService:
     return CaseService(cases, users)
+
+
+def get_workspace_service(
+    workspace: WorkspaceRepository = Depends(get_workspace_repository),
+    cases: CaseService = Depends(get_case_service),
+) -> WorkspaceService:
+    return WorkspaceService(workspace, cases)
+
+
+def get_dashboard_service(
+    cases: CaseService = Depends(get_case_service),
+    workspace: WorkspaceRepository = Depends(get_workspace_repository),
+) -> DashboardService:
+    return DashboardService(cases, workspace)
 
 
 def get_assistant_service(settings: Settings = Depends(get_settings)) -> AssistantService:

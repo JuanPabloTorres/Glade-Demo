@@ -3,17 +3,19 @@ import { Alert, Button, Spinner } from "flowbite-react";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { ResponsiveDataView } from "../../components/composite/ResponsiveDataView";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { useAuth } from "../auth/AuthContext";
 import { caseKeys, useCases } from "../../hooks/useCases";
 import { api } from "../../lib/api";
 import type { BankruptcyCase } from "../../types";
+import { useAuth } from "../auth/AuthContext";
 import { CaseFormModal, type CaseFormPayload } from "./CaseFormModal";
 
 export function CasesPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data = [], isLoading, isError } = useCases();
   const [open, setOpen] = useState(false);
@@ -26,6 +28,7 @@ export function CasesPage() {
 
   function create() { setEditing(null); setOpen(true); }
   function edit(item: BankruptcyCase) { setEditing(item); setOpen(true); }
+  function view(item: BankruptcyCase) { localStorage.setItem("freshstart_active_case", item.id); navigate(`/cases/${item.id}/workspace`); }
   function deleteItem(item: BankruptcyCase) { if (window.confirm(t("cases.confirmDelete"))) remove.mutate(item); }
 
   return (
@@ -34,7 +37,7 @@ export function CasesPage() {
       {isLoading && <div className="grid min-h-64 place-items-center"><Spinner size="xl" /></div>}
       {isError && <Alert color="failure">{t("common.error")}</Alert>}
       {!isLoading && !isError && data.length === 0 && <Alert color="info">{t("cases.empty")}</Alert>}
-      {data.length > 0 && <ResponsiveDataView items={data} canDelete={user?.role !== "applicant"} onEdit={edit} onDelete={deleteItem} />}
+      {data.length > 0 && <ResponsiveDataView items={data} canDelete={user?.role !== "applicant"} onView={view} onEdit={edit} onDelete={deleteItem} />}
       <CaseFormModal open={open} item={editing} role={user?.role || "applicant"} onClose={() => setOpen(false)} onSave={(payload) => save.mutate(payload)} saving={save.isPending} />
     </div>
   );
