@@ -1,0 +1,18 @@
+{
+  "taskId": "GLADE-YYYY-MM-DD-slug",
+  "title": "",
+  "type": "feat",
+  "scope": "",
+  "baseBranch": "main",
+  "workingBranch": "",
+  "status": "planned",
+  "versionStrategy": { "mode": "single-delivery", "bump": "patch", "owner": "integration-manager" },
+  "agents": [],
+  "skills": [],
+  "ownedPaths": [],
+  "sharedPaths": ["VERSION", "RELEASE_NOTES.md", "package.json", "frontend/package-lock.json"],
+  "acceptanceCriteria": [],
+  "verificationCommands": [],
+  "risks": [],
+  "decisions": []
+}
