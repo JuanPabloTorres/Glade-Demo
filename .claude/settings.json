@@ -1,0 +1,38 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/session-start.mjs" }]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/validate-command.mjs" }]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/validate-edit.mjs" }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/after-file-change.mjs" }]
+      }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/validate-task-completion.mjs" }] }
+    ],
+    "TaskCompleted": [
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/validate-task-completion.mjs" }] }
+    ],
+    "WorktreeCreate": [
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/register-worktree.mjs create" }] }
+    ],
+    "WorktreeRemove": [
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/register-worktree.mjs remove" }] }
+    ]
+  }
+}

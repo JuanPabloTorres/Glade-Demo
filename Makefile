@@ -1,4 +1,4 @@
-.PHONY: install dev backend frontend test lint format verify contracts hooks
+.PHONY: install dev backend frontend test lint format verify contracts hooks agent agent-full
 
 install:
 	cd backend && uv sync --all-groups
@@ -27,7 +27,13 @@ contracts:
 	cd frontend && npm run contracts:generate
 	cd backend && uv run pytest tests/test_api_contracts.py
 
-verify: contracts lint test
+agent:
+	npm run agent:validate
+
+verify: agent contracts lint test
+
+agent-full:
+	npm run agent:verify -- full
 
 hooks:
 	bash scripts/install-hooks.sh

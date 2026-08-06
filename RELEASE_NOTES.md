@@ -1,6 +1,34 @@
 # FreshStart 3.1.0
 
-Glade interview-demo audit (`fix/glade-demo-audit-i18n-ai-health`) — full bilingual rollout plus the regressions caught while wiring it up.
+Glade interview-demo audit (`fix/glade-demo-audit-i18n-ai-health`) — full bilingual rollout plus the regressions caught while wiring it up. Two later change sets landed on top of this same 3.1.0 line without a version bump (see each subsection).
+
+## Real persistence, case ownership, sidebar/design system, AI context (RAG+timeline), security hardening
+
+Session-driven refactor addressing `docs/audits/GLADE-DEMO-GROUNDED-STATE-2026-08-06.md`; full detail in `docs/audits/GLADE-DEMO-PHASE1-RESOLUTION-2026-08-06.md`.
+
+- Real persistence layer (SQLAlchemy + Alembic); `domain/`/`repositories/` implemented for real. Server-side case-ownership authorization on every case-scoped endpoint — `owner_user_id` is always server-derived, never client-claimed.
+- Sidebar-driven app shell, typography/spacing design tokens, consolidated button/icon usage, i18n cleanup, `CaseWorkspacePage` tab-navigation race condition fixed (single `activeStage` source of truth).
+- RAG wired into the AI guidance flow (was ingestion-only before), case timeline + conversation history in the AI context, prompt-injection framing for retrieved documents.
+- Login rate limiting, JWT production-secret boot guard, CORS production warning, demo-reset scoped to the attorney persona, functional "remember me".
+- Backend tests: 55 → 89 (2 skip-gated pending a live Ollama daemon). Frontend tests: 27 → 37.
+- Known open items: no visual/screenshot QA this pass; Ollama live-integration test exists but has not run against a real daemon yet; no committed production CORS origin; SQLite on Vercel's `/tmp` is not durable across cold starts.
+
+## Agent governance & tooling (`chore/agent-governance-v2`)
+
+- Added native Claude Code context through root and nested `CLAUDE.md` files plus path-aware `.claude/rules`.
+- Added governed lifecycle skills for baseline, task start/planning, Flowbite, feature flows, API/backend/AI/i18n changes, ADRs, verification, worktree integration, versioning and completion.
+- Added specialized read-only, isolated implementation, testing, integration and independent release-gate agents (kept our own `ai-context-engineer` and `security-reviewer` definitions where both change sets defined the same agent).
+- Added Claude hooks that protect `main`, reject destructive/non-selective Git commands, require task ownership, protect shared version files and block incomplete task closure.
+- Added cross-platform Node tooling for repository context, task manifests, ownership, change fragments, architecture/Flowbite checks, worktrees and verification.
+- Added Conventional Commit, pre-commit and full pre-push Git hooks.
+- Replaced stale MatterReady/TanStack/React Hook Form/Zod/SQLAlchemy-UoW skill assumptions with pointers to the actual FreshStart architecture.
+- Added Flowbite and new-flow governance, templates, schemas and agent-system documentation.
+- Added CI governance and i18n gates while preserving backend, frontend and Playwright gates.
+- Parallel worktrees now use change fragments; only the integration owner performs the final SemVer bump.
+- `VERSION` and the root/frontend application manifests are runtime release authorities. The backend API reads `VERSION`; Python package metadata remains lock-consistent and `uv lock --check` preserves dependency reproducibility.
+- Frontend lockfile root version is informational; dependency integrity remains enforced by `npm ci`, and local version commands refresh its metadata.
+
+## Bilingual i18n rollout, AI health, reusable UI primitives
 
 - New bilingual i18next system: per-namespace locale files (es/en), a `LanguageProvider` resolving profile → persisted → browser preference, a `LanguageSelector`, `Accept-Language` propagated on every API request, and a `validate-locales` script (`npm run i18n:check`) enforcing matching keys across both languages.
 - Backend error responses are now localized from `Accept-Language` via a centralized bilingual message catalog; `DomainError` subclasses carry a `code`/`message_key`.
@@ -52,7 +80,7 @@ Major pivot: replaced the legal-matter-intake domain (MatterReady) with the Fres
 # MatterReady AI Intake Copilot 1.0.0
 
 - Introduced the AI Intake Copilot: a stateless, chat-first case-packet engine, replacing the prior matter workflow.
-- Isolated heavyweight AI dependencies from the production API runtime (the Vercel-safe dependency split this refactor's `docs/architecture/AI-PROVIDER-ARCHITECTURE.md` continues).
+- Isolated heavyweight AI dependencies from the production API runtime.
 
 # MatterReady 0.4.0
 
