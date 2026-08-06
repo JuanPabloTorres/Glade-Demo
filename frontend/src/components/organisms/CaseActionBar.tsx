@@ -10,9 +10,11 @@ import {
   TextInput,
 } from "flowbite-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AppIcon } from "../atoms/AppIcon";
 import { EVIDENCE_TYPES } from "../../config/bankruptcyOptions";
 import type { BankruptcyCase, CaseAnalysis } from "../../types/bankruptcy";
+import { formatDate } from "../../i18n/format";
 
 type ActionKind =
   | "request-document"
@@ -32,7 +34,7 @@ interface CaseActionBarProps {
 }
 
 function timestampNote(label: string, body: string): string {
-  return `[${new Date().toLocaleDateString("es-PR")}] ${label}: ${body}`;
+  return `[${formatDate(new Date())}] ${label}: ${body}`;
 }
 
 function draftSummary(caseData: BankruptcyCase, analysis: CaseAnalysis | null): string {
@@ -68,6 +70,7 @@ function draftSummary(caseData: BankruptcyCase, analysis: CaseAnalysis | null): 
  * the backend's structured AssistantResponse without changing this UI.
  */
 export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOpenAttorneyReviewTab }: CaseActionBarProps) {
+  const { t } = useTranslation(["workspace", "common"]);
   const [openAction, setOpenAction] = useState<ActionKind | null>(null);
   const [evidenceType, setEvidenceType] = useState<string>(EVIDENCE_TYPES[0]);
   const [noteText, setNoteText] = useState("");
@@ -87,7 +90,10 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
       ...current,
       evidence: [
         ...current.evidence,
-        { id: `evidence-${crypto.randomUUID()}`, evidenceType, name: evidenceType, status: "requested", relatedEntryIds: [] },
+        // No file exists yet — leave name blank rather than the raw
+        // evidenceType slug; CaseWorkspacePage falls back to a translated
+        // "pending upload" placeholder when name is empty.
+        { id: `evidence-${crypto.randomUUID()}`, evidenceType, name: "", status: "requested", relatedEntryIds: [] },
       ],
     }));
     close();
@@ -95,14 +101,14 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
 
   const submitRequestClarification = () => {
     if (!noteText.trim()) return;
-    appendNote(timestampNote("Aclaración solicitada al cliente", noteText.trim()));
+    appendNote(timestampNote(t("workspace:actionBar.notes.clarificationRequested"), noteText.trim()));
     setNoteText("");
     close();
   };
 
   const submitAddNote = () => {
     if (!noteText.trim()) return;
-    appendNote(timestampNote("Nota profesional", noteText.trim()));
+    appendNote(timestampNote(t("workspace:actionBar.notes.professionalNote"), noteText.trim()));
     setNoteText("");
     close();
   };
@@ -117,7 +123,9 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
           id: `timeline-${crypto.randomUUID()}`,
           stage: "consultation_scheduled",
           title: "Consulta programada",
-          description: consultationDate ? `Consulta programada para el ${consultationDate}.` : "Consulta programada.",
+          description: consultationDate
+            ? t("workspace:actionBar.timeline.consultationScheduledFor", { date: consultationDate })
+            : t("workspace:actionBar.timeline.consultationScheduled"),
           status: "current",
           createdAt: new Date().toISOString(),
         },
@@ -146,13 +154,13 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
   };
 
   const actions: { kind: ActionKind; label: string; icon: Parameters<typeof AppIcon>[0]["name"]; onClick: () => void }[] = [
-    { kind: "request-document", label: "Solicitar documento", icon: "evidence", onClick: () => setOpenAction("request-document") },
-    { kind: "request-clarification", label: "Solicitar aclaración", icon: "chat", onClick: () => setOpenAction("request-clarification") },
-    { kind: "add-note", label: "Añadir nota", icon: "document", onClick: () => setOpenAction("add-note") },
-    { kind: "schedule-consultation", label: "Programar consulta", icon: "timeline", onClick: () => setOpenAction("schedule-consultation") },
-    { kind: "assign-attorney", label: "Asignar abogado", icon: "attorney", onClick: () => setOpenAction("assign-attorney") },
-    { kind: "generate-summary", label: "Generar resumen", icon: "calculator", onClick: () => { setSummaryDraft(draftSummary(caseData, analysis)); setOpenAction("generate-summary"); } },
-    { kind: "message-client", label: "Enviar mensaje al cliente", icon: "chat", onClick: () => setOpenAction("message-client") },
+    { kind: "request-document", label: t("workspace:actions.requestDocument"), icon: "evidence", onClick: () => setOpenAction("request-document") },
+    { kind: "request-clarification", label: t("workspace:actions.requestClarification"), icon: "chat", onClick: () => setOpenAction("request-clarification") },
+    { kind: "add-note", label: t("workspace:actions.addNote"), icon: "document", onClick: () => setOpenAction("add-note") },
+    { kind: "schedule-consultation", label: t("workspace:actions.scheduleConsultation"), icon: "timeline", onClick: () => setOpenAction("schedule-consultation") },
+    { kind: "assign-attorney", label: t("workspace:actions.assignAttorney"), icon: "attorney", onClick: () => setOpenAction("assign-attorney") },
+    { kind: "generate-summary", label: t("workspace:actions.generateSummary"), icon: "calculator", onClick: () => { setSummaryDraft(draftSummary(caseData, analysis)); setOpenAction("generate-summary"); } },
+    { kind: "message-client", label: t("workspace:actions.messageClient"), icon: "chat", onClick: () => setOpenAction("message-client") },
   ];
 
   return (
@@ -164,97 +172,97 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
           </Button>
         ))}
         <Button size="xs" color={caseData.household.urgentCollectionAction ? "failure" : "light"} onClick={onMarkUrgent}>
-          <AppIcon name="alert" size={15} className="mr-1.5" /> {caseData.household.urgentCollectionAction ? "Quitar urgencia" : "Marcar urgente"}
+          <AppIcon name="alert" size={15} className="mr-1.5" /> {caseData.household.urgentCollectionAction ? t("workspace:actions.removeUrgency") : t("workspace:actions.markUrgent")}
         </Button>
         <Button size="xs" color="light" onClick={onOpenAttorneyReviewTab}>
-          <AppIcon name="check" size={15} className="mr-1.5" /> Cambiar estado
+          <AppIcon name="check" size={15} className="mr-1.5" /> {t("workspace:actions.changeStatus")}
         </Button>
       </div>
 
       <Modal show={openAction === "request-document"} onClose={close}>
-        <ModalHeader>Solicitar documento</ModalHeader>
+        <ModalHeader>{t("workspace:actionBar.requestDocument.title")}</ModalHeader>
         <ModalBody>
-          <p className="mb-3 text-sm text-[var(--color-text-muted)]">El documento aparecerá como pendiente en el expediente del cliente.</p>
-          <Label htmlFor="request-evidence-type">Tipo de documento</Label>
+          <p className="mb-3 text-sm text-[var(--color-text-muted)]">{t("workspace:actionBar.requestDocument.description")}</p>
+          <Label htmlFor="request-evidence-type">{t("workspace:actionBar.requestDocument.documentType")}</Label>
           <Select id="request-evidence-type" value={evidenceType} onChange={(event) => setEvidenceType(event.target.value)}>
-            {EVIDENCE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+            {EVIDENCE_TYPES.map((type) => <option key={type} value={type}>{t(`workspace:entryModal.evidenceTypes.${type}`)}</option>)}
           </Select>
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}><AppIcon name="arrow-right" size={15} className="mr-2 rotate-180" />Cancelar</Button>
-          <Button className="primary-action" onClick={submitRequestDocument}><AppIcon name="check" size={15} className="mr-2" />Solicitar</Button>
+          <Button color="light" onClick={close}><AppIcon name="arrow-right" size={15} className="mr-2 rotate-180" />{t("common:actions.cancel")}</Button>
+          <Button className="primary-action" onClick={submitRequestDocument}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actionBar.requestDocument.submit")}</Button>
         </ModalFooter>
       </Modal>
 
       <Modal show={openAction === "request-clarification" || openAction === "add-note"} onClose={close}>
-        <ModalHeader>{openAction === "request-clarification" ? "Solicitar aclaración" : "Añadir nota"}</ModalHeader>
+        <ModalHeader>{openAction === "request-clarification" ? t("workspace:actions.requestClarification") : t("workspace:actions.addNote")}</ModalHeader>
         <ModalBody>
-          <Label htmlFor="note-text" className="sr-only">{openAction === "request-clarification" ? "Aclaración solicitada" : "Nota profesional"}</Label>
-          <Textarea id="note-text" rows={5} value={noteText} onChange={(event) => setNoteText(event.target.value)} placeholder={openAction === "request-clarification" ? "¿Qué necesitas que el cliente aclare?" : "Nota profesional para el expediente."} />
+          <Label htmlFor="note-text" className="sr-only">{openAction === "request-clarification" ? t("workspace:actionBar.notes.clarificationRequested") : t("workspace:actionBar.notes.professionalNote")}</Label>
+          <Textarea id="note-text" rows={5} value={noteText} onChange={(event) => setNoteText(event.target.value)} placeholder={openAction === "request-clarification" ? t("workspace:actionBar.placeholders.requestClarification") : t("workspace:actionBar.placeholders.addNote")} />
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}>Cancelar</Button>
+          <Button color="light" onClick={close}>{t("common:actions.cancel")}</Button>
           <Button className="primary-action" onClick={openAction === "request-clarification" ? submitRequestClarification : submitAddNote} disabled={!noteText.trim()}>
-            <AppIcon name="check" size={15} className="mr-2" />Guardar
+            <AppIcon name="check" size={15} className="mr-2" />{t("common:actions.save")}
           </Button>
         </ModalFooter>
       </Modal>
 
       <Modal show={openAction === "schedule-consultation"} onClose={close}>
-        <ModalHeader>Programar consulta</ModalHeader>
+        <ModalHeader>{t("workspace:actions.scheduleConsultation")}</ModalHeader>
         <ModalBody>
-          <Label htmlFor="consultation-date">Fecha propuesta</Label>
+          <Label htmlFor="consultation-date">{t("workspace:actionBar.fields.proposedDate")}</Label>
           <TextInput id="consultation-date" type="date" value={consultationDate} onChange={(event) => setConsultationDate(event.target.value)} />
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}>Cancelar</Button>
-          <Button className="primary-action" onClick={submitScheduleConsultation}><AppIcon name="check" size={15} className="mr-2" />Programar</Button>
+          <Button color="light" onClick={close}>{t("common:actions.cancel")}</Button>
+          <Button className="primary-action" onClick={submitScheduleConsultation}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actions.scheduleConsultation")}</Button>
         </ModalFooter>
       </Modal>
 
       <Modal show={openAction === "assign-attorney"} onClose={close}>
-        <ModalHeader>Asignar abogado</ModalHeader>
+        <ModalHeader>{t("workspace:actions.assignAttorney")}</ModalHeader>
         <ModalBody>
-          <Label htmlFor="assign-attorney-name">Nombre del abogado</Label>
-          <TextInput id="assign-attorney-name" value={attorneyName} onChange={(event) => setAttorneyName(event.target.value)} placeholder="Ej. Lcda. Ana Martínez" />
+          <Label htmlFor="assign-attorney-name">{t("workspace:actionBar.fields.attorneyName")}</Label>
+          <TextInput id="assign-attorney-name" value={attorneyName} onChange={(event) => setAttorneyName(event.target.value)} placeholder={t("workspace:actionBar.placeholders.attorneyName")} />
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}>Cancelar</Button>
-          <Button className="primary-action" onClick={submitAssignAttorney}><AppIcon name="check" size={15} className="mr-2" />Asignar</Button>
+          <Button color="light" onClick={close}>{t("common:actions.cancel")}</Button>
+          <Button className="primary-action" onClick={submitAssignAttorney}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actions.assignAttorney")}</Button>
         </ModalFooter>
       </Modal>
 
       <Modal show={openAction === "generate-summary"} onClose={close} size="2xl">
-        <ModalHeader>Resumen del caso (borrador)</ModalHeader>
+        <ModalHeader>{t("workspace:actionBar.summary.title")}</ModalHeader>
         <ModalBody>
-          <p className="mb-3 rounded-lg bg-amber-50 p-3 text-xs font-medium text-amber-800">Borrador generado a partir del expediente — sujeto a revisión profesional. No constituye asesoramiento legal.</p>
+          <p className="mb-3 rounded-lg bg-amber-50 p-3 text-xs font-medium text-amber-800">{t("workspace:actionBar.summary.disclaimer")}</p>
           <Textarea rows={14} value={summaryDraft} onChange={(event) => setSummaryDraft(event.target.value)} className="font-mono text-xs" />
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}>Cerrar</Button>
+          <Button color="light" onClick={close}>{t("common:actions.close")}</Button>
           <Button
             className="primary-action"
             onClick={() => {
-              appendNote(timestampNote("Resumen generado", summaryDraft));
+              appendNote(timestampNote(t("workspace:actionBar.notes.summaryGenerated"), summaryDraft));
               close();
             }}
           >
-            <AppIcon name="check" size={15} className="mr-2" />Guardar en notas
+            <AppIcon name="check" size={15} className="mr-2" />{t("workspace:actionBar.summary.saveInNotes")}
           </Button>
         </ModalFooter>
       </Modal>
 
       <Modal show={openAction === "message-client"} onClose={close}>
-        <ModalHeader>Enviar mensaje al cliente</ModalHeader>
+        <ModalHeader>{t("workspace:actions.messageClient")}</ModalHeader>
         <ModalBody>
-          <p className="mb-3 text-sm text-[var(--color-text-muted)]">El mensaje aparecerá en el chat de "Guía inteligente" que ve el cliente.</p>
-          <Label htmlFor="client-message" className="sr-only">Mensaje</Label>
+          <p className="mb-3 text-sm text-[var(--color-text-muted)]">{t("workspace:actionBar.messageClient.description")}</p>
+          <Label htmlFor="client-message" className="sr-only">{t("workspace:actionBar.messageClient.label")}</Label>
           <Textarea id="client-message" rows={4} value={clientMessage} onChange={(event) => setClientMessage(event.target.value)} />
         </ModalBody>
         <ModalFooter>
-          <Button color="light" onClick={close}>Cancelar</Button>
+          <Button color="light" onClick={close}>{t("common:actions.cancel")}</Button>
           <Button className="primary-action" disabled={busy || !clientMessage.trim()} onClick={() => { setBusy(true); submitMessageClient(); setBusy(false); }}>
-            <AppIcon name="chat" size={15} className="mr-2" />Enviar
+            <AppIcon name="chat" size={15} className="mr-2" />{t("common:actions.send")}
           </Button>
         </ModalFooter>
       </Modal>

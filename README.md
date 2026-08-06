@@ -65,6 +65,50 @@ make frontend
 - API: `http://localhost:8000`
 - OpenAPI: `http://localhost:8000/docs`
 
+## Local AI with Ollama (optional but recommended for demo)
+
+FreshStart runs in deterministic mode by default (`AI_PROVIDER=rule_based`).
+To enable local model rewriting with Ollama:
+
+```bash
+ollama serve
+ollama pull llama3.1
+ollama run llama3.1
+```
+
+Set these variables in `.env`:
+
+```bash
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1
+OLLAMA_TIMEOUT_MS=60000
+```
+
+Health check:
+
+- App health: `GET /api/v1/health`
+- AI health: `GET /api/v1/ai/health`
+
+The UI header and chat panel show real-time AI connectivity (`IA conectada` / `IA sin conexión`) and allow retry.
+
+## Demo data reset
+
+The demo workspace is browser-local. To restore seeded data:
+
+1. Open browser devtools.
+2. Clear the `freshstart-bankruptcy-workspace` key from Local Storage.
+3. Refresh the app.
+
+## Verification commands
+
+```bash
+make contracts
+make lint
+make test
+cd frontend && npm run build
+```
+
 See [`docs/BANKRUPTCY_PRODUCT_BLUEPRINT.md`](docs/BANKRUPTCY_PRODUCT_BLUEPRINT.md) for the product workflow and acceptance criteria.
 
 > Evaluation software only. Use invented or properly redacted data. Not legal advice, not a law firm, not a court filing service, and not affiliated with Glade.

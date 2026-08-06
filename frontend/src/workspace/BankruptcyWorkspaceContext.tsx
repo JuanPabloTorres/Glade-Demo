@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { LANGUAGE_STORAGE_KEY } from "../i18n/languages";
 import type { AuthUserDto } from "../types/api";
 import type {
   BankruptcyCase,
@@ -136,14 +137,14 @@ function seedState(): WorkspaceState {
         evidence: [
           {
             id: "evidence-elena-1",
-            evidenceType: "Talones de pago",
+            evidenceType: "pay-stubs",
             name: "paystub-demo.pdf",
             status: "received",
             relatedEntryIds: ["income-elena-1"],
           },
           {
             id: "evidence-elena-2",
-            evidenceType: "Estado de cuenta de acreedor",
+            evidenceType: "creditor-statement",
             name: "credit-card-demo.pdf",
             status: "received",
             relatedEntryIds: ["debt-elena-1"],
@@ -271,14 +272,14 @@ function seedState(): WorkspaceState {
         evidence: [
           {
             id: "evidence-miguel-1",
-            evidenceType: "Talones de pago",
+            evidenceType: "pay-stubs",
             name: "income-demo.pdf",
             status: "reviewed",
             relatedEntryIds: ["income-miguel-1"],
           },
           {
             id: "evidence-miguel-2",
-            evidenceType: "Estado hipotecario",
+            evidenceType: "mortgage-statement",
             name: "mortgage-demo.pdf",
             status: "received",
             relatedEntryIds: ["debt-miguel-1", "asset-miguel-1"],
@@ -316,10 +317,16 @@ function readState(): WorkspaceState {
   }
 }
 
+function activeLanguage(): string {
+  const value = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  return value === "en" ? "en" : "es";
+}
+
 interface WorkspaceContextValue {
   cases: BankruptcyCase[];
   createCase: (user: AuthUserDto) => string;
   updateCase: (caseId: string, updater: (caseData: BankruptcyCase) => BankruptcyCase) => void;
+  deleteCase: (caseId: string) => void;
   submitCase: (caseId: string) => void;
   updateStatus: (caseId: string, status: CaseStatus, note?: string) => void;
   resetDemo: () => void;
@@ -355,7 +362,7 @@ export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode 
       ownerUserId: user.id,
       clientName: user.name,
       clientEmail: user.email,
-      preferredLanguage: "es",
+      preferredLanguage: user.preferred_language ?? activeLanguage(),
       status: "draft",
       household: {
         householdSize: 1,
@@ -389,6 +396,12 @@ export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode 
     };
     setState((current) => ({ cases: [caseData, ...current.cases] }));
     return caseId;
+  };
+
+  const deleteCase = (caseId: string) => {
+    setState((current) => ({
+      cases: current.cases.filter((caseData) => caseData.id !== caseId),
+    }));
   };
 
   const submitCase = (caseId: string) => {
@@ -431,7 +444,7 @@ export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode 
   const resetDemo = () => setState(seedState());
 
   const value = useMemo(
-    () => ({ cases: state.cases, createCase, updateCase, submitCase, updateStatus, resetDemo }),
+    () => ({ cases: state.cases, createCase, updateCase, deleteCase, submitCase, updateStatus, resetDemo }),
     [state.cases],
   );
 

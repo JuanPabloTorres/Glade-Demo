@@ -1,0 +1,37 @@
+{
+  "toolbar": {
+    "search": "Search",
+    "searchPlaceholder": "Search...",
+    "sort": "Sort",
+    "rowsPerPage": "Rows per page",
+    "clearFilters": "Clear filters"
+  },
+  "sort": {
+    "urgentFirst": "Most urgent first",
+    "completionDesc": "Completion: high to low",
+    "completionAsc": "Completion: low to high",
+    "nameAsc": "Client A-Z",
+    "nameDesc": "Client Z-A"
+  },
+  "columns": {
+    "actions": "Actions",
+    "client": "Client",
+    "status": "Status",
+    "completion": "Completion",
+    "alerts": "Alerts",
+    "source": "Source",
+    "frequency": "Frequency",
+    "grossMonthly": "Gross monthly",
+    "netMonthly": "Net monthly",
+    "category": "Category",
+    "description": "Description",
+    "amount": "Amount",
+    "essential": "Essential"
+  },
+  "states": {
+    "noResults": "No results found",
+    "noRows": "No records yet.",
+    "loading": "Loading records...",
+    "error": "Could not load table data."
+  }
+}

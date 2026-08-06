@@ -1,9 +1,11 @@
 import { Alert, Badge, Button, Modal, ModalBody, ModalHeader, Spinner, Tooltip } from "flowbite-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { bankruptcyApi } from "../../api/bankruptcyApi";
 import { useAuth } from "../../auth/AuthContext";
 import { useChatPanel } from "../../chat/ChatPanelContext";
+import { useAiHealth } from "../../hooks/useAiHealth";
 import type { AssistantAction, AssistantResponse } from "../../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../../workspace/BankruptcyWorkspaceContext";
 import { AppIcon } from "../atoms/AppIcon";
@@ -17,10 +19,12 @@ import { ChatComposer } from "./ChatComposer";
  * workspace tab.
  */
 export function ChatPanel({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation("ai");
   const { user } = useAuth();
   const workspace = useBankruptcyWorkspace();
   const navigate = useNavigate();
   const { caseData, prefill } = useChatPanel();
+  const aiHealth = useAiHealth();
   const [message, setMessage] = useState(prefill);
   const [guidance, setGuidance] = useState<AssistantResponse | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,8 +43,8 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
 
   if (!user || !caseData) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-center text-sm text-[var(--color-text-muted)]">
-        Abre un expediente para conversar con el asistente.
+      <div className="flex h-full items-center justify-center p-6 text-center text-sm text-(--color-text-muted)">
+        {t("chat.openCaseFirst")}
       </div>
     );
   }
@@ -62,7 +66,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
       }));
       setLastFailedMessage(null);
     } catch {
-      setError("El asistente no respondió. Intenta de nuevo en un momento.");
+      setError(t("chat.responseError"));
       setLastFailedMessage(trimmed);
     } finally {
       setBusy(false);
@@ -93,19 +97,22 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 border-b border-[var(--color-border)] p-4">
+      <div className="flex items-center gap-3 border-b border-(--color-border) p-4">
         <span className="glade-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"><AppIcon name="chat" /></span>
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-base font-semibold text-[var(--color-text)]">Asistente de preparación</h2>
-          <p className="truncate text-xs text-[var(--color-text-muted)]">{caseData.clientName}</p>
+          <h2 className="truncate text-base font-semibold text-(--color-text)">{t("chat.title")}</h2>
+          <p className="truncate text-xs text-(--color-text-muted)">{caseData.clientName}</p>
         </div>
-        <Tooltip content="Subir documento">
-          <button type="button" aria-label="Subir documento" onClick={() => setUploadNoticeOpen(true)} className="rounded-lg p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)]">
+        <Badge color={aiHealth.data?.available ? "success" : "warning"} className="hidden sm:inline-flex">
+          {aiHealth.data?.available ? `${t("chat.ready")} (${aiHealth.data.model})` : t("chat.offline")}
+        </Badge>
+        <Tooltip content={t("chat.uploadDocument")}>
+          <button type="button" aria-label={t("chat.uploadDocument")} onClick={() => setUploadNoticeOpen(true)} className="rounded-lg p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted)">
             <AppIcon name="document" size={18} />
           </button>
         </Tooltip>
-        <Tooltip content="Cerrar">
-          <button type="button" aria-label="Cerrar chat" onClick={onClose} className="rounded-lg p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)]">
+        <Tooltip content={t("chat.close")}>
+          <button type="button" aria-label={t("chat.close")} onClick={onClose} className="rounded-lg p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted)">
             <AppIcon name="arrow-right" size={18} />
           </button>
         </Tooltip>
@@ -114,7 +121,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
         {caseData.messages.map((item) => <ChatBubble key={item.id} message={item} />)}
         {busy ? (
-          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]"><Spinner size="sm" /> El asistente está escribiendo…</div>
+          <div className="flex items-center gap-2 text-xs text-(--color-text-muted)"><Spinner size="sm" /> {t("chat.writing")}</div>
         ) : null}
       </div>
 
@@ -123,7 +130,22 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
           <Alert color="failure" className="mb-3">
             <div className="flex items-center justify-between gap-3">
               <span>{error}</span>
-              <Button size="xs" color="light" onClick={retry}>Reintentar</Button>
+              <Button size="xs" color="light" onClick={retry}>{t("chat.retry")}</Button>
+            </div>
+          </Alert>
+        </div>
+      ) : null}
+
+      {!aiHealth.loading && !aiHealth.data?.available ? (
+        <div className="px-4">
+          <Alert color="warning" className="mb-3">
+            <div className="flex flex-col gap-2">
+              <span>
+                {t("chat.serviceUnavailable")}
+              </span>
+              <div>
+                <Button size="xs" color="light" onClick={() => void aiHealth.refresh()}>{t("chat.retryConnection")}</Button>
+              </div>
             </div>
           </Alert>
         </div>
@@ -132,7 +154,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
       {guidance?.focus_section ? (
         <div className="px-4 pb-2">
           <Button size="xs" color="light" onClick={openFocusSection}>
-            <AppIcon name="arrow-right" size={14} className="mr-1.5" /> Abrir sección recomendada
+            <AppIcon name="arrow-right" size={14} className="mr-1.5" /> {t("chat.openRecommendedSection")}
           </Button>
         </div>
       ) : null}
@@ -150,12 +172,11 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       <Modal show={uploadNoticeOpen} onClose={() => setUploadNoticeOpen(false)}>
-        <ModalHeader>Subir documento</ModalHeader>
+        <ModalHeader>{t("chat.uploadTitle")}</ModalHeader>
         <ModalBody>
-          <Badge color="gray" className="mb-3 w-fit">Próximamente</Badge>
-          <p className="text-sm leading-6 text-[var(--color-text-muted)]">
-            La carga de documentos reales desde el chat llega en una fase posterior del proyecto (pipeline de
-            documentos). Por ahora, registra la evidencia como metadato en la sección "Documentos" del expediente.
+          <Badge color="gray" className="mb-3 w-fit">{t("chat.comingSoon")}</Badge>
+          <p className="text-sm leading-6 text-(--color-text-muted)">
+            {t("chat.uploadHint")}
           </p>
         </ModalBody>
       </Modal>

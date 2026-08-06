@@ -1,0 +1,445 @@
+{
+  "status": {
+    "draft": "Borrador",
+    "collecting_information": "Recopilando información",
+    "submitted": "Solicitud enviada",
+    "attorney_review": "Revisión del abogado",
+    "consultation_scheduled": "Consulta programada",
+    "decision_pending": "Decisión pendiente",
+    "filing_preparation": "Preparación para presentación",
+    "closed": "Cerrado"
+  },
+  "tabs": {
+    "start": "Comenzar",
+    "household": "Hogar",
+    "income": "Ingresos",
+    "expenses": "Gastos",
+    "debts": "Deudas",
+    "assets": "Bienes",
+    "documents": "Documentos",
+    "review": "Revisión",
+    "submitted": "Enviado",
+    "tracking": "Seguimiento",
+    "attorneyReview": "Revisión del abogado"
+  },
+  "header": {
+    "back": "Volver",
+    "urgentAttention": "Atención urgente",
+    "goalFallback": "Define el objetivo de la consulta y completa la plantilla financiera.",
+    "preparation": "Preparación del expediente",
+    "submitToAttorney": "Enviar al abogado",
+    "analysisError": "No fue posible actualizar el análisis financiero."
+  },
+  "actions": {
+    "caseActions": "Acciones del caso",
+    "requestDocument": "Solicitar documento",
+    "requestClarification": "Solicitar aclaración",
+    "addNote": "Añadir nota",
+    "scheduleConsultation": "Programar consulta",
+    "assignAttorney": "Asignar abogado",
+    "generateSummary": "Generar resumen",
+    "messageClient": "Enviar mensaje al cliente",
+    "removeUrgency": "Quitar urgencia",
+    "markUrgent": "Marcar urgente",
+    "changeStatus": "Cambiar estado",
+    "confirmDelete": "Confirmar eliminación",
+    "deleteCase": "Eliminar caso",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "send": "Enviar",
+    "close": "Cerrar"
+  },
+  "stages": {
+    "householdTitle": "Hogar y perfil",
+    "householdDescription": "Cuéntanos quién vive en el hogar y tu situación de vivienda. Esto ayuda a calcular gastos permitidos.",
+    "incomeTitle": "Ingresos",
+    "incomeDescription": "Registra cada fuente de ingreso del hogar. Cada frecuencia se normaliza a un equivalente mensual para comparar con tus gastos.",
+    "expensesTitle": "Gastos mensuales",
+    "expensesDescription": "Categorías inspiradas en Schedule J para facilitar la revisión del abogado.",
+    "debtsTitle": "Deudas",
+    "debtsDescription": "Incluye todos los acreedores, incluso familiares, cobros y cuentas disputadas.",
+    "assetsTitle": "Bienes y activos",
+    "assetsDescription": "Registra propiedad, cuentas, vehículos, retiro y otros derechos de valor.",
+    "documentsTitle": "Documentos del expediente",
+    "documentsDescription": "El demo guarda metadatos locales, no archivos reales. Cada documento respalda una cifra que ya declaraste."
+  },
+  "about": {
+    "title": "Acerca de FreshStart",
+    "description": "FreshStart es una plataforma de preparación para consultas de bancarrota. Organiza información financiera, identifica faltantes y prepara preguntas para revisión profesional. No es un bufete, no ofrece asesoramiento legal, no selecciona un capítulo como conclusión jurídica, no determina elegibilidad y no presenta peticiones.",
+    "sections": {
+      "privacy": {
+        "title": "Privacidad",
+        "content": "Este es un entorno de demostración: todos los nombres, casos y cifras son ficticios. El estado del expediente se guarda localmente en tu navegador; el backend procesa cada solicitud sin almacenar el caso entre peticiones."
+      },
+      "security": {
+        "title": "Seguridad",
+        "content": "El acceso usa JWT con expiración corta y roles separados de cliente/abogado. Antes de usar datos reales, se deben reemplazar las credenciales de demo y el secreto de firma por valores de producción — ver"
+      },
+      "accessibility": {
+        "title": "Accesibilidad",
+        "content": "La interfaz usa componentes Flowbite (con manejo de foco y navegación por teclado incorporados), etiquetas asociadas a cada campo y contraste conforme a WCAG AA en texto y controles."
+      },
+      "terms": {
+        "title": "Términos",
+        "content": "El uso de este demo no constituye una relación abogado-cliente. La información generada por el asistente siempre requiere revisión y confirmación de un abogado autorizado antes de tomar cualquier decisión."
+      },
+      "help": {
+        "title": "Ayuda",
+        "content": "Usa el chat de Guía inteligente dentro de un expediente para preguntar qué falta, qué documento respalda una cifra, o para preparar preguntas antes de tu consulta. Cualquier duda sobre la plataforma en sí puede reportarse siguiendo el proceso descrito en"
+      }
+    }
+  },
+  "clientDashboard": {
+    "analysisError": "No fue posible actualizar el resumen financiero.",
+    "badges": {
+      "portal": "Portal del cliente"
+    },
+    "empty": {
+      "title": "Hola{{name}}. Prepara tu historia financiera paso a paso.",
+      "description": "No necesitas conocer formularios de quiebra. El sistema organiza la información, identifica faltantes y prepara el expediente para una conversación más productiva con el abogado.",
+      "startRequest": "Iniciar mi solicitud"
+    },
+    "title": "Hola{{name}}. Así va tu expediente.",
+    "goalFallback": "Define tu meta principal en la sección Hogar y perfil.",
+    "goalShortFallback": "Define tu meta principal",
+    "completedInfo": "Información completada",
+    "nextAction": "Próxima acción",
+    "nextActionFallback": "Continúa completando tu expediente para recibir orientación.",
+    "assistant": {
+      "title": "Asistente de preparación",
+      "description": "Pregunta qué falta, qué documento respalda una cifra, o cuánto te sobra al mes.",
+      "openChat": "Abrir chat"
+    },
+    "attorneyStatus": {
+      "title": "Estado con el abogado",
+      "notSent": "Aún no has enviado tu solicitud al abogado.",
+      "sent": "Tu solicitud fue enviada. El abogado la revisará y dejará notas aquí."
+    },
+    "pendingTasks": "Tareas pendientes",
+    "noPendingTasks": "No hay tareas pendientes por ahora.",
+    "requestedDocuments": "Documentos solicitados",
+    "pendingBadge": "Pendiente",
+    "noRequestedDocuments": "El abogado no ha solicitado documentos adicionales.",
+    "financialSummary": "Resumen financiero",
+    "metrics": {
+      "netIncome": "Ingreso neto mensual",
+      "monthlyExpenses": "Gastos mensuales",
+      "availableCashFlow": "Flujo disponible"
+    },
+    "recentActivity": "Actividad reciente",
+    "noRecentActivity": "Aún no hay actividad registrada.",
+    "viewFullCase": "Ver expediente completo",
+    "otherRequests": "Otras solicitudes",
+    "startAnother": "Iniciar otra solicitud"
+  },
+  "attorneyDashboard": {
+    "attorneySpace": "Espacio del abogado",
+    "heroTitle": "Revisa solicitudes financieras antes de la consulta.",
+    "heroDescription": "Cada expediente resume presupuesto, deuda, bienes, evidencia y puntos que requieren análisis jurídico. El sistema mantiene visibles las urgencias sin recomendar un capítulo automáticamente.",
+    "metrics": {
+      "requests": "Solicitudes",
+      "inReview": "En revisión",
+      "urgent": "Con urgencia",
+      "waitingClient": "Esperando cliente"
+    },
+    "managementLabel": "Gestión de solicitudes",
+    "inboxTitle": "Bandeja de casos",
+    "inboxDescription": "Prioriza urgencias, faltantes y solicitudes enviadas.",
+    "caseCount": "{{shown}} de {{total}} casos",
+    "createCase": "Crear caso",
+    "searchPlaceholder": "Buscar por nombre o correo...",
+    "emptyMessage": "Ningún caso coincide con este filtro o búsqueda.",
+    "views": {
+      "all": "Todos",
+      "new": "Nuevos",
+      "incomplete": "Incompletos",
+      "urgent": "Urgentes",
+      "submitted": "Enviados",
+      "attorneyReview": "En revisión",
+      "waitingClient": "Esperando cliente",
+      "consultationScheduled": "Consulta programada",
+      "decisionPending": "Decisión pendiente",
+      "closed": "Cerrados"
+    },
+    "sort": {
+      "urgentFirst": "Más urgente primero",
+      "completionDesc": "Avance: mayor a menor",
+      "completionAsc": "Avance: menor a mayor",
+      "nameAsc": "Cliente A-Z",
+      "nameDesc": "Cliente Z-A"
+    },
+    "columns": {
+      "client": "Cliente",
+      "status": "Estado",
+      "completion": "Avance",
+      "alerts": "Alertas"
+    },
+    "actions": {
+      "activateUrgent": "Activar urgencia",
+      "deactivateUrgent": "Desactivar urgencia"
+    },
+    "confirmDelete": {
+      "title": "Confirmar eliminación",
+      "message": "Esta acción eliminará el caso del entorno demo local. No podrá recuperarse automáticamente.",
+      "confirm": "Eliminar caso"
+    }
+  },
+  "caseWorkspace": {
+    "metrics": {
+      "netIncome": "Ingreso neto mensual",
+      "monthlyExpenses": "Gastos mensuales",
+      "availableCashFlow": "Flujo disponible",
+      "totalDebt": "Deuda total"
+    },
+    "nextStepsTitle": "Próximos pasos",
+    "nextStepsFallback": "Completa la plantilla para recibir orientación.",
+    "warningsTitle": "Alertas para revisar",
+    "discussionPointsTitle": "Puntos para discutir con el abogado",
+    "chapterComparisonTitle": "Chapter 7 y Chapter 13",
+    "chapterComparisonDescription": "Estas son preguntas de preparación, no una recomendación automática.",
+    "chapter7": "Chapter 7",
+    "chapter13": "Chapter 13",
+    "householdMissing": {
+      "maritalStatus": "Estado civil",
+      "housingStatus": "Situación de vivienda"
+    },
+    "householdExample": "Ej. Casado/a, 3 personas en el hogar, vivienda alquilada.",
+    "incomeExample": "Ej. Salario quincenal de $1,200 brutos.",
+    "expenseExample": "Ej. Renta $650/mes, marcado como necesario.",
+    "debtExample": "Ej. Tarjeta de crédito, balance $3,200, sin demanda.",
+    "assetExample": "Ej. Vehículo 2018, valor estimado $9,000, gravamen $4,200.",
+    "documentsExample": "Ej. Talón de pago más reciente respalda tu ingreso declarado.",
+    "chatPrompts": {
+      "household": "No sé qué poner en la sección de hogar",
+      "income": "¿Qué cuenta como ingreso?",
+      "expenses": "¿Cuánto me sobra al mes?",
+      "debts": "Tengo una demanda de un acreedor",
+      "assets": "¿Me van a quitar el carro?",
+      "documents": "¿Qué documento necesito?"
+    },
+    "missing": {
+      "addIncome": "Agrega al menos un ingreso",
+      "addExpense": "Agrega al menos un gasto",
+      "addDebt": "Agrega al menos una deuda, si aplica",
+      "addAsset": "Agrega al menos un bien, si aplica",
+      "documentsWithoutSupport": "{{count}} documento(s) sugerido(s) sin respaldo"
+    },
+    "empty": {
+      "incomes": "Aún no has agregado ingresos.",
+      "expenses": "Aún no has agregado gastos.",
+      "debts": "No hay deudas registradas todavía.",
+      "assets": "No hay bienes registrados todavía.",
+      "documents": "No hay documentos registrados todavía."
+    },
+    "fields": {
+      "name": "Nombre",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "municipality": "Municipio",
+      "maritalStatus": "Estado civil",
+      "housing": "Vivienda",
+      "householdSize": "Personas en el hogar",
+      "dependents": "Dependientes",
+      "clientGoal": "¿Qué quieres resolver o entender?",
+      "select": "Seleccione"
+    },
+    "maritalStatus": {
+      "single": "Soltero/a",
+      "married": "Casado/a",
+      "separated": "Separado/a",
+      "divorced": "Divorciado/a",
+      "widowed": "Viudo/a"
+    },
+    "housingStatus": {
+      "rent": "Alquiler",
+      "own": "Propia con hipoteca",
+      "ownFree": "Propia sin hipoteca",
+      "family": "Con familiar",
+      "other": "Otra"
+    },
+    "flags": {
+      "filingJointly": "Considera presentación conjunta",
+      "urgentAction": "Cobro urgente",
+      "recentTransfer": "Transferencia reciente"
+    },
+    "columns": {
+      "source": "Fuente",
+      "frequency": "Frecuencia",
+      "grossMonthly": "Bruto mensual",
+      "netMonthly": "Neto mensual",
+      "category": "Categoría",
+      "description": "Descripción",
+      "amount": "Monto",
+      "essential": "Necesario"
+    },
+    "labels": {
+      "balance": "Balance",
+      "delinquent": "Atraso",
+      "value": "Valor",
+      "lien": "Gravamen"
+    },
+    "evidenceChecklistTitle": "Lista inteligente de evidencia",
+    "evidenceChecklistDescription": "La lista se adapta a deudas garantizadas, cobros, empleo propio y transferencias.",
+    "review": {
+      "title": "Revisa antes de enviar",
+      "description": "Confirma que cada sección esté completa. Puedes regresar a cualquier sección sin perder lo que ya escribiste.",
+      "whatAttorneySeesTitle": "Qué verá el abogado",
+      "whatAttorneySeesDescription": "El resumen financiero, tu meta declarada, alertas detectadas y los documentos que hayas registrado. El abogado no verá el contenido de este chat como conversación privada tuya, solo el expediente estructurado.",
+      "submitHint": "Cuando estés listo, usa el botón Enviar al abogado en la parte superior de esta página."
+    },
+    "submitted": {
+      "sentTitle": "Tu solicitud fue enviada",
+      "sentAt": "Enviada el {{date}}.",
+      "attorneyHasAccess": "El abogado ya tiene acceso a tu expediente.",
+      "followUp": "El abogado revisará la información y podría solicitar aclaraciones o documentos adicionales.",
+      "notSentTitle": "Aún no has enviado tu solicitud",
+      "notSentDescription": "Completa la revisión y usa el botón Enviar al abogado en la parte superior de esta página cuando estés listo."
+    },
+    "trackingTitle": "Proceso del caso",
+    "attorneyReview": {
+      "caseStatus": "Estado del caso",
+      "professionalNotes": "Notas profesionales",
+      "notesPlaceholder": "Preguntas, documentos faltantes y asuntos jurídicos que requieren discusión.",
+      "checklistTitle": "Checklist profesional"
+    }
+  },
+  "entryModal": {
+    "titles": {
+      "income": "Añadir ingreso",
+      "expense": "Añadir gasto mensual",
+      "debt": "Añadir deuda",
+      "asset": "Añadir bien o activo",
+      "evidence": "Añadir evidencia"
+    },
+    "fields": {
+      "category": "Categoría",
+      "select": "Seleccione",
+      "incomeSource": "Fuente o patrono",
+      "grossIncome": "Ingreso bruto",
+      "netIncome": "Ingreso neto",
+      "frequency": "Frecuencia",
+      "description": "Descripción",
+      "monthlyAmount": "Monto mensual",
+      "essentialExpense": "Es un gasto necesario para el hogar",
+      "creditor": "Acreedor",
+      "type": "Tipo",
+      "balance": "Balance",
+      "monthlyPayment": "Pago mensual",
+      "delinquent": "Atraso",
+      "collateral": "Propiedad que garantiza la deuda",
+      "collectionAction": "Existe demanda, embargo o acción de cobro",
+      "estimatedValue": "Valor estimado",
+      "loanBalance": "Préstamo o gravamen",
+      "jointlyOwned": "Propiedad conjunta",
+      "evidenceType": "Tipo de evidencia",
+      "file": "Archivo",
+      "fileHelper": "El demo conserva únicamente el nombre y estado del archivo en este navegador.",
+      "documentName": "Nombre del documento",
+      "status": "Estado",
+      "note": "Nota"
+    },
+    "frequencies": {
+      "weekly": "Semanal",
+      "biweekly": "Cada dos semanas",
+      "semimonthly": "Dos veces al mes",
+      "monthly": "Mensual",
+      "quarterly": "Trimestral",
+      "annual": "Anual"
+    },
+    "incomeCategories": {
+      "wages": "Salario o empleo",
+      "self-employment": "Trabajo por cuenta propia",
+      "social-security": "Seguro Social",
+      "pension": "Pensión o retiro",
+      "support": "Pensión alimentaria o manutención recibida",
+      "rental": "Ingreso de alquiler",
+      "other": "Otro ingreso"
+    },
+    "expenseCategories": {
+      "housing": "Vivienda",
+      "utilities": "Servicios y utilidades",
+      "food": "Alimentos y artículos del hogar",
+      "clothing": "Ropa y lavandería",
+      "medical": "Salud, medicina y cuidado dental",
+      "transportation": "Transportación",
+      "insurance": "Seguros e impuestos",
+      "childcare": "Cuido, educación y dependientes",
+      "support": "Manutención pagada",
+      "personal": "Cuidado personal y recreación",
+      "other": "Otro gasto"
+    },
+    "debtTypes": {
+      "secured": "Garantizada por propiedad",
+      "priority": "Prioritaria",
+      "unsecured": "No garantizada"
+    },
+    "assetCategories": {
+      "real-estate": "Bienes raíces",
+      "vehicle": "Vehículo",
+      "bank-account": "Cuenta bancaria",
+      "retirement": "Cuenta de retiro",
+      "personal-property": "Propiedad personal",
+      "insurance": "Póliza o valor en seguro",
+      "business": "Interés en negocio",
+      "claim": "Reclamación o derecho a recibir dinero",
+      "other": "Otro activo"
+    },
+    "evidenceTypes": {
+      "government-id": "Identificación vigente",
+      "pay-stubs": "Talones de pago",
+      "bank-statement": "Estado bancario",
+      "tax-return-or-transcript": "Planilla o transcripción contributiva",
+      "creditor-statement": "Estado de cuenta de acreedor",
+      "lease-agreement": "Contrato de arrendamiento",
+      "mortgage-statement": "Estado hipotecario",
+      "vehicle-loan-statement": "Estado de préstamo de vehículo",
+      "collection-or-lawsuit-notice": "Demanda, embargo o notificación de cobro",
+      "property-or-valuation-document": "Documento de propiedad o valoración",
+      "credit-counseling-certificate": "Certificado de orientación crediticia",
+      "other-document": "Otro documento"
+    },
+    "evidenceStatus": {
+      "requested": "Solicitado",
+      "received": "Recibido",
+      "reviewed": "Revisado",
+      "missing": "Faltante"
+    },
+    "pendingFileName": "Documento pendiente de carga"
+  },
+  "actionBar": {
+    "notes": {
+      "clarificationRequested": "Aclaración solicitada al cliente",
+      "professionalNote": "Nota profesional",
+      "summaryGenerated": "Resumen generado"
+    },
+    "timeline": {
+      "consultationScheduled": "Consulta programada.",
+      "consultationScheduledFor": "Consulta programada para el {{date}}.",
+      "statusChanged": "El expediente cambió a {{status}}."
+    },
+    "requestDocument": {
+      "title": "Solicitar documento",
+      "description": "El documento aparecerá como pendiente en el expediente del cliente.",
+      "documentType": "Tipo de documento",
+      "submit": "Solicitar"
+    },
+    "placeholders": {
+      "requestClarification": "¿Qué necesitas que el cliente aclare?",
+      "addNote": "Nota profesional para el expediente.",
+      "attorneyName": "Ej. Lcda. Ana Martínez"
+    },
+    "fields": {
+      "proposedDate": "Fecha propuesta",
+      "attorneyName": "Nombre del abogado"
+    },
+    "summary": {
+      "title": "Resumen del caso (borrador)",
+      "disclaimer": "Borrador generado a partir del expediente — sujeto a revisión profesional. No constituye asesoramiento legal.",
+      "saveInNotes": "Guardar en notas"
+    },
+    "messageClient": {
+      "description": "El mensaje aparecerá en el chat de Guía inteligente que ve el cliente.",
+      "label": "Mensaje"
+    }
+  }
+}

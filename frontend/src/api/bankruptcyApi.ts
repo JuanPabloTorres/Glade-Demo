@@ -1,5 +1,6 @@
 import { apiContracts } from "./apiContracts.generated";
 import { http } from "./http";
+import { LANGUAGE_STORAGE_KEY, toLocale } from "../i18n/languages";
 import type {
   ApiBankruptcyCase,
   AssistantResponse,
@@ -95,11 +96,13 @@ export const bankruptcyApi = {
     message: string,
     role: UserRole,
   ): Promise<AssistantResponse> {
+    const selected = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    const language = selected === "en" ? "en" : "es";
     const response = await http.post<AssistantResponse>(pathFor("bankruptcy.guide"), {
       case: toApiCase(caseData),
       message,
       role,
-      locale: caseData.preferredLanguage,
+      locale: toLocale(language),
     });
     return response.data;
   },

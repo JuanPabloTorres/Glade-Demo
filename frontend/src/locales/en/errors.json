@@ -1,0 +1,18 @@
+{
+  "codes": {
+    "VALIDATION_ERROR": "Validation error.",
+    "UNAUTHORIZED": "Your session is invalid or expired.",
+    "FORBIDDEN": "You do not have permission to perform this action.",
+    "RESOURCE_NOT_FOUND": "The requested resource was not found.",
+    "RESOURCE_ALREADY_EXISTS": "The resource already exists.",
+    "CONFLICT": "There is a conflict with the current state.",
+    "DELETE_NOT_ALLOWED": "Deleting this resource is not allowed.",
+    "OLLAMA_UNAVAILABLE": "The artificial intelligence service is unavailable.",
+    "OLLAMA_TIMEOUT": "The artificial intelligence response timed out.",
+    "INTERNAL_ERROR": "An unexpected internal error occurred."
+  },
+  "users": {
+    "notFound": "User {{id}} was not found."
+  },
+  "fallback": "The operation could not be completed."
+}

@@ -1,5 +1,6 @@
 import { Button, Label, Textarea } from "flowbite-react";
 import { type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import type { AssistantAction } from "../../types/bankruptcy";
 import { AppIcon } from "../atoms/AppIcon";
 
@@ -13,8 +14,10 @@ interface ChatComposerProps {
 }
 
 export function ChatComposer({ value, onChange, onSubmit, suggestedActions, onSelectAction, busy }: ChatComposerProps) {
+  const { t } = useTranslation("ai");
+
   return (
-    <div className="border-t border-[var(--color-border)] pt-3">
+    <div className="border-t border-(--color-border) pt-3">
       {suggestedActions.length ? (
         <div className="mb-3 flex flex-wrap gap-2">
           {suggestedActions.map((action) => (
@@ -23,18 +26,18 @@ export function ChatComposer({ value, onChange, onSubmit, suggestedActions, onSe
         </div>
       ) : null}
       <form onSubmit={onSubmit} className="flex flex-col gap-2 sm:flex-row">
-        <Label htmlFor="chat-composer-message" className="sr-only">Mensaje</Label>
+        <Label htmlFor="chat-composer-message" className="sr-only">{t("chat.inputLabel")}</Label>
         <Textarea
           id="chat-composer-message"
           rows={2}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Ej. ¿Qué documentos me faltan?"
+          placeholder={t("chat.inputPlaceholder")}
           className="flex-1"
         />
         <Button type="submit" className="glade-button shrink-0" disabled={busy || !value.trim()}>
           {busy ? <AppIcon name="calculator" size={16} className="mr-2 animate-spin" /> : null}
-          {busy ? "Analizando…" : "Enviar"}
+          {busy ? t("chat.analyzing") : t("chat.send")}
         </Button>
       </form>
     </div>

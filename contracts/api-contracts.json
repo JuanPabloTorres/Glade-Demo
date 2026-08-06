@@ -1,5 +1,6 @@
 {
   "health.get": {"operationId":"getHealth","method":"GET","path":"/api/v1/health","controller":"HealthController","action":"get_health"},
+  "ai.health": {"operationId":"getAiHealth","method":"GET","path":"/api/v1/ai/health","controller":"AIController","action":"get_ai_health"},
   "auth.login": {"operationId":"login","method":"POST","path":"/api/v1/auth/login","controller":"AuthController","action":"login"},
   "auth.me": {"operationId":"getCurrentSession","method":"GET","path":"/api/v1/auth/me","controller":"AuthController","action":"get_current_session"},
   "bankruptcy.analyze": {"operationId":"analyzeBankruptcyCase","method":"POST","path":"/api/v1/bankruptcy/analyze","controller":"BankruptcyController","action":"analyze_case"},

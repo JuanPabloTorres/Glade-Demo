@@ -14,8 +14,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_CONNECT_TIMEOUT_SECONDS = 2.0
-
 _REWRITE_SYSTEM_PROMPT = (
     "You rewrite a draft response for a bankruptcy-preparation assistant into concise, plain "
     "language. Do not add facts, legal advice, promises, eligibility claims, or a chapter "
@@ -36,15 +34,16 @@ class OllamaProvider:
     local/Docker/VPS environments, never in the trimmed Vercel function.
     """
 
-    def __init__(self, base_url: str, model: str) -> None:
+    def __init__(self, base_url: str, model: str, timeout_ms: int = 60000) -> None:
         self._base_url = base_url.rstrip("/")
         self._model = model
+        self._timeout_seconds = max(1.0, timeout_ms / 1000)
         self._fallback = RuleBasedProvider()
 
     def is_available(self) -> bool:
         try:
             request = urllib.request.Request(f"{self._base_url}/api/tags", method="GET")
-            with urllib.request.urlopen(request, timeout=_CONNECT_TIMEOUT_SECONDS):
+            with urllib.request.urlopen(request, timeout=self._timeout_seconds):
                 return True
         except Exception:  # noqa: BLE001 - availability probe must never raise
             return False
@@ -68,7 +67,7 @@ class OllamaProvider:
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            with urllib.request.urlopen(http_request, timeout=_CONNECT_TIMEOUT_SECONDS) as response:
+            with urllib.request.urlopen(http_request, timeout=self._timeout_seconds) as response:
                 body = json.loads(response.read().decode("utf-8"))
             text = str(body.get("response", "")).strip()
             return text or None

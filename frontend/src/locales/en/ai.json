@@ -1,0 +1,28 @@
+{
+  "chat": {
+    "title": "Preparation assistant",
+    "openAssistant": "Open preparation assistant",
+    "openCaseFirst": "Open a case to talk to the assistant.",
+    "writing": "The assistant is typing...",
+    "ready": "AI ready",
+    "offline": "AI offline",
+    "retry": "Retry",
+    "send": "Send",
+    "analyzing": "Analyzing...",
+    "inputLabel": "Message",
+    "inputPlaceholder": "Example: Which documents am I missing?",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyToClipboard": "Copy text to clipboard",
+    "uploadDocument": "Upload document",
+    "close": "Close",
+    "openRecommendedSection": "Open recommended section",
+    "serviceUnavailable": "The local AI service is unavailable. You can continue using deterministic guidance mode and retry the connection.",
+    "retryConnection": "Retry AI connection",
+    "uploadTitle": "Upload document",
+    "comingSoon": "Coming soon",
+    "uploadHint": "Real document upload from chat is coming in a later phase (document pipeline). For now, register evidence as metadata in the case Documents section.",
+    "responseError": "The assistant did not respond. Try again in a moment.",
+    "healthError": "Could not check assistant status."
+  }
+}

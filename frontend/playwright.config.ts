@@ -9,6 +9,12 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:5173",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // The app auto-detects language from the browser locale when no
+    // profile/persisted preference exists (see src/i18n/languages.ts). These
+    // specs assert Spanish copy, matching the demo's default audience —
+    // without this, Playwright's default en-US locale makes the app render
+    // in English and every Spanish text selector times out.
+    locale: "es-PR",
   },
   projects: [
     {

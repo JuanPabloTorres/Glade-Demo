@@ -10,6 +10,7 @@ export interface AuthUserDto {
   email: string;
   name: string;
   role: UserRole;
+  preferred_language?: string;
 }
 
 export interface AuthTokenDto {
@@ -17,4 +18,11 @@ export interface AuthTokenDto {
   token_type: "bearer";
   expires_in: number;
   user: AuthUserDto;
+}
+
+export interface AIHealthStatus {
+  status: string;
+  provider: string;
+  model: string;
+  available: boolean;
 }

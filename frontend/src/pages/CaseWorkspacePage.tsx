@@ -14,6 +14,7 @@ import {
   TextInput,
 } from "flowbite-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { bankruptcyApi } from "../api/bankruptcyApi";
 import { useAuth } from "../auth/AuthContext";
@@ -22,9 +23,9 @@ import { AppIcon } from "../components/atoms/AppIcon";
 import { BankruptcyEntryModal } from "../components/organisms/BankruptcyEntryModal";
 import { CaseActionBar } from "../components/organisms/CaseActionBar";
 import { CaseTimeline } from "../components/organisms/CaseTimeline";
+import { CaseStageStepper } from "../components/molecules/CaseStageStepper";
 import { ResponsiveDataView } from "../components/molecules/ResponsiveDataView";
 import { StageOrientation } from "../components/molecules/StageOrientation";
-import { STATUS_LABELS } from "../config/bankruptcyOptions";
 import type {
   BankruptcyCase,
   CaseAnalysis,
@@ -34,9 +35,9 @@ import type {
 } from "../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
 import { currency, localCompletion, monthlyAmount } from "../workspace/caseMetrics";
+import { formatDate } from "../i18n/format";
 
 const ATTORNEY_REVIEW_TAB_INDEX = 10;
-
 /** Maps a backend GuidanceResponseDto.focus_section value to this page's tab index. */
 const FOCUS_SECTION_TAB_INDEX: Record<string, number> = {
   overview: 0,
@@ -58,6 +59,7 @@ function statusColor(status: CaseStatus): "gray" | "warning" | "success" | "info
 }
 
 export function CaseWorkspacePage() {
+  const { t } = useTranslation(["workspace", "common"]);
   const { caseId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -68,6 +70,7 @@ export function CaseWorkspacePage() {
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [modalKind, setModalKind] = useState<EntryKind | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
   const tabsRef = useRef<TabsRef>(null);
 
   useEffect(() => {
@@ -77,11 +80,11 @@ export function CaseWorkspacePage() {
     bankruptcyApi
       .analyze(caseData)
       .then((result) => active && setAnalysis(result))
-      .catch(() => active && setAnalysisError("No fue posible actualizar el análisis financiero."));
+      .catch(() => active && setAnalysisError(t("workspace:header.analysisError")));
     return () => {
       active = false;
     };
-  }, [caseData]);
+  }, [caseData, t]);
 
   // Deep-link support for the chat's "Abrir sección recomendada" action —
   // see ChatPanel.tsx, which navigates here with ?focus=<section>.
@@ -125,10 +128,29 @@ export function CaseWorkspacePage() {
   const completion = analysis?.completion_score ?? localCompletion(caseData);
   const isAttorney = user.role === "attorney";
   const isSubmitted = caseData.status !== "draft" && caseData.status !== "collecting_information";
+  const stageStepperTitles = [
+    t("workspace:tabs.start"),
+    t("workspace:tabs.household"),
+    t("workspace:tabs.income"),
+    t("workspace:tabs.expenses"),
+    t("workspace:tabs.debts"),
+    t("workspace:tabs.assets"),
+    t("workspace:tabs.documents"),
+    t("workspace:tabs.review"),
+    t("workspace:tabs.submitted"),
+    t("workspace:tabs.tracking"),
+  ];
 
   const householdComplete = Boolean(caseData.household.maritalStatus && caseData.household.housingStatus);
+  // required_evidence is free-text Spanish guidance from the backend (e.g.
+  // "Talones de pago de los últimos 60 días"), while evidence.evidenceType
+  // stores the canonical slug (e.g. "pay-stubs") — match against the
+  // translated label, not the slug, or every requirement reads as missing.
   const requiredEvidencePresent = (requirement: string) =>
-    caseData.evidence.some((item) => requirement.toLowerCase().split(" ").some((word) => word.length > 5 && item.evidenceType.toLowerCase().includes(word)));
+    caseData.evidence.some((item) => {
+      const label = t(`workspace:entryModal.evidenceTypes.${item.evidenceType}`).toLowerCase();
+      return requirement.toLowerCase().split(" ").some((word) => word.length > 5 && label.includes(word));
+    });
   const requiredEvidence = analysis?.required_evidence ?? [];
   const missingEvidenceCount = requiredEvidence.filter((item) => !requiredEvidencePresent(item)).length;
 
@@ -138,30 +160,30 @@ export function CaseWorkspacePage() {
         <div className="glade-gradient absolute inset-x-0 top-0 h-1.5" />
         <div className="flex flex-col gap-5 pt-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <Button color="light" size="xs" onClick={() => navigate("/")}>← Volver</Button>
+            <Button color="light" size="xs" onClick={() => navigate("/")}>← {t("workspace:header.back")}</Button>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Badge color={statusColor(caseData.status)}>{STATUS_LABELS[caseData.status]}</Badge>
-              {caseData.household.urgentCollectionAction ? <Badge color="failure">Atención urgente</Badge> : null}
+              <Badge color={statusColor(caseData.status)}>{t(`workspace:status.${caseData.status}`)}</Badge>
+              {caseData.household.urgentCollectionAction ? <Badge color="failure">{t("workspace:header.urgentAttention")}</Badge> : null}
             </div>
             <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[var(--color-text)]">{caseData.clientName}</h1>
             <p className="mt-2 max-w-3xl text-base leading-7 text-[var(--color-text-muted)]">
-              {caseData.clientGoal || "Define el objetivo de la consulta y completa la plantilla financiera."}
+              {caseData.clientGoal || t("workspace:header.goalFallback")}
             </p>
           </div>
           <div className="min-w-[260px] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-[var(--color-text-muted)]">Preparación del expediente</span>
+              <span className="text-sm font-medium text-[var(--color-text-muted)]">{t("workspace:header.preparation")}</span>
               <span data-testid="completion-score" className="text-2xl font-semibold text-[var(--color-text)]">{completion}%</span>
             </div>
             <Progress progress={completion} color="purple" className="mt-3" />
             {!isAttorney && caseData.status !== "submitted" ? (
-              <Button className="glade-button mt-4 w-full" onClick={() => workspace.submitCase(caseData.id)}>Enviar al abogado</Button>
+              <Button className="glade-button mt-4 w-full" onClick={() => workspace.submitCase(caseData.id)}>{t("workspace:header.submitToAttorney")}</Button>
             ) : null}
           </div>
         </div>
       </Card>
 
-      {analysisError ? <Alert color="failure">{analysisError}</Alert> : null}
+      {analysisError ? <Alert color="failure">{analysisError || t("workspace:header.analysisError")}</Alert> : null}
 
       {isAttorney ? (
         <Card className="app-card">
@@ -176,16 +198,29 @@ export function CaseWorkspacePage() {
         </Card>
       ) : null}
 
-      <Tabs ref={tabsRef} variant="underline" className="workspace-tabs">
-        <TabItem title="Comenzar" active>
+      {!isAttorney ? (
+        <CaseStageStepper
+          stages={stageStepperTitles}
+          currentIndex={Math.max(0, Math.min(activeTab, stageStepperTitles.length - 1))}
+          onSelect={(index) => tabsRef.current?.setActiveTab(index)}
+        />
+      ) : null}
+
+      <Tabs
+        ref={tabsRef}
+        variant="underline"
+        className="workspace-tabs"
+        onActiveTabChange={(index) => setActiveTab(index)}
+      >
+        <TabItem title={t("workspace:tabs.start")} active>
           <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-5">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {[
-                  ["Ingreso neto mensual", analysis?.monthly_net_income ?? 0],
-                  ["Gastos mensuales", analysis?.monthly_expenses ?? 0],
-                  ["Flujo disponible", analysis?.monthly_cash_flow ?? 0],
-                  ["Deuda total", analysis?.total_debt ?? 0],
+                  [t("workspace:caseWorkspace.metrics.netIncome"), analysis?.monthly_net_income ?? 0],
+                  [t("workspace:caseWorkspace.metrics.monthlyExpenses"), analysis?.monthly_expenses ?? 0],
+                  [t("workspace:caseWorkspace.metrics.availableCashFlow"), analysis?.monthly_cash_flow ?? 0],
+                  [t("workspace:caseWorkspace.metrics.totalDebt"), analysis?.total_debt ?? 0],
                 ].map(([label, value]) => (
                   <Card key={String(label)} className="border border-[var(--color-border)] bg-white shadow-none">
                     <p className="text-sm text-[var(--color-text-muted)]">{label}</p>
@@ -194,9 +229,9 @@ export function CaseWorkspacePage() {
                 ))}
               </div>
               <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-                <h2 className="text-xl font-semibold text-[var(--color-text)]">Próximos pasos</h2>
+                <h2 className="text-xl font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.nextStepsTitle")}</h2>
                 <div className="mt-4 space-y-3">
-                  {(analysis?.next_steps ?? ["Completa la plantilla para recibir orientación."]).map((step, index) => (
+                  {(analysis?.next_steps ?? [t("workspace:caseWorkspace.nextStepsFallback")]).map((step, index) => (
                     <div key={step} className="flex gap-3">
                       <span className="glade-gradient flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white">{index + 1}</span>
                       <p className="text-sm leading-6 text-[var(--color-text-muted)]">{step}</p>
@@ -206,185 +241,185 @@ export function CaseWorkspacePage() {
               </Card>
               {analysis?.warnings.length ? (
                 <Card className="border border-[#f8d3d1] bg-[#fff7f6] shadow-none">
-                  <div className="flex items-center gap-2"><AppIcon name="alert" className="text-[#f85e59]" /><h2 className="font-semibold text-[var(--color-text)]">Alertas para revisar</h2></div>
+                  <div className="flex items-center gap-2"><AppIcon name="alert" className="text-[#f85e59]" /><h2 className="font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.warningsTitle")}</h2></div>
                   <ul className="mt-3 space-y-2 text-sm text-[var(--color-text-muted)]">{analysis.warnings.map((warning) => <li key={warning}>• {warning}</li>)}</ul>
                 </Card>
               ) : null}
             </div>
             <div className="space-y-5">
               <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-                <h2 className="text-lg font-semibold text-[var(--color-text)]">Puntos para discutir con el abogado</h2>
+                <h2 className="text-lg font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.discussionPointsTitle")}</h2>
                 <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--color-text-muted)]">{analysis?.discussion_points.map((point) => <li key={point}>• {point}</li>)}</ul>
               </Card>
               <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-                <h2 className="text-lg font-semibold text-[var(--color-text)]">Chapter 7 y Chapter 13</h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">Estas son preguntas de preparación, no una recomendación automática.</p>
+                <h2 className="text-lg font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.chapterComparisonTitle")}</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.chapterComparisonDescription")}</p>
                 <div className="mt-4 grid gap-4">
-                  <div className="rounded-xl bg-[var(--color-surface-muted)] p-4"><p className="font-semibold">Chapter 7</p><ul className="mt-2 space-y-1 text-sm text-[var(--color-text-muted)]">{analysis?.chapter_7_questions.slice(0, 3).map((item) => <li key={item}>• {item}</li>)}</ul></div>
-                  <div className="rounded-xl bg-[var(--color-surface-muted)] p-4"><p className="font-semibold">Chapter 13</p><ul className="mt-2 space-y-1 text-sm text-[var(--color-text-muted)]">{analysis?.chapter_13_questions.slice(0, 3).map((item) => <li key={item}>• {item}</li>)}</ul></div>
+                  <div className="rounded-xl bg-[var(--color-surface-muted)] p-4"><p className="font-semibold">{t("workspace:caseWorkspace.chapter7")}</p><ul className="mt-2 space-y-1 text-sm text-[var(--color-text-muted)]">{analysis?.chapter_7_questions.slice(0, 3).map((item) => <li key={item}>• {item}</li>)}</ul></div>
+                  <div className="rounded-xl bg-[var(--color-surface-muted)] p-4"><p className="font-semibold">{t("workspace:caseWorkspace.chapter13")}</p><ul className="mt-2 space-y-1 text-sm text-[var(--color-text-muted)]">{analysis?.chapter_13_questions.slice(0, 3).map((item) => <li key={item}>• {item}</li>)}</ul></div>
                 </div>
               </Card>
             </div>
           </div>
         </TabItem>
 
-        <TabItem title="Hogar">
+        <TabItem title={t("workspace:tabs.household")}>
           <StageOrientation
-            title="Hogar y perfil"
-            description="Cuéntanos quién vive en el hogar y tu situación de vivienda. Esto ayuda a calcular gastos permitidos."
+            title={t("workspace:stages.householdTitle")}
+            description={t("workspace:stages.householdDescription")}
             estimatedMinutes={3}
             percentComplete={householdComplete ? 100 : 0}
-            missingItems={householdComplete ? [] : ["Estado civil", "Situación de vivienda"]}
-            example="Ej. Casado/a, 3 personas en el hogar, vivienda alquilada."
-            onOpenChat={() => openChat("No sé qué poner en la sección de hogar")}
+            missingItems={householdComplete ? [] : [t("workspace:caseWorkspace.householdMissing.maritalStatus"), t("workspace:caseWorkspace.householdMissing.housingStatus")]}
+            example={t("workspace:caseWorkspace.householdExample")}
+            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.household"))}
           />
           <Card className="border border-[var(--color-border)] bg-white shadow-sm">
             <div className="grid gap-5 lg:grid-cols-2">
-              <div><Label htmlFor="client-name">Nombre</Label><TextInput id="client-name" value={caseData.clientName} onChange={(event) => update((current) => ({ ...current, clientName: event.target.value }))} /></div>
-              <div><Label htmlFor="client-email">Correo</Label><TextInput id="client-email" type="email" value={caseData.clientEmail} onChange={(event) => update((current) => ({ ...current, clientEmail: event.target.value }))} /></div>
-              <div><Label htmlFor="client-phone">Teléfono</Label><TextInput id="client-phone" value={caseData.clientPhone ?? ""} onChange={(event) => update((current) => ({ ...current, clientPhone: event.target.value }))} /></div>
-              <div><Label htmlFor="municipality">Municipio</Label><TextInput id="municipality" value={caseData.household.municipality ?? ""} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, municipality: event.target.value } }))} /></div>
+              <div><Label htmlFor="client-name">{t("workspace:caseWorkspace.fields.name")}</Label><TextInput id="client-name" value={caseData.clientName} onChange={(event) => update((current) => ({ ...current, clientName: event.target.value }))} /></div>
+              <div><Label htmlFor="client-email">{t("workspace:caseWorkspace.fields.email")}</Label><TextInput id="client-email" type="email" value={caseData.clientEmail} onChange={(event) => update((current) => ({ ...current, clientEmail: event.target.value }))} /></div>
+              <div><Label htmlFor="client-phone">{t("workspace:caseWorkspace.fields.phone")}</Label><TextInput id="client-phone" value={caseData.clientPhone ?? ""} onChange={(event) => update((current) => ({ ...current, clientPhone: event.target.value }))} /></div>
+              <div><Label htmlFor="municipality">{t("workspace:caseWorkspace.fields.municipality")}</Label><TextInput id="municipality" value={caseData.household.municipality ?? ""} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, municipality: event.target.value } }))} /></div>
               <div>
-                <Label htmlFor="marital-status">Estado civil</Label>
+                <Label htmlFor="marital-status">{t("workspace:caseWorkspace.fields.maritalStatus")}</Label>
                 <Select id="marital-status" value={caseData.household.maritalStatus ?? ""} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, maritalStatus: event.target.value } }))}>
-                  <option value="">Seleccione</option><option value="single">Soltero/a</option><option value="married">Casado/a</option><option value="separated">Separado/a</option><option value="divorced">Divorciado/a</option><option value="widowed">Viudo/a</option>
+                  <option value="">{t("workspace:caseWorkspace.fields.select")}</option><option value="single">{t("workspace:caseWorkspace.maritalStatus.single")}</option><option value="married">{t("workspace:caseWorkspace.maritalStatus.married")}</option><option value="separated">{t("workspace:caseWorkspace.maritalStatus.separated")}</option><option value="divorced">{t("workspace:caseWorkspace.maritalStatus.divorced")}</option><option value="widowed">{t("workspace:caseWorkspace.maritalStatus.widowed")}</option>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="housing-status">Vivienda</Label>
+                <Label htmlFor="housing-status">{t("workspace:caseWorkspace.fields.housing")}</Label>
                 <Select id="housing-status" value={caseData.household.housingStatus ?? ""} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, housingStatus: event.target.value } }))}>
-                  <option value="">Seleccione</option><option value="rent">Alquiler</option><option value="own">Propia con hipoteca</option><option value="own-free">Propia sin hipoteca</option><option value="family">Con familiar</option><option value="other">Otra</option>
+                  <option value="">{t("workspace:caseWorkspace.fields.select")}</option><option value="rent">{t("workspace:caseWorkspace.housingStatus.rent")}</option><option value="own">{t("workspace:caseWorkspace.housingStatus.own")}</option><option value="own-free">{t("workspace:caseWorkspace.housingStatus.ownFree")}</option><option value="family">{t("workspace:caseWorkspace.housingStatus.family")}</option><option value="other">{t("workspace:caseWorkspace.housingStatus.other")}</option>
                 </Select>
               </div>
-              <div><Label htmlFor="household-size">Personas en el hogar</Label><TextInput id="household-size" type="number" min="1" value={caseData.household.householdSize} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, householdSize: Number(event.target.value) } }))} /></div>
-              <div><Label htmlFor="dependents">Dependientes</Label><TextInput id="dependents" type="number" min="0" value={caseData.household.dependents} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, dependents: Number(event.target.value) } }))} /></div>
+              <div><Label htmlFor="household-size">{t("workspace:caseWorkspace.fields.householdSize")}</Label><TextInput id="household-size" type="number" min="1" value={caseData.household.householdSize} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, householdSize: Number(event.target.value) } }))} /></div>
+              <div><Label htmlFor="dependents">{t("workspace:caseWorkspace.fields.dependents")}</Label><TextInput id="dependents" type="number" min="0" value={caseData.household.dependents} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, dependents: Number(event.target.value) } }))} /></div>
             </div>
-            <div className="mt-5"><Label htmlFor="client-goal">¿Qué quieres resolver o entender?</Label><Textarea id="client-goal" rows={4} value={caseData.clientGoal ?? ""} onChange={(event) => update((current) => ({ ...current, clientGoal: event.target.value }))} /></div>
+            <div className="mt-5"><Label htmlFor="client-goal">{t("workspace:caseWorkspace.fields.clientGoal")}</Label><Textarea id="client-goal" rows={4} value={caseData.clientGoal ?? ""} onChange={(event) => update((current) => ({ ...current, clientGoal: event.target.value }))} /></div>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <div className="flex items-center gap-2"><Checkbox id="filing-jointly" checked={caseData.household.filingJointly} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, filingJointly: event.target.checked } }))} /><Label htmlFor="filing-jointly">Considera presentación conjunta</Label></div>
-              <div className="flex items-center gap-2"><Checkbox id="urgent-action" checked={caseData.household.urgentCollectionAction} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, urgentCollectionAction: event.target.checked } }))} /><Label htmlFor="urgent-action">Cobro urgente</Label></div>
-              <div className="flex items-center gap-2"><Checkbox id="recent-transfer" checked={caseData.household.recentPropertyTransfer} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, recentPropertyTransfer: event.target.checked } }))} /><Label htmlFor="recent-transfer">Transferencia reciente</Label></div>
+              <div className="flex items-center gap-2"><Checkbox id="filing-jointly" checked={caseData.household.filingJointly} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, filingJointly: event.target.checked } }))} /><Label htmlFor="filing-jointly">{t("workspace:caseWorkspace.flags.filingJointly")}</Label></div>
+              <div className="flex items-center gap-2"><Checkbox id="urgent-action" checked={caseData.household.urgentCollectionAction} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, urgentCollectionAction: event.target.checked } }))} /><Label htmlFor="urgent-action">{t("workspace:caseWorkspace.flags.urgentAction")}</Label></div>
+              <div className="flex items-center gap-2"><Checkbox id="recent-transfer" checked={caseData.household.recentPropertyTransfer} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, recentPropertyTransfer: event.target.checked } }))} /><Label htmlFor="recent-transfer">{t("workspace:caseWorkspace.flags.recentTransfer")}</Label></div>
             </div>
           </Card>
         </TabItem>
 
-        <TabItem title="Ingresos">
+        <TabItem title={t("workspace:tabs.income")}>
           <StageOrientation
-            title="Ingresos"
-            description="Registra cada fuente de ingreso del hogar. Cada frecuencia se normaliza a un equivalente mensual para comparar con tus gastos."
+            title={t("workspace:stages.incomeTitle")}
+            description={t("workspace:stages.incomeDescription")}
             estimatedMinutes={4}
             percentComplete={caseData.incomes.length ? 100 : 0}
-            missingItems={caseData.incomes.length ? [] : ["Agrega al menos un ingreso"]}
-            example="Ej. Salario quincenal de $1,200 brutos."
-            primaryActionLabel="Añadir ingreso"
+            missingItems={caseData.incomes.length ? [] : [t("workspace:caseWorkspace.missing.addIncome")]}
+            example={t("workspace:caseWorkspace.incomeExample")}
+            primaryActionLabel={t("workspace:entryModal.titles.income")}
             onPrimaryAction={() => setModalKind("income")}
-            onOpenChat={() => openChat("¿Qué cuenta como ingreso?")}
+            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.income"))}
           />
           <ResponsiveDataView
-            emptyMessage="Aún no has agregado ingresos."
+            emptyMessage={t("workspace:caseWorkspace.empty.incomes")}
             rows={caseData.incomes}
             rowKey={(item) => item.id}
-            renderActions={(item) => <Button size="xs" color="light" onClick={() => removeEntry("income", item.id)}>Eliminar</Button>}
+            renderActions={(item) => <Button size="xs" color="light" onClick={() => removeEntry("income", item.id)}>{t("common:actions.delete")}</Button>}
             columns={[
-              { key: "source", header: "Fuente", hideLabelOnCard: true, render: (item) => <div><p className="font-semibold">{item.source}</p><p className="text-xs text-[var(--color-text-muted)]">{item.category}</p></div> },
-              { key: "frequency", header: "Frecuencia", render: (item) => item.frequency },
-              { key: "gross", header: "Bruto mensual", render: (item) => currency(monthlyAmount(item.grossAmount, item.frequency)) },
-              { key: "net", header: "Neto mensual", render: (item) => currency(monthlyAmount(item.netAmount ?? item.grossAmount, item.frequency)) },
+              { key: "source", header: t("workspace:caseWorkspace.columns.source"), hideLabelOnCard: true, render: (item) => <div><p className="font-semibold">{item.source}</p><p className="text-xs text-[var(--color-text-muted)]">{t(`workspace:entryModal.incomeCategories.${item.category}`)}</p></div> },
+              { key: "frequency", header: t("workspace:caseWorkspace.columns.frequency"), render: (item) => t(`workspace:entryModal.frequencies.${item.frequency}`) },
+              { key: "gross", header: t("workspace:caseWorkspace.columns.grossMonthly"), render: (item) => currency(monthlyAmount(item.grossAmount, item.frequency)) },
+              { key: "net", header: t("workspace:caseWorkspace.columns.netMonthly"), render: (item) => currency(monthlyAmount(item.netAmount ?? item.grossAmount, item.frequency)) },
             ]}
           />
         </TabItem>
 
-        <TabItem title="Gastos">
+        <TabItem title={t("workspace:tabs.expenses")}>
           <StageOrientation
-            title="Gastos mensuales"
-            description="Categorías inspiradas en Schedule J para facilitar la revisión del abogado."
+            title={t("workspace:stages.expensesTitle")}
+            description={t("workspace:stages.expensesDescription")}
             estimatedMinutes={5}
             percentComplete={caseData.expenses.length ? 100 : 0}
-            missingItems={caseData.expenses.length ? [] : ["Agrega al menos un gasto"]}
-            example="Ej. Renta $650/mes, marcado como necesario."
-            primaryActionLabel="Añadir gasto"
+            missingItems={caseData.expenses.length ? [] : [t("workspace:caseWorkspace.missing.addExpense")]}
+            example={t("workspace:caseWorkspace.expenseExample")}
+            primaryActionLabel={t("workspace:entryModal.titles.expense")}
             onPrimaryAction={() => setModalKind("expense")}
-            onOpenChat={() => openChat("¿Cuánto me sobra al mes?")}
+            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.expenses"))}
           />
           <ResponsiveDataView
-            emptyMessage="Aún no has agregado gastos."
+            emptyMessage={t("workspace:caseWorkspace.empty.expenses")}
             rows={caseData.expenses}
             rowKey={(item) => item.id}
-            renderActions={(item) => <Button size="xs" color="light" onClick={() => removeEntry("expense", item.id)}>Eliminar</Button>}
+            renderActions={(item) => <Button size="xs" color="light" onClick={() => removeEntry("expense", item.id)}>{t("common:actions.delete")}</Button>}
             columns={[
-              { key: "category", header: "Categoría", hideLabelOnCard: true, render: (item) => <p className="font-semibold">{item.category}</p> },
-              { key: "description", header: "Descripción", render: (item) => item.description },
-              { key: "amount", header: "Monto", render: (item) => currency(item.monthlyAmount) },
-              { key: "essential", header: "Necesario", render: (item) => (item.essential ? "Sí" : "No") },
+              { key: "category", header: t("workspace:caseWorkspace.columns.category"), hideLabelOnCard: true, render: (item) => <p className="font-semibold">{t(`workspace:entryModal.expenseCategories.${item.category}`)}</p> },
+              { key: "description", header: t("workspace:caseWorkspace.columns.description"), render: (item) => item.description },
+              { key: "amount", header: t("workspace:caseWorkspace.columns.amount"), render: (item) => currency(item.monthlyAmount) },
+              { key: "essential", header: t("workspace:caseWorkspace.columns.essential"), render: (item) => (item.essential ? t("common:labels.yes") : t("common:labels.no")) },
             ]}
           />
         </TabItem>
 
-        <TabItem title="Deudas">
+        <TabItem title={t("workspace:tabs.debts")}>
           <StageOrientation
-            title="Deudas"
-            description="Incluye todos los acreedores, incluso familiares, cobros y cuentas disputadas."
+            title={t("workspace:stages.debtsTitle")}
+            description={t("workspace:stages.debtsDescription")}
             estimatedMinutes={5}
             percentComplete={caseData.debts.length ? 100 : 0}
-            missingItems={caseData.debts.length ? [] : ["Agrega al menos una deuda, si aplica"]}
-            example="Ej. Tarjeta de crédito, balance $3,200, sin demanda."
-            primaryActionLabel="Añadir deuda"
+            missingItems={caseData.debts.length ? [] : [t("workspace:caseWorkspace.missing.addDebt")]}
+            example={t("workspace:caseWorkspace.debtExample")}
+            primaryActionLabel={t("workspace:entryModal.titles.debt")}
             onPrimaryAction={() => setModalKind("debt")}
-            onOpenChat={() => openChat("Tengo una demanda de un acreedor")}
+            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.debts"))}
           />
           <div className="grid gap-3 lg:grid-cols-2">
             {caseData.debts.map((item) => (
               <Card key={item.id} className="border border-[var(--color-border)] bg-[var(--color-surface-muted)] shadow-none">
                 <div className="flex items-start justify-between">
                   <div><p className="font-semibold">{item.creditor}</p><p className="text-sm text-[var(--color-text-muted)]">{item.description}</p></div>
-                  <Badge color={item.collectionLawsuit || item.delinquentAmount > 0 ? "failure" : "gray"}>{item.debtType}</Badge>
+                  <Badge color={item.collectionLawsuit || item.delinquentAmount > 0 ? "failure" : "gray"}>{t(`workspace:entryModal.debtTypes.${item.debtType}`)}</Badge>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div><p className="text-[var(--color-text-muted)]">Balance</p><p className="font-semibold">{currency(item.balance)}</p></div>
-                  <div><p className="text-[var(--color-text-muted)]">Atraso</p><p className="font-semibold">{currency(item.delinquentAmount)}</p></div>
+                  <div><p className="text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.labels.balance")}</p><p className="font-semibold">{currency(item.balance)}</p></div>
+                  <div><p className="text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.labels.delinquent")}</p><p className="font-semibold">{currency(item.delinquentAmount)}</p></div>
                 </div>
-                <Button size="xs" color="light" className="mt-4" onClick={() => removeEntry("debt", item.id)}>Eliminar</Button>
+                <Button size="xs" color="light" className="mt-4" onClick={() => removeEntry("debt", item.id)}>{t("common:actions.delete")}</Button>
               </Card>
             ))}
-            {!caseData.debts.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)] lg:col-span-2">No hay deudas registradas todavía.</p> : null}
+            {!caseData.debts.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)] lg:col-span-2">{t("workspace:caseWorkspace.empty.debts")}</p> : null}
           </div>
         </TabItem>
 
-        <TabItem title="Bienes">
+        <TabItem title={t("workspace:tabs.assets")}>
           <StageOrientation
-            title="Bienes y activos"
-            description="Registra propiedad, cuentas, vehículos, retiro y otros derechos de valor."
+            title={t("workspace:stages.assetsTitle")}
+            description={t("workspace:stages.assetsDescription")}
             estimatedMinutes={4}
             percentComplete={caseData.assets.length ? 100 : 0}
-            missingItems={caseData.assets.length ? [] : ["Agrega al menos un bien, si aplica"]}
-            example="Ej. Vehículo 2018, valor estimado $9,000, gravamen $4,200."
-            primaryActionLabel="Añadir bien"
+            missingItems={caseData.assets.length ? [] : [t("workspace:caseWorkspace.missing.addAsset")]}
+            example={t("workspace:caseWorkspace.assetExample")}
+            primaryActionLabel={t("workspace:entryModal.titles.asset")}
             onPrimaryAction={() => setModalKind("asset")}
-            onOpenChat={() => openChat("¿Me van a quitar el carro?")}
+            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.assets"))}
           />
           <div className="grid gap-3 lg:grid-cols-2">
             {caseData.assets.map((item) => (
               <Card key={item.id} className="border border-[var(--color-border)] bg-[var(--color-surface-muted)] shadow-none">
-                <p className="font-semibold">{item.description}</p><p className="text-sm text-[var(--color-text-muted)]">{item.category}</p>
-                <div className="mt-3 flex justify-between text-sm"><span>Valor {currency(item.estimatedValue)}</span><span>Gravamen {currency(item.loanBalance)}</span></div>
-                <Button size="xs" color="light" className="mt-4" onClick={() => removeEntry("asset", item.id)}>Eliminar</Button>
+                <p className="font-semibold">{item.description}</p><p className="text-sm text-[var(--color-text-muted)]">{t(`workspace:entryModal.assetCategories.${item.category}`)}</p>
+                <div className="mt-3 flex justify-between text-sm"><span>{t("workspace:caseWorkspace.labels.value")} {currency(item.estimatedValue)}</span><span>{t("workspace:caseWorkspace.labels.lien")} {currency(item.loanBalance)}</span></div>
+                <Button size="xs" color="light" className="mt-4" onClick={() => removeEntry("asset", item.id)}>{t("common:actions.delete")}</Button>
               </Card>
             ))}
-            {!caseData.assets.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)] lg:col-span-2">No hay bienes registrados todavía.</p> : null}
+            {!caseData.assets.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)] lg:col-span-2">{t("workspace:caseWorkspace.empty.assets")}</p> : null}
           </div>
         </TabItem>
 
-        <TabItem title="Documentos">
+        <TabItem title={t("workspace:tabs.documents")}>
           <StageOrientation
-            title="Documentos del expediente"
-            description="El demo guarda metadatos locales, no archivos reales. Cada documento respalda una cifra que ya declaraste."
+            title={t("workspace:stages.documentsTitle")}
+            description={t("workspace:stages.documentsDescription")}
             estimatedMinutes={6}
             percentComplete={analysis?.evidence_score ?? 0}
-            missingItems={missingEvidenceCount ? [`${missingEvidenceCount} documento(s) sugerido(s) sin respaldo`] : []}
-            example="Ej. Talón de pago más reciente respalda tu ingreso declarado."
-            primaryActionLabel="Añadir evidencia"
+            missingItems={missingEvidenceCount ? [t("workspace:caseWorkspace.missing.documentsWithoutSupport", { count: missingEvidenceCount })] : []}
+            example={t("workspace:caseWorkspace.documentsExample")}
+            primaryActionLabel={t("workspace:entryModal.titles.evidence")}
             onPrimaryAction={() => setModalKind("evidence")}
-            onOpenChat={() => openChat("¿Qué documento necesito?")}
+            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.documents"))}
           />
           <div className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
             <Card className="border border-[var(--color-border)] bg-white shadow-sm">
@@ -393,20 +428,20 @@ export function CaseWorkspacePage() {
                   <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
                       <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-surface-muted)]"><AppIcon name="evidence" /></span>
-                      <div><p className="font-semibold">{item.name}</p><p className="text-sm text-[var(--color-text-muted)]">{item.evidenceType}</p></div>
+                      <div><p className="font-semibold">{item.name || t("workspace:entryModal.pendingFileName")}</p><p className="text-sm text-[var(--color-text-muted)]">{t(`workspace:entryModal.evidenceTypes.${item.evidenceType}`)}</p></div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge color={item.status === "reviewed" ? "success" : item.status === "received" ? "info" : item.status === "requested" ? "warning" : "gray"}>{item.status}</Badge>
-                      <Button size="xs" color="light" onClick={() => removeEntry("evidence", item.id)}>Eliminar</Button>
+                      <Badge color={item.status === "reviewed" ? "success" : item.status === "received" ? "info" : item.status === "requested" ? "warning" : "gray"}>{t(`workspace:entryModal.evidenceStatus.${item.status}`)}</Badge>
+                      <Button size="xs" color="light" onClick={() => removeEntry("evidence", item.id)}>{t("common:actions.delete")}</Button>
                     </div>
                   </div>
                 ))}
-                {!caseData.evidence.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)]">No hay documentos registrados todavía.</p> : null}
+                {!caseData.evidence.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.empty.documents")}</p> : null}
               </div>
             </Card>
             <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-              <h2 className="text-lg font-semibold">Lista inteligente de evidencia</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">La lista se adapta a deudas garantizadas, cobros, empleo propio y transferencias.</p>
+              <h2 className="text-lg font-semibold">{t("workspace:caseWorkspace.evidenceChecklistTitle")}</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.evidenceChecklistDescription")}</p>
               <div className="mt-4 space-y-2">
                 {requiredEvidence.map((requirement) => {
                   const present = requiredEvidencePresent(requirement);
@@ -422,18 +457,18 @@ export function CaseWorkspacePage() {
           </div>
         </TabItem>
 
-        <TabItem title="Revisión">
+        <TabItem title={t("workspace:tabs.review")}>
           <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-            <h2 className="text-xl font-semibold text-[var(--color-text)]">Revisa antes de enviar</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">Confirma que cada sección esté completa. Puedes regresar a cualquier sección sin perder lo que ya escribiste.</p>
+            <h2 className="text-xl font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.review.title")}</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.review.description")}</p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {[
-                ["Hogar y perfil", householdComplete],
-                ["Ingresos", caseData.incomes.length > 0],
-                ["Gastos", caseData.expenses.length > 0],
-                ["Deudas", caseData.debts.length > 0],
-                ["Bienes", caseData.assets.length > 0],
-                ["Documentos", caseData.evidence.length > 0],
+                [t("workspace:tabs.household"), householdComplete],
+                [t("workspace:tabs.income"), caseData.incomes.length > 0],
+                [t("workspace:tabs.expenses"), caseData.expenses.length > 0],
+                [t("workspace:tabs.debts"), caseData.debts.length > 0],
+                [t("workspace:tabs.assets"), caseData.assets.length > 0],
+                [t("workspace:tabs.documents"), caseData.evidence.length > 0],
               ].map(([label, done]) => (
                 <div key={String(label)} className="flex items-center gap-2 rounded-lg bg-[var(--color-surface-muted)] p-3 text-sm">
                   <AppIcon name={done ? "check" : "alert"} size={16} className={done ? "text-emerald-700" : "text-[var(--color-warning)]"} />
@@ -442,56 +477,67 @@ export function CaseWorkspacePage() {
               ))}
             </div>
             <div className="mt-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4">
-              <p className="text-sm font-semibold text-[var(--color-text)]">Qué verá el abogado</p>
+              <p className="text-sm font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.review.whatAttorneySeesTitle")}</p>
               <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
-                El resumen financiero, tu meta declarada, alertas detectadas y los documentos que hayas registrado. El abogado no verá el contenido de este chat como conversación privada tuya — solo el expediente estructurado.
+                {t("workspace:caseWorkspace.review.whatAttorneySeesDescription")}
               </p>
             </div>
-            {!isAttorney && caseData.status === "draft" ? <p className="mt-4 text-sm text-[var(--color-text-muted)]">Cuando estés listo, usa el botón "Enviar al abogado" en la parte superior de esta página.</p> : null}
+            {!isAttorney && caseData.status === "draft" ? <p className="mt-4 text-sm text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.review.submitHint")}</p> : null}
           </Card>
         </TabItem>
 
-        <TabItem title="Enviado">
+        <TabItem title={t("workspace:tabs.submitted")}>
           <Card className="border border-[var(--color-border)] bg-white shadow-sm">
             {isSubmitted ? (
               <>
-                <div className="flex items-center gap-3"><AppIcon name="check" className="text-emerald-700" /><h2 className="text-xl font-semibold text-[var(--color-text)]">Tu solicitud fue enviada</h2></div>
+                <div className="flex items-center gap-3"><AppIcon name="check" className="text-emerald-700" /><h2 className="text-xl font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.submitted.sentTitle")}</h2></div>
                 <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-                  {caseData.submittedAt ? `Enviada el ${new Date(caseData.submittedAt).toLocaleDateString("es-PR")}.` : "El abogado ya tiene acceso a tu expediente."}
-                  {" "}El abogado revisará la información y podría solicitar aclaraciones o documentos adicionales.
+                  {caseData.submittedAt ? t("workspace:caseWorkspace.submitted.sentAt", { date: formatDate(caseData.submittedAt) }) : t("workspace:caseWorkspace.submitted.attorneyHasAccess")}
+                  {" "}{t("workspace:caseWorkspace.submitted.followUp")}
                 </p>
               </>
             ) : (
               <>
-                <h2 className="text-xl font-semibold text-[var(--color-text)]">Aún no has enviado tu solicitud</h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">Completa la revisión y usa el botón "Enviar al abogado" en la parte superior de esta página cuando estés listo.</p>
+                <h2 className="text-xl font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.submitted.notSentTitle")}</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.submitted.notSentDescription")}</p>
               </>
             )}
           </Card>
         </TabItem>
 
-        <TabItem title="Seguimiento">
+        <TabItem title={t("workspace:tabs.tracking")}>
           <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-            <h2 className="mb-5 text-xl font-semibold">Proceso del caso</h2>
+            <h2 className="mb-5 text-xl font-semibold">{t("workspace:caseWorkspace.trackingTitle")}</h2>
             <CaseTimeline events={caseData.timeline} />
           </Card>
         </TabItem>
 
         {isAttorney ? (
-          <TabItem title="Revisión del abogado">
+          <TabItem title={t("workspace:tabs.attorneyReview")}>
             <div className="grid gap-5 lg:grid-cols-2">
               <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-                <Label htmlFor="attorney-status">Estado del caso</Label>
-                <Select id="attorney-status" value={caseData.status} onChange={(event) => workspace.updateStatus(caseData.id, event.target.value as CaseStatus)}>
-                  <option value="submitted">Solicitud enviada</option><option value="attorney_review">Revisión del abogado</option><option value="consultation_scheduled">Consulta programada</option><option value="decision_pending">Decisión pendiente</option><option value="filing_preparation">Preparación para presentación</option><option value="closed">Cerrado</option>
+                <Label htmlFor="attorney-status">{t("workspace:caseWorkspace.attorneyReview.caseStatus")}</Label>
+                <Select
+                  id="attorney-status"
+                  value={caseData.status}
+                  onChange={(event) => {
+                    const nextStatus = event.target.value as CaseStatus;
+                    workspace.updateStatus(
+                      caseData.id,
+                      nextStatus,
+                      t("workspace:actionBar.timeline.statusChanged", { status: t(`workspace:status.${nextStatus}`) }),
+                    );
+                  }}
+                >
+                  <option value="submitted">{t("workspace:status.submitted")}</option><option value="attorney_review">{t("workspace:status.attorney_review")}</option><option value="consultation_scheduled">{t("workspace:status.consultation_scheduled")}</option><option value="decision_pending">{t("workspace:status.decision_pending")}</option><option value="filing_preparation">{t("workspace:status.filing_preparation")}</option><option value="closed">{t("workspace:status.closed")}</option>
                 </Select>
                 <div className="mt-5">
-                  <Label htmlFor="attorney-notes">Notas profesionales</Label>
-                  <Textarea id="attorney-notes" rows={10} value={caseData.attorneyNotes ?? ""} onChange={(event) => update((current) => ({ ...current, attorneyNotes: event.target.value }))} placeholder="Preguntas, documentos faltantes y asuntos jurídicos que requieren discusión." />
+                  <Label htmlFor="attorney-notes">{t("workspace:caseWorkspace.attorneyReview.professionalNotes")}</Label>
+                  <Textarea id="attorney-notes" rows={10} value={caseData.attorneyNotes ?? ""} onChange={(event) => update((current) => ({ ...current, attorneyNotes: event.target.value }))} placeholder={t("workspace:caseWorkspace.attorneyReview.notesPlaceholder")} />
                 </div>
               </Card>
               <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-                <h2 className="text-lg font-semibold">Checklist profesional</h2>
+                <h2 className="text-lg font-semibold">{t("workspace:caseWorkspace.attorneyReview.checklistTitle")}</h2>
                 <div className="mt-4 space-y-3">{analysis?.discussion_points.map((item) => <div key={item} className="flex gap-3 rounded-xl bg-[var(--color-surface-muted)] p-3 text-sm"><AppIcon name="check" className="shrink-0" /><span>{item}</span></div>)}</div>
               </Card>
             </div>

@@ -1,0 +1,9 @@
+{
+  "required": "This field is required.",
+  "email": "Enter a valid email address.",
+  "minLength": "It must contain at least {{min}} characters.",
+  "maxLength": "It cannot exceed {{max}} characters.",
+  "invalidCredentials": "Could not verify demo access.",
+  "passwordRequired": "Enter your password.",
+  "emailRequired": "Enter a valid email to continue."
+}

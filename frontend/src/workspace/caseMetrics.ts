@@ -1,4 +1,5 @@
 import type { BankruptcyCase, Frequency } from "../types/bankruptcy";
+import { formatCurrency } from "../i18n/format";
 
 const MULTIPLIERS: Record<Frequency, number> = {
   weekly: 52 / 12,
@@ -27,9 +28,5 @@ export function localCompletion(caseData: BankruptcyCase): number {
 }
 
 export function currency(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(value);
+  return formatCurrency(value);
 }

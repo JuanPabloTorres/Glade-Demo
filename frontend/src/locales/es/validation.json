@@ -1,0 +1,9 @@
+{
+  "required": "Este campo es obligatorio.",
+  "email": "Ingresa un correo electrónico válido.",
+  "minLength": "Debe contener al menos {{min}} caracteres.",
+  "maxLength": "No puede superar {{max}} caracteres.",
+  "invalidCredentials": "No fue posible verificar el acceso de evaluación.",
+  "passwordRequired": "Ingresa tu contraseña.",
+  "emailRequired": "Ingresa un correo válido para continuar."
+}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.core.i18n import resolve_language
 from app.schemas.assistant import CaseContextDto
 from app.schemas.bankruptcy import BankruptcyCaseDto, CaseAnalysisDto, UserRole
 
@@ -17,10 +18,13 @@ class CaseContextBuilder:
         case: BankruptcyCaseDto,
         analysis: CaseAnalysisDto,
         role: UserRole,
+        locale: str,
     ) -> CaseContextDto:
         return CaseContextDto(
             case_id=case.id,
             role=role,
+            locale=locale,
+            language=resolve_language(locale),
             status=case.status,
             client_name=case.client_name,
             objective=case.client_goal,

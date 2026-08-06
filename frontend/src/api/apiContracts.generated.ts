@@ -6,6 +6,11 @@ export const apiContracts = {
     "method": "GET",
     "path": "/api/v1/health"
   },
+  "ai.health": {
+    "operationId": "getAiHealth",
+    "method": "GET",
+    "path": "/api/v1/ai/health"
+  },
   "auth.login": {
     "operationId": "login",
     "method": "POST",

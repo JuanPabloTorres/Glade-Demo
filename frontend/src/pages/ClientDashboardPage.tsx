@@ -1,12 +1,12 @@
 import { Alert, Badge, Button, Card, Progress } from "flowbite-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { bankruptcyApi } from "../api/bankruptcyApi";
 import { useAuth } from "../auth/AuthContext";
 import { useChatPanel } from "../chat/ChatPanelContext";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { CaseTimeline } from "../components/organisms/CaseTimeline";
-import { STATUS_LABELS } from "../config/bankruptcyOptions";
 import type { CaseAnalysis } from "../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
 import { currency, localCompletion } from "../workspace/caseMetrics";
@@ -19,6 +19,7 @@ import { currency, localCompletion } from "../workspace/caseMetrics";
  * workspace uses, so numbers never drift between the two screens.
  */
 export function ClientDashboardPage() {
+  const { t } = useTranslation(["workspace", "common"]);
   const { user } = useAuth();
   const navigate = useNavigate();
   const workspace = useBankruptcyWorkspace();
@@ -35,11 +36,11 @@ export function ClientDashboardPage() {
     bankruptcyApi
       .analyze(activeCase)
       .then((result) => active && setAnalysis(result))
-      .catch(() => active && setAnalysisError("No fue posible actualizar el resumen financiero."));
+      .catch(() => active && setAnalysisError(t("workspace:clientDashboard.analysisError")));
     return () => {
       active = false;
     };
-  }, [activeCase]);
+  }, [activeCase, t]);
 
   const start = () => {
     if (!user) return;
@@ -58,17 +59,16 @@ export function ClientDashboardPage() {
         <Card className="app-card relative overflow-hidden">
           <div className="glade-gradient absolute inset-x-0 top-0 h-1.5" />
           <div className="pt-3">
-            <Badge color="indigo" className="mb-4 w-fit px-3 py-1.5">Portal del cliente</Badge>
+            <Badge color="indigo" className="mb-4 w-fit px-3 py-1.5">{t("workspace:clientDashboard.badges.portal")}</Badge>
             <h1 className="max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--color-text)] sm:text-4xl">
-              Hola{firstName ? `, ${firstName}` : ""}. Prepara tu historia financiera paso a paso.
+              {t("workspace:clientDashboard.empty.title", { name: firstName ? `, ${firstName}` : "" })}
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-muted)]">
-              No necesitas conocer formularios de quiebra. El sistema organiza la información, identifica
-              faltantes y prepara el expediente para una conversación más productiva con el abogado.
+              {t("workspace:clientDashboard.empty.description")}
             </p>
             <Button size="lg" className="primary-action mt-6" onClick={start}>
               <AppIcon name="arrow-right" className="mr-2" />
-              Iniciar mi solicitud
+              {t("workspace:clientDashboard.empty.startRequest")}
             </Button>
           </div>
         </Card>
@@ -84,16 +84,16 @@ export function ClientDashboardPage() {
         <div className="grid gap-6 pt-3 lg:grid-cols-[1.4fr_1fr] lg:items-center">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge color="indigo" className="w-fit px-3 py-1.5">Portal del cliente</Badge>
-              <Badge color={activeCase.status === "submitted" ? "success" : "warning"}>{STATUS_LABELS[activeCase.status]}</Badge>
+              <Badge color="indigo" className="w-fit px-3 py-1.5">{t("workspace:clientDashboard.badges.portal")}</Badge>
+              <Badge color={activeCase.status === "submitted" ? "success" : "warning"}>{t(`workspace:status.${activeCase.status}`)}</Badge>
             </div>
             <h1 className="mt-4 max-w-2xl text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--color-text)] sm:text-4xl">
-              Hola{firstName ? `, ${firstName}` : ""}. Así va tu expediente.
+              {t("workspace:clientDashboard.title", { name: firstName ? `, ${firstName}` : "" })}
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--color-text-muted)]">{activeCase.clientGoal || "Define tu meta principal en la sección Hogar y perfil."}</p>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--color-text-muted)]">{activeCase.clientGoal || t("workspace:clientDashboard.goalFallback")}</p>
           </div>
           <div>
-            <div className="mb-2 flex justify-between text-sm"><span className="text-[var(--color-text-muted)]">Información completada</span><span className="font-semibold text-[var(--color-text)]">{completion}%</span></div>
+            <div className="mb-2 flex justify-between text-sm"><span className="text-[var(--color-text-muted)]">{t("workspace:clientDashboard.completedInfo")}</span><span className="font-semibold text-[var(--color-text)]">{completion}%</span></div>
             <Progress progress={completion} color="indigo" size="lg" />
           </div>
         </div>
@@ -105,14 +105,14 @@ export function ClientDashboardPage() {
           <div className="flex gap-3">
             <span className="icon-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"><AppIcon name="arrow-right" /></span>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-700">Próxima acción</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-700">{t("workspace:clientDashboard.nextAction")}</p>
               <p className="mt-1 font-semibold text-[var(--color-text)]">
-                {nextStep ?? "Continúa completando tu expediente para recibir orientación."}
+                {nextStep ?? t("workspace:clientDashboard.nextActionFallback")}
               </p>
             </div>
           </div>
           <Button className="primary-action shrink-0" onClick={() => navigate(`/case/${activeCase.id}`)}>
-            Continuar expediente <AppIcon name="arrow-right" className="ml-2" />
+            {t("common:actions.continue")} <AppIcon name="arrow-right" className="ml-2" />
           </Button>
         </div>
       </Card>
@@ -125,11 +125,11 @@ export function ClientDashboardPage() {
           <div className="flex items-start gap-3">
             <span className="glade-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"><AppIcon name="chat" /></span>
             <div className="flex-1">
-              <p className="font-semibold text-[var(--color-text)]">Asistente de preparación</p>
+              <p className="font-semibold text-[var(--color-text)]">{t("workspace:clientDashboard.assistant.title")}</p>
               <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
-                Pregunta qué falta, qué documento respalda una cifra, o cuánto te sobra al mes.
+                {t("workspace:clientDashboard.assistant.description")}
               </p>
-              <Button size="xs" color="light" className="mt-3" onClick={(event) => { event.stopPropagation(); openChat(); }}>Abrir chat</Button>
+              <Button size="xs" color="light" className="mt-3" onClick={(event) => { event.stopPropagation(); openChat(); }}>{t("workspace:clientDashboard.assistant.openChat")}</Button>
             </div>
           </div>
         </Card>
@@ -139,13 +139,13 @@ export function ClientDashboardPage() {
           <div className="flex items-start gap-3">
             <span className="icon-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"><AppIcon name="attorney" /></span>
             <div className="flex-1">
-              <p className="font-semibold text-[var(--color-text)]">Estado con el abogado</p>
+              <p className="font-semibold text-[var(--color-text)]">{t("workspace:clientDashboard.attorneyStatus.title")}</p>
               {activeCase.attorneyNotes?.trim() ? (
                 <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">{activeCase.attorneyNotes}</p>
               ) : activeCase.status === "draft" || activeCase.status === "collecting_information" ? (
-                <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">Aún no has enviado tu solicitud al abogado.</p>
+                <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">{t("workspace:clientDashboard.attorneyStatus.notSent")}</p>
               ) : (
-                <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">Tu solicitud fue enviada. El abogado la revisará y dejará notas aquí.</p>
+                <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">{t("workspace:clientDashboard.attorneyStatus.sent")}</p>
               )}
             </div>
           </div>
@@ -155,7 +155,7 @@ export function ClientDashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Pending tasks */}
         <Card className="app-card">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">Tareas pendientes</h2>
+          <h2 className="text-lg font-semibold text-[var(--color-text)]">{t("workspace:clientDashboard.pendingTasks")}</h2>
           <div className="mt-3 space-y-2">
             {(analysis?.missing_items ?? []).length ? (
               analysis!.missing_items.map((item) => (
@@ -165,25 +165,25 @@ export function ClientDashboardPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[var(--color-text-muted)]">No hay tareas pendientes por ahora.</p>
+              <p className="text-sm text-[var(--color-text-muted)]">{t("workspace:clientDashboard.noPendingTasks")}</p>
             )}
           </div>
         </Card>
 
         {/* Requested documents */}
         <Card className="app-card">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">Documentos solicitados</h2>
+          <h2 className="text-lg font-semibold text-[var(--color-text)]">{t("workspace:clientDashboard.requestedDocuments")}</h2>
           <div className="mt-3 space-y-2">
             {requestedDocuments.length ? (
               requestedDocuments.map((item) => (
                 <div key={item.id} className="flex items-center gap-2 rounded-lg bg-[var(--color-surface-muted)] p-3 text-sm">
                   <AppIcon name="document" size={16} className="shrink-0 text-[var(--color-text-muted)]" />
                   <span className="flex-1">{item.name}</span>
-                  <Badge color="warning">Pendiente</Badge>
+                  <Badge color="warning">{t("workspace:clientDashboard.pendingBadge")}</Badge>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[var(--color-text-muted)]">El abogado no ha solicitado documentos adicionales.</p>
+              <p className="text-sm text-[var(--color-text-muted)]">{t("workspace:clientDashboard.noRequestedDocuments")}</p>
             )}
           </div>
         </Card>
@@ -191,12 +191,12 @@ export function ClientDashboardPage() {
 
       {/* Financial summary */}
       <Card className="app-card">
-        <h2 className="text-lg font-semibold text-[var(--color-text)]">Resumen financiero</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-text)]">{t("workspace:clientDashboard.financialSummary")}</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {[
-            ["Ingreso neto mensual", analysis?.monthly_net_income ?? 0],
-            ["Gastos mensuales", analysis?.monthly_expenses ?? 0],
-            ["Flujo disponible", analysis?.monthly_cash_flow ?? 0],
+            [t("workspace:clientDashboard.metrics.netIncome"), analysis?.monthly_net_income ?? 0],
+            [t("workspace:clientDashboard.metrics.monthlyExpenses"), analysis?.monthly_expenses ?? 0],
+            [t("workspace:clientDashboard.metrics.availableCashFlow"), analysis?.monthly_cash_flow ?? 0],
           ].map(([label, value]) => (
             <div key={String(label)} className="metric-tile rounded-xl p-4">
               <p className="text-sm text-[var(--color-text-muted)]">{label}</p>
@@ -208,25 +208,25 @@ export function ClientDashboardPage() {
 
       {/* Timeline */}
       <Card className="app-card">
-        <h2 className="text-lg font-semibold text-[var(--color-text)]">Actividad reciente</h2>
-        {recentEvents.length ? <CaseTimeline events={recentEvents} /> : <p className="mt-3 text-sm text-[var(--color-text-muted)]">Aún no hay actividad registrada.</p>}
-        <Button color="light" size="sm" className="mt-2" onClick={() => navigate(`/case/${activeCase.id}`)}>Ver expediente completo</Button>
+        <h2 className="text-lg font-semibold text-[var(--color-text)]">{t("workspace:clientDashboard.recentActivity")}</h2>
+        {recentEvents.length ? <CaseTimeline events={recentEvents} /> : <p className="mt-3 text-sm text-[var(--color-text-muted)]">{t("workspace:clientDashboard.noRecentActivity")}</p>}
+        <Button color="light" size="sm" className="mt-2" onClick={() => navigate(`/case/${activeCase.id}`)}>{t("workspace:clientDashboard.viewFullCase")}</Button>
       </Card>
 
       {cases.length > 1 ? (
         <section>
           <div className="mb-4 flex items-end justify-between gap-4">
-            <h2 className="text-xl font-semibold tracking-[-0.02em] text-[var(--color-text)]">Otras solicitudes</h2>
+            <h2 className="text-xl font-semibold tracking-[-0.02em] text-[var(--color-text)]">{t("workspace:clientDashboard.otherRequests")}</h2>
             <Badge color="gray" className="px-3 py-1.5">{cases.length}</Badge>
           </div>
           <div className="grid gap-5 lg:grid-cols-2">
             {cases.slice(1).map((caseData) => (
               <Card key={caseData.id} className="app-card interactive-card">
                 <div className="flex items-start justify-between gap-4">
-                  <div><p className="text-lg font-semibold text-[var(--color-text)]">{caseData.clientName}</p><p className="mt-1 text-sm text-[var(--color-text-muted)]">{caseData.clientGoal || "Define tu meta principal"}</p></div>
-                  <Badge color={caseData.status === "submitted" ? "success" : "warning"}>{STATUS_LABELS[caseData.status]}</Badge>
+                  <div><p className="text-lg font-semibold text-[var(--color-text)]">{caseData.clientName}</p><p className="mt-1 text-sm text-[var(--color-text-muted)]">{caseData.clientGoal || t("workspace:clientDashboard.goalShortFallback")}</p></div>
+                  <Badge color={caseData.status === "submitted" ? "success" : "warning"}>{t(`workspace:status.${caseData.status}`)}</Badge>
                 </div>
-                <Button className="primary-action mt-4" onClick={() => navigate(`/case/${caseData.id}`)}>Abrir expediente <AppIcon name="arrow-right" className="ml-2" /></Button>
+                <Button className="primary-action mt-4" onClick={() => navigate(`/case/${caseData.id}`)}>{t("common:actions.open")} <AppIcon name="arrow-right" className="ml-2" /></Button>
               </Card>
             ))}
           </div>
@@ -234,7 +234,7 @@ export function ClientDashboardPage() {
       ) : null}
 
       <div className="flex justify-end">
-        <Button color="light" size="sm" onClick={start}><AppIcon name="brand" size={16} className="mr-2" />Iniciar otra solicitud</Button>
+        <Button color="light" size="sm" onClick={start}><AppIcon name="brand" size={16} className="mr-2" />{t("workspace:clientDashboard.startAnother")}</Button>
       </div>
     </div>
   );
