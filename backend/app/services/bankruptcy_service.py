@@ -7,6 +7,7 @@ import pandas as pd  # type: ignore[import-untyped]
 from app.ai.guardrails import ResponseGuardrails
 from app.ai.providers import BaseAIProvider, get_provider_for_settings
 from app.core.config import Settings
+from app.core.i18n import resolve_locale
 from app.schemas.assistant import AssistantAction, AssistantResponse
 from app.schemas.bankruptcy import (
     BankruptcyCaseDto,
@@ -34,6 +35,26 @@ COMMON_EVIDENCE = (
     "Estado de préstamo de vehículo, si aplica",
     "Certificado de orientación crediticia, cuando corresponda",
 )
+
+# BankruptcyCaseDto.evidence[].evidence_type carries the canonical slug from
+# frontend EVIDENCE_TYPES (config/bankruptcyOptions.ts), not display text.
+# _evidence_matches keyword-matches against required_evidence's Spanish
+# prose, so it needs the Spanish label back — kept in sync with
+# frontend/src/locales/es/workspace.json's entryModal.evidenceTypes.
+EVIDENCE_TYPE_LABELS = {
+    "government-id": "Identificación vigente",
+    "pay-stubs": "Talones de pago",
+    "bank-statement": "Estado bancario",
+    "tax-return-or-transcript": "Planilla o transcripción contributiva",
+    "creditor-statement": "Estado de cuenta de acreedor",
+    "lease-agreement": "Contrato de arrendamiento",
+    "mortgage-statement": "Estado hipotecario",
+    "vehicle-loan-statement": "Estado de préstamo de vehículo",
+    "collection-or-lawsuit-notice": "Demanda, embargo o notificación de cobro",
+    "property-or-valuation-document": "Documento de propiedad o valoración",
+    "credit-counseling-certificate": "Certificado de orientación crediticia",
+    "other-document": "Otro documento",
+}
 
 
 def _round_money(value: float) -> float:
@@ -197,9 +218,10 @@ class BankruptcyAnalysisService:
 
     def _evidence_matches(self, requirement: str, evidence_types: list[str]) -> bool:
         key_words = {word for word in requirement.casefold().split() if len(word) > 4}
+        labels = (EVIDENCE_TYPE_LABELS.get(evidence, evidence) for evidence in evidence_types)
         return any(
-            key_words.intersection(evidence.casefold().split())
-            for evidence in evidence_types
+            key_words.intersection(label.casefold().split())
+            for label in labels
         )
 
     def _warnings(
@@ -316,7 +338,8 @@ class BankruptcyGuidanceService:
 
     def guide(self, request: GuidanceRequestDto) -> AssistantResponse:
         analysis = self._analysis.analyze(request.case)
-        context = self._context_builder.build(request.case, analysis, request.role)
+        locale = resolve_locale(request.locale)
+        context = self._context_builder.build(request.case, analysis, request.role, locale)
         draft = self._provider.generate(context=context, message=request.message)
         # Guardrails run on every provider's output, rule-based or model-
         # rewritten, before anything reaches the client (master instruction
@@ -337,7 +360,9 @@ class BankruptcyGuidanceService:
             requires_attorney_review=draft.requires_attorney_review or guarded.requires_attorney_review,
             confidence=None,
             disclaimer=(
-                "Esta orientación organiza información y preguntas. No determina elegibilidad, "
-                "no sustituye el means test oficial y no es asesoramiento legal."
+                "This guidance organizes information and questions. It does not determine eligibility, "
+                "does not replace the official means test, and is not legal advice."
+                if context.language == "en"
+                else "Esta orientacion organiza informacion y preguntas. No determina elegibilidad, no sustituye el means test oficial y no es asesoramiento legal."
             ),
         )

@@ -1,5 +1,8 @@
 import { Avatar, Tooltip } from "flowbite-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "../../i18n/LanguageContext";
+import { formatTime } from "../../i18n/format";
 import { AppIcon } from "../atoms/AppIcon";
 import type { ChatMessage } from "../../types/bankruptcy";
 
@@ -13,6 +16,8 @@ interface ChatBubbleProps {
  * CaseWorkspacePage used to render directly (Block 4/7 audit finding).
  */
 export function ChatBubble({ message }: ChatBubbleProps) {
+  const { t } = useTranslation("ai");
+  const { locale } = useLanguage();
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
 
@@ -38,15 +43,15 @@ export function ChatBubble({ message }: ChatBubbleProps) {
       <div className={`flex max-w-[80%] flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
         <div
           className={`rounded-2xl px-4 py-3 text-sm leading-6 ${
-            isUser ? "bg-[#111111] text-white" : "border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text)]"
+            isUser ? "bg-[#111111] text-white" : "border border-(--color-border) bg-(--color-surface-muted) text-(--color-text)"
           }`}
         >
           {message.content}
         </div>
-        <div className="flex items-center gap-2 px-1 text-[11px] text-[var(--color-text-muted)] opacity-0 transition-opacity group-hover:opacity-100">
-          <span>{new Date(message.createdAt).toLocaleTimeString("es-PR", { hour: "2-digit", minute: "2-digit" })}</span>
-          <Tooltip content={copied ? "Copiado" : "Copiar"}>
-            <button type="button" onClick={copy} aria-label="Copiar texto al portapapeles" className="hover:text-[var(--color-text)]">
+        <div className="flex items-center gap-2 px-1 text-[11px] text-(--color-text-muted) opacity-0 transition-opacity group-hover:opacity-100">
+          <span>{formatTime(message.createdAt, locale)}</span>
+          <Tooltip content={copied ? t("chat.copied") : t("chat.copy")}>
+            <button type="button" onClick={copy} aria-label={t("chat.copyToClipboard")} className="hover:text-(--color-text)">
               <AppIcon name={copied ? "check" : "document"} size={13} />
             </button>
           </Tooltip>

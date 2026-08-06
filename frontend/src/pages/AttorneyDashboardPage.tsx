@@ -1,14 +1,24 @@
-import { Badge, Button, Card, Label, Pagination, Select, TextInput } from "flowbite-react";
+import {
+  Badge,
+  Card,
+  Pagination,
+} from "flowbite-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router";
+import { useAuth } from "../auth/AuthContext";
 import { AppIcon } from "../components/atoms/AppIcon";
+import { DataTableToolbar } from "../components/data-display/DataTableToolbar";
+import { RowActionsMenu } from "../components/data-display/RowActionsMenu";
+import { ConfirmDialog } from "../components/feedback/ConfirmDialog";
 import { ResponsiveDataView } from "../components/molecules/ResponsiveDataView";
-import { STATUS_LABELS } from "../config/bankruptcyOptions";
+import { AppButton } from "../components/ui/AppButton";
 import type { BankruptcyCase, CaseStatus } from "../types/bankruptcy";
+import { useConfirmation } from "../hooks/useConfirmation";
 import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
 import { localCompletion } from "../workspace/caseMetrics";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE_OPTIONS = [5, 8, 12, 20] as const;
 
 function alertCount(caseData: BankruptcyCase): number {
   return Number(caseData.household.urgentCollectionAction) + caseData.debts.filter((debt) => debt.collectionLawsuit || debt.delinquentAmount > 0).length;
@@ -41,33 +51,40 @@ type ViewKey =
   | "decision_pending"
   | "closed";
 
-const VIEWS: { key: ViewKey; label: string; match: (item: BankruptcyCase) => boolean }[] = [
-  { key: "all", label: "Todos", match: () => true },
-  { key: "new", label: "Nuevos", match: (item) => item.status === "draft" },
-  { key: "incomplete", label: "Incompletos", match: (item) => localCompletion(item) < 100 },
-  { key: "urgent", label: "Urgentes", match: isUrgent },
-  { key: "submitted", label: "Enviados", match: (item) => item.status === "submitted" },
-  { key: "attorney_review", label: "En revisión", match: (item) => item.status === "attorney_review" },
-  { key: "waiting_client", label: "Esperando cliente", match: isWaitingOnClient },
-  { key: "consultation_scheduled", label: "Consulta programada", match: (item) => item.status === "consultation_scheduled" },
-  { key: "decision_pending", label: "Decisión pendiente", match: (item) => item.status === "decision_pending" },
-  { key: "closed", label: "Cerrados", match: (item) => item.status === "closed" },
-];
-
 type SortKey = "name-asc" | "name-desc" | "completion-desc" | "completion-asc" | "urgent-first";
 
 export function AttorneyDashboardPage() {
+  const { t } = useTranslation(["workspace", "tables"]);
   const navigate = useNavigate();
-  const { cases } = useBankruptcyWorkspace();
+  const auth = useAuth();
+  const { cases, updateCase, deleteCase, createCase } = useBankruptcyWorkspace();
   const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<ViewKey>("all");
   const [sort, setSort] = useState<SortKey>("urgent-first");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(8);
+  const deleteConfirmation = useConfirmation<string>();
   const query = searchParams.get("q") ?? "";
 
   const submitted = cases.filter((item) => item.status !== "draft" && item.status !== "collecting_information");
   const urgent = cases.filter(isUrgent);
   const waitingOnClient = cases.filter(isWaitingOnClient);
+
+  const views: { key: ViewKey; label: string; match: (item: BankruptcyCase) => boolean }[] = useMemo(
+    () => [
+      { key: "all", label: t("workspace:attorneyDashboard.views.all"), match: () => true },
+      { key: "new", label: t("workspace:attorneyDashboard.views.new"), match: (item) => item.status === "draft" },
+      { key: "incomplete", label: t("workspace:attorneyDashboard.views.incomplete"), match: (item) => localCompletion(item) < 100 },
+      { key: "urgent", label: t("workspace:attorneyDashboard.views.urgent"), match: isUrgent },
+      { key: "submitted", label: t("workspace:attorneyDashboard.views.submitted"), match: (item) => item.status === "submitted" },
+      { key: "attorney_review", label: t("workspace:attorneyDashboard.views.attorneyReview"), match: (item) => item.status === "attorney_review" },
+      { key: "waiting_client", label: t("workspace:attorneyDashboard.views.waitingClient"), match: isWaitingOnClient },
+      { key: "consultation_scheduled", label: t("workspace:attorneyDashboard.views.consultationScheduled"), match: (item) => item.status === "consultation_scheduled" },
+      { key: "decision_pending", label: t("workspace:attorneyDashboard.views.decisionPending"), match: (item) => item.status === "decision_pending" },
+      { key: "closed", label: t("workspace:attorneyDashboard.views.closed"), match: (item) => item.status === "closed" },
+    ],
+    [t],
+  );
 
   const searched = useMemo(() => {
     if (!query.trim()) return cases;
@@ -76,9 +93,9 @@ export function AttorneyDashboardPage() {
   }, [cases, query]);
 
   const filtered = useMemo(() => {
-    const matcher = VIEWS.find((item) => item.key === view)?.match ?? (() => true);
+    const matcher = views.find((item) => item.key === view)?.match ?? (() => true);
     return searched.filter(matcher);
-  }, [searched, view]);
+  }, [searched, view, views]);
 
   const sorted = useMemo(() => {
     const copy = [...filtered];
@@ -97,13 +114,33 @@ export function AttorneyDashboardPage() {
     }
   }, [filtered, sort]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pageItems = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageItems = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const setView_ = (key: ViewKey) => {
     setView(key);
     setPage(1);
+  };
+
+  const clearFilters = () => {
+    setView("all");
+    setSort("urgent-first");
+    setPage(1);
+    setSearchParams({});
+  };
+
+  const startNewCase = () => {
+    if (!auth.user) return;
+    navigate(`/case/${createCase(auth.user)}`);
+  };
+
+  const askDelete = (caseId: string) => deleteConfirmation.request(caseId);
+
+  const confirmDelete = async () => {
+    await deleteConfirmation.run(async (caseId) => {
+      deleteCase(caseId);
+    });
   };
 
   return (
@@ -111,18 +148,18 @@ export function AttorneyDashboardPage() {
       <Card className="app-card relative overflow-hidden">
         <div className="glade-gradient absolute inset-x-0 top-0 h-1.5" />
         <div className="pt-3">
-          <Badge color="indigo" className="mb-4 w-fit px-3 py-1.5">Espacio del abogado</Badge>
-          <h1 className="max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--color-text)] sm:text-4xl lg:text-[2.75rem]">Revisa solicitudes financieras antes de la consulta.</h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-[var(--color-text-muted)]">Cada expediente resume presupuesto, deuda, bienes, evidencia y puntos que requieren análisis jurídico. El sistema mantiene visibles las urgencias sin recomendar un capítulo automáticamente.</p>
+          <Badge color="indigo" className="mb-4 w-fit px-3 py-1.5">{t("workspace:attorneyDashboard.attorneySpace")}</Badge>
+          <h1 className="max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--color-text)] sm:text-4xl lg:text-[2.75rem]">{t("workspace:attorneyDashboard.heroTitle")}</h1>
+          <p className="mt-4 max-w-3xl text-base leading-7 text-[var(--color-text-muted)]">{t("workspace:attorneyDashboard.heroDescription")}</p>
         </div>
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ["document", "Solicitudes", cases.length],
-          ["attorney", "En revisión", submitted.length],
-          ["alert", "Con urgencia", urgent.length],
-          ["evidence", "Esperando cliente", waitingOnClient.length],
+          ["document", t("workspace:attorneyDashboard.metrics.requests"), cases.length],
+          ["attorney", t("workspace:attorneyDashboard.metrics.inReview"), submitted.length],
+          ["alert", t("workspace:attorneyDashboard.metrics.urgent"), urgent.length],
+          ["evidence", t("workspace:attorneyDashboard.metrics.waitingClient"), waitingOnClient.length],
         ].map(([icon, label, value]) => (
           <Card key={String(label)} className="metric-tile">
             <div className="flex items-center gap-4">
@@ -135,60 +172,83 @@ export function AttorneyDashboardPage() {
 
       <Card className="app-card">
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-sm font-semibold uppercase tracking-[0.14em] text-indigo-700">Gestión de solicitudes</p><h2 className="mt-1 text-2xl font-semibold tracking-[-0.025em] text-[var(--color-text)]">Bandeja de casos</h2><p className="mt-2 text-sm text-[var(--color-text-muted)]">Prioriza urgencias, faltantes y solicitudes enviadas.</p></div>
-          <Badge color="gray" className="w-fit px-3 py-1.5">{sorted.length} de {cases.length} casos</Badge>
+          <div><p className="text-sm font-semibold uppercase tracking-[0.14em] text-indigo-700">{t("workspace:attorneyDashboard.managementLabel")}</p><h2 className="mt-1 text-2xl font-semibold tracking-[-0.025em] text-[var(--color-text)]">{t("workspace:attorneyDashboard.inboxTitle")}</h2><p className="mt-2 text-sm text-[var(--color-text-muted)]">{t("workspace:attorneyDashboard.inboxDescription")}</p></div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge color="gray" className="w-fit px-3 py-1.5">{t("workspace:attorneyDashboard.caseCount", { shown: sorted.length, total: cases.length })}</Badge>
+            <AppButton className="primary-action" size="sm" onClick={startNewCase} iconLeft="document">
+              {t("workspace:attorneyDashboard.createCase")}
+            </AppButton>
+          </div>
         </div>
 
         {/* Vistas / filtros */}
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-          {VIEWS.map((item) => {
+          {views.map((item) => {
             const count = searched.filter(item.match).length;
             const active = view === item.key;
             return (
-              <Button key={item.key} size="xs" color={active ? "indigo" : "light"} className="shrink-0" onClick={() => setView_(item.key)}>
+              <AppButton key={item.key} size="xs" color={active ? "indigo" : "light"} className="shrink-0" onClick={() => setView_(item.key)}>
                 {item.label} <Badge color={active ? "gray" : "indigo"} className="ml-1.5">{count}</Badge>
-              </Button>
+              </AppButton>
             );
           })}
         </div>
 
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex-1">
-            <Label htmlFor="attorney-search" className="sr-only">Buscar por cliente</Label>
-            <TextInput
-              id="attorney-search"
-              className="app-input"
-              placeholder="Buscar por nombre o correo…"
-              value={query}
-              onChange={(event) => {
-                const next = event.target.value;
-                setPage(1);
-                setSearchParams(next ? { q: next } : {});
-              }}
-            />
-          </div>
-          <div className="sm:w-64">
-            <Label htmlFor="attorney-sort" className="sr-only">Ordenar</Label>
-            <Select id="attorney-sort" className="app-input" value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
-              <option value="urgent-first">Más urgente primero</option>
-              <option value="completion-desc">Avance: mayor a menor</option>
-              <option value="completion-asc">Avance: menor a mayor</option>
-              <option value="name-asc">Cliente A–Z</option>
-              <option value="name-desc">Cliente Z–A</option>
-            </Select>
-          </div>
-        </div>
+        <DataTableToolbar
+          query={query}
+          sort={sort}
+          pageSize={pageSize}
+          searchPlaceholder={t("workspace:attorneyDashboard.searchPlaceholder")}
+          sortOptions={[
+            { value: "urgent-first", label: t("workspace:attorneyDashboard.sort.urgentFirst") },
+            { value: "completion-desc", label: t("workspace:attorneyDashboard.sort.completionDesc") },
+            { value: "completion-asc", label: t("workspace:attorneyDashboard.sort.completionAsc") },
+            { value: "name-asc", label: t("workspace:attorneyDashboard.sort.nameAsc") },
+            { value: "name-desc", label: t("workspace:attorneyDashboard.sort.nameDesc") },
+          ]}
+          pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+          onQueryChange={(next) => {
+            setPage(1);
+            setSearchParams(next ? { q: next } : {});
+          }}
+          onSortChange={(next) => setSort(next as SortKey)}
+          onPageSizeChange={(next) => {
+            setPage(1);
+            setPageSize(next as (typeof PAGE_SIZE_OPTIONS)[number]);
+          }}
+          onClearFilters={clearFilters}
+        />
 
         <ResponsiveDataView
-          emptyMessage="Ningún caso coincide con este filtro o búsqueda."
+          emptyMessage={t("workspace:attorneyDashboard.emptyMessage")}
           rows={pageItems}
           rowKey={(item) => item.id}
-          renderActions={(item) => <Button size="sm" className="primary-action" onClick={() => navigate(`/case/${item.id}`)}>Revisar</Button>}
+          renderActions={(item) => (
+            <RowActionsMenu
+              onView={() => navigate(`/case/${item.id}`)}
+              actions={[
+                { label: t("common:actions.view"), onClick: () => navigate(`/case/${item.id}`) },
+                {
+                  label: item.household.urgentCollectionAction ? t("workspace:attorneyDashboard.actions.deactivateUrgent") : t("workspace:attorneyDashboard.actions.activateUrgent"),
+                  onClick: () => {
+                    updateCase(item.id, (current) => ({
+                      ...current,
+                      household: {
+                        ...current.household,
+                        urgentCollectionAction: !current.household.urgentCollectionAction,
+                      },
+                    }));
+                  },
+                },
+                { label: t("common:actions.delete"), onClick: () => askDelete(item.id) },
+              ]}
+            />
+          )}
           columns={[
-            { key: "client", header: "Cliente", hideLabelOnCard: true, render: (item) => <div><p className="font-semibold text-[var(--color-text)]">{item.clientName}</p><p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{item.clientEmail}</p></div> },
-            { key: "status", header: "Estado", render: (item) => <Badge color={item.status === "submitted" ? "success" : "gray"}>{STATUS_LABELS[item.status as CaseStatus]}</Badge> },
-            { key: "completion", header: "Avance", render: (item) => <span className="font-semibold text-[var(--color-text)]">{localCompletion(item)}%</span> },
-            { key: "alerts", header: "Alertas", render: (item) => <Badge color={alertCount(item) ? "failure" : "success"}>{alertCount(item)}</Badge> },
+            { key: "client", header: t("workspace:attorneyDashboard.columns.client"), hideLabelOnCard: true, render: (item) => <div><p className="font-semibold text-[var(--color-text)]">{item.clientName}</p><p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{item.clientEmail}</p></div> },
+            { key: "status", header: t("workspace:attorneyDashboard.columns.status"), render: (item) => <Badge color={item.status === "submitted" ? "success" : "gray"}>{t(`workspace:status.${item.status as CaseStatus}`)}</Badge> },
+            { key: "completion", header: t("workspace:attorneyDashboard.columns.completion"), render: (item) => <span className="font-semibold text-[var(--color-text)]">{localCompletion(item)}%</span> },
+            { key: "alerts", header: t("workspace:attorneyDashboard.columns.alerts"), render: (item) => <Badge color={alertCount(item) ? "failure" : "success"}>{alertCount(item)}</Badge> },
           ]}
         />
 
@@ -198,6 +258,17 @@ export function AttorneyDashboardPage() {
           </div>
         ) : null}
       </Card>
+
+      <ConfirmDialog
+        open={deleteConfirmation.isOpen}
+        title={t("workspace:attorneyDashboard.confirmDelete.title")}
+        message={t("workspace:attorneyDashboard.confirmDelete.message")}
+        confirmLabel={t("workspace:attorneyDashboard.confirmDelete.confirm")}
+        destructive
+        busy={deleteConfirmation.busy}
+        onCancel={deleteConfirmation.cancel}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   );
 }

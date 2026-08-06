@@ -21,13 +21,14 @@ class RuleBasedProvider:
 
     def generate(self, *, context: CaseContextDto, message: str) -> GuidanceDraft:
         folded = message.casefold()
+        en = context.language == "en"
 
         if "capítulo 7" in folded or "chapter 7" in folded:
             return GuidanceDraft(
                 message=(
-                    "Chapter 7 suele enfocarse en liquidación y descarga de deudas elegibles, pero "
-                    "requiere revisar means test, bienes, exenciones y transacciones recientes con "
-                    "un abogado."
+                    "Chapter 7 usually focuses on liquidation and discharge of eligible debts, but it requires reviewing the means test, assets, exemptions, and recent transfers with an attorney."
+                    if en
+                    else "Chapter 7 suele enfocarse en liquidación y descarga de deudas elegibles, pero requiere revisar means test, bienes, exenciones y transacciones recientes con un abogado."
                 ),
                 intent="chapter_comparison",
                 suggested_actions=context.chapter_7_questions[:3],
@@ -37,9 +38,9 @@ class RuleBasedProvider:
         if "capítulo 13" in folded or "chapter 13" in folded:
             return GuidanceDraft(
                 message=(
-                    "Chapter 13 permite proponer un plan de pagos de tres a cinco años para una "
-                    "persona con ingreso regular. La viabilidad depende de datos completos y "
-                    "revisión legal."
+                    "Chapter 13 allows proposing a three-to-five-year payment plan for someone with regular income. Feasibility depends on complete data and legal review."
+                    if en
+                    else "Chapter 13 permite proponer un plan de pagos de tres a cinco años para una persona con ingreso regular. La viabilidad depende de datos completos y revisión legal."
                 ),
                 intent="chapter_comparison",
                 suggested_actions=context.chapter_13_questions[:3],
@@ -51,9 +52,9 @@ class RuleBasedProvider:
             if context.warnings:
                 return GuidanceDraft(
                     message=(
-                        f"El expediente tiene {len(context.warnings)} alerta(s) prioritaria(s). "
-                        "Revise evidencia, urgencias de cobro y consistencia financiera antes de la "
-                        "consulta."
+                        f"The case has {len(context.warnings)} high-priority alert(s). Review evidence, collection urgency, and financial consistency before consultation."
+                        if en
+                        else f"El expediente tiene {len(context.warnings)} alerta(s) prioritaria(s). Revise evidencia, urgencias de cobro y consistencia financiera antes de la consulta."
                     ),
                     intent="attorney_summary",
                     suggested_actions=context.warnings[:3],
@@ -63,9 +64,9 @@ class RuleBasedProvider:
                 )
             return GuidanceDraft(
                 message=(
-                    "El expediente está organizado para revisión profesional. Confirme formularios, "
-                    "means test vigente, exenciones y preguntas pendientes antes de definir "
-                    "estrategia."
+                    "The case is organized for professional review. Confirm forms, current means test inputs, exemptions, and pending questions before defining strategy."
+                    if en
+                    else "El expediente está organizado para revisión profesional. Confirme formularios, means test vigente, exenciones y preguntas pendientes antes de definir estrategia."
                 ),
                 intent="attorney_summary",
                 suggested_actions=context.discussion_points[:3],
@@ -77,8 +78,9 @@ class RuleBasedProvider:
             first = context.missing_items[0]
             return GuidanceDraft(
                 message=(
-                    f"El próximo paso es completar {first.lower()}. Después vincularemos evidencia y "
-                    "actualizaremos el resumen financiero automáticamente."
+                    f"The next step is to complete {first.lower()}. Then we will link supporting evidence and automatically refresh your financial summary."
+                    if en
+                    else f"El próximo paso es completar {first.lower()}. Después vincularemos evidencia y actualizaremos el resumen financiero automáticamente."
                 ),
                 intent="next_step",
                 suggested_actions=context.next_steps,
@@ -89,8 +91,9 @@ class RuleBasedProvider:
         if context.status in {"draft", "collecting_information"}:
             return GuidanceDraft(
                 message=(
-                    "La plantilla financiera está completa. Revise acreedores, bienes y documentos "
-                    "antes de enviar la solicitud al abogado."
+                    "The financial template is complete. Review creditors, assets, and documents before sending the request to the attorney."
+                    if en
+                    else "La plantilla financiera está completa. Revise acreedores, bienes y documentos antes de enviar la solicitud al abogado."
                 ),
                 intent="pre_submission_review",
                 suggested_actions=context.next_steps,
@@ -99,8 +102,9 @@ class RuleBasedProvider:
 
         return GuidanceDraft(
             message=(
-                "La solicitud está en revisión. Mantenga los documentos disponibles y use esta "
-                "sección para preparar preguntas para la consulta."
+                "The request is under review. Keep your documents available and use this section to prepare consultation questions."
+                if en
+                else "La solicitud está en revisión. Mantenga los documentos disponibles y use esta sección para preparar preguntas para la consulta."
             ),
             intent="status_update",
             suggested_actions=context.next_steps,

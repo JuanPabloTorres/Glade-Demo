@@ -8,7 +8,7 @@ test("client completes the full 10-step preparation flow (master instruction §2
   await expect(page.getByRole("heading", { name: "Así va tu expediente." })).toBeVisible();
 
   // 2. Abrir caso.
-  await page.getByRole("button", { name: "Continuar expediente" }).click();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Elena Rivera" })).toBeVisible();
   await expect(page.getByTestId("completion-score")).toBeVisible();
 
@@ -21,12 +21,18 @@ test("client completes the full 10-step preparation flow (master instruction §2
   await page.getByRole("button", { name: "Enviar", exact: true }).click();
   await expect(page.getByText("La plantilla financiera está completa.", { exact: false })).toBeVisible();
 
-  // 5. Abrir sección recomendada.
+  // 5. Abrir sección recomendada — this also closes the chat panel.
   await page.getByRole("button", { name: "Abrir sección recomendada" }).click();
   await expect(page.getByRole("tab", { selected: true })).toBeVisible();
 
   // 6. Añadir ingreso.
   await page.getByRole("tab", { name: "Ingresos" }).click();
+  // The previously-active tabpanel (Revisión, opened programmatically via
+  // tabsRef.setActiveTab in step 5) can remain unhidden and stacked on top,
+  // intercepting clicks on the freshly-selected panel underneath — wait for
+  // both the target panel to be visible and the stale one to be gone.
+  await expect(page.getByRole("tabpanel", { name: "Revisión" })).toBeHidden();
+  await expect(page.getByRole("tabpanel", { name: "Ingresos" })).toBeVisible();
   await page.getByRole("button", { name: "Añadir ingreso" }).click();
   await page.getByLabel("Categoría").selectOption("wages");
   await page.getByLabel("Fuente o patrono").fill("Empleo nuevo E2E");
@@ -74,7 +80,7 @@ test("attorney completes the full 9-step review flow (master instruction §20)",
   await expect(page.getByText("Elena Rivera")).not.toBeVisible();
 
   // 4. Abrir caso.
-  await page.getByRole("button", { name: "Revisar" }).first().click();
+  await page.getByRole("button", { name: "Ver", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Miguel Santos" })).toBeVisible();
 
   // 5. Consultar resumen AI.
@@ -87,7 +93,10 @@ test("attorney completes the full 9-step review flow (master instruction §20)",
   await page.getByRole("button", { name: "Solicitar documento" }).click();
   await page.getByRole("button", { name: "Solicitar", exact: true }).click();
   await page.getByRole("tab", { name: "Documentos" }).click();
-  await expect(page.getByText("requested").first()).toBeVisible();
+  // exact: true — a hidden tooltip elsewhere on the page contains
+  // "...documentos solicitados a clientes...", a substring match of
+  // "Solicitado" that resolves to a non-visible element first.
+  await expect(page.getByText("Solicitado", { exact: true }).first()).toBeVisible();
   await page.getByRole("tab", { name: "Comenzar" }).click();
 
   // 7. Añadir nota.
@@ -112,7 +121,7 @@ test("client flow succeeds on a mobile viewport (§17)", async ({ page }) => {
   await page.getByRole("button", { name: "Entrar como cliente" }).click();
   await expect(page.getByRole("heading", { name: "Así va tu expediente." })).toBeVisible();
 
-  await page.getByRole("button", { name: "Continuar expediente" }).click();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
   await expect(page.getByTestId("completion-score")).toBeVisible();
 
   await page.getByRole("button", { name: "Abrir asistente de preparación" }).click();

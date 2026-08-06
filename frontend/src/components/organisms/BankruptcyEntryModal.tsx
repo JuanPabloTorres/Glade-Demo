@@ -11,6 +11,7 @@ import {
   TextInput,
 } from "flowbite-react";
 import { useEffect, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ASSET_CATEGORIES,
   DEBT_TYPES,
@@ -34,15 +35,16 @@ interface Props {
 }
 
 const FREQUENCIES: Array<[Frequency, string]> = [
-  ["weekly", "Semanal"],
-  ["biweekly", "Cada dos semanas"],
-  ["semimonthly", "Dos veces al mes"],
-  ["monthly", "Mensual"],
-  ["quarterly", "Trimestral"],
-  ["annual", "Anual"],
+  ["weekly", "weekly"],
+  ["biweekly", "biweekly"],
+  ["semimonthly", "semimonthly"],
+  ["monthly", "monthly"],
+  ["quarterly", "quarterly"],
+  ["annual", "annual"],
 ];
 
 export function BankruptcyEntryModal({ open, kind, onClose, onSave }: Props) {
+  const { t } = useTranslation(["workspace", "common"]);
   const [primary, setPrimary] = useState("");
   const [secondary, setSecondary] = useState("");
   const [amount, setAmount] = useState("");
@@ -93,11 +95,11 @@ export function BankruptcyEntryModal({ open, kind, onClose, onSave }: Props) {
   };
 
   const titles: Record<EntryKind, string> = {
-    income: "Añadir ingreso",
-    expense: "Añadir gasto mensual",
-    debt: "Añadir deuda",
-    asset: "Añadir bien o activo",
-    evidence: "Añadir evidencia",
+    income: t("workspace:entryModal.titles.income"),
+    expense: t("workspace:entryModal.titles.expense"),
+    debt: t("workspace:entryModal.titles.debt"),
+    asset: t("workspace:entryModal.titles.asset"),
+    evidence: t("workspace:entryModal.titles.evidence"),
   };
 
   return (
@@ -107,53 +109,53 @@ export function BankruptcyEntryModal({ open, kind, onClose, onSave }: Props) {
         <ModalBody className="max-h-[72vh] space-y-5 overflow-y-auto">
           {kind === "income" ? (
             <>
-              <div><Label htmlFor="income-category">Categoría</Label><Select id="income-category" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">Seleccione</option>{INCOME_CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></div>
-              <div><Label htmlFor="income-source">Fuente o patrono</Label><TextInput id="income-source" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
-              <div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="gross-amount">Ingreso bruto</Label><TextInput id="gross-amount" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div><div><Label htmlFor="net-amount">Ingreso neto</Label><TextInput id="net-amount" type="number" min="0" step="0.01" value={netAmount} onChange={(event) => setNetAmount(event.target.value)} /></div></div>
-              <div><Label htmlFor="income-frequency">Frecuencia</Label><Select id="income-frequency" value={frequency} onChange={(event) => setFrequency(event.target.value as Frequency)}>{FREQUENCIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></div>
+              <div><Label htmlFor="income-category">{t("workspace:entryModal.fields.category")}</Label><Select id="income-category" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">{t("workspace:entryModal.fields.select")}</option>{INCOME_CATEGORIES.map((value) => <option key={value} value={value}>{t(`workspace:entryModal.incomeCategories.${value}`)}</option>)}</Select></div>
+              <div><Label htmlFor="income-source">{t("workspace:entryModal.fields.incomeSource")}</Label><TextInput id="income-source" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
+              <div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="gross-amount">{t("workspace:entryModal.fields.grossIncome")}</Label><TextInput id="gross-amount" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div><div><Label htmlFor="net-amount">{t("workspace:entryModal.fields.netIncome")}</Label><TextInput id="net-amount" type="number" min="0" step="0.01" value={netAmount} onChange={(event) => setNetAmount(event.target.value)} /></div></div>
+              <div><Label htmlFor="income-frequency">{t("workspace:entryModal.fields.frequency")}</Label><Select id="income-frequency" value={frequency} onChange={(event) => setFrequency(event.target.value as Frequency)}>{FREQUENCIES.map(([value, label]) => <option key={value} value={value}>{t(`workspace:entryModal.frequencies.${label}`)}</option>)}</Select></div>
             </>
           ) : null}
 
           {kind === "expense" ? (
             <>
-              <div><Label htmlFor="expense-category">Categoría</Label><Select id="expense-category" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">Seleccione</option>{EXPENSE_CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></div>
-              <div><Label htmlFor="expense-description">Descripción</Label><TextInput id="expense-description" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
-              <div><Label htmlFor="expense-amount">Monto mensual</Label><TextInput id="expense-amount" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div>
-              <div className="flex items-center gap-2"><Checkbox id="essential-expense" checked={flag} onChange={(event) => setFlag(event.target.checked)} /><Label htmlFor="essential-expense">Es un gasto necesario para el hogar</Label></div>
+              <div><Label htmlFor="expense-category">{t("workspace:entryModal.fields.category")}</Label><Select id="expense-category" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">{t("workspace:entryModal.fields.select")}</option>{EXPENSE_CATEGORIES.map((value) => <option key={value} value={value}>{t(`workspace:entryModal.expenseCategories.${value}`)}</option>)}</Select></div>
+              <div><Label htmlFor="expense-description">{t("workspace:entryModal.fields.description")}</Label><TextInput id="expense-description" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
+              <div><Label htmlFor="expense-amount">{t("workspace:entryModal.fields.monthlyAmount")}</Label><TextInput id="expense-amount" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div>
+              <div className="flex items-center gap-2"><Checkbox id="essential-expense" checked={flag} onChange={(event) => setFlag(event.target.checked)} /><Label htmlFor="essential-expense">{t("workspace:entryModal.fields.essentialExpense")}</Label></div>
             </>
           ) : null}
 
           {kind === "debt" ? (
             <>
-              <div><Label htmlFor="creditor">Acreedor</Label><TextInput id="creditor" value={primary} onChange={(event) => setPrimary(event.target.value)} required /></div>
-              <div><Label htmlFor="debt-description">Descripción</Label><TextInput id="debt-description" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
-              <div><Label htmlFor="debt-type">Tipo</Label><Select id="debt-type" value={debtType} onChange={(event) => setDebtType(event.target.value as DebtType)}>{DEBT_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></div>
-              <div className="grid gap-4 sm:grid-cols-3"><div><Label htmlFor="debt-balance">Balance</Label><TextInput id="debt-balance" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div><div><Label htmlFor="debt-payment">Pago mensual</Label><TextInput id="debt-payment" type="number" min="0" step="0.01" value={monthlyPayment} onChange={(event) => setMonthlyPayment(event.target.value)} /></div><div><Label htmlFor="debt-delinquent">Atraso</Label><TextInput id="debt-delinquent" type="number" min="0" step="0.01" value={delinquentAmount} onChange={(event) => setDelinquentAmount(event.target.value)} /></div></div>
-              {debtType === "secured" ? <div><Label htmlFor="collateral">Propiedad que garantiza la deuda</Label><TextInput id="collateral" value={collateral} onChange={(event) => setCollateral(event.target.value)} /></div> : null}
-              <div className="flex items-center gap-2"><Checkbox id="collection-lawsuit" checked={flag} onChange={(event) => setFlag(event.target.checked)} /><Label htmlFor="collection-lawsuit">Existe demanda, embargo o acción de cobro</Label></div>
+              <div><Label htmlFor="creditor">{t("workspace:entryModal.fields.creditor")}</Label><TextInput id="creditor" value={primary} onChange={(event) => setPrimary(event.target.value)} required /></div>
+              <div><Label htmlFor="debt-description">{t("workspace:entryModal.fields.description")}</Label><TextInput id="debt-description" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
+              <div><Label htmlFor="debt-type">{t("workspace:entryModal.fields.type")}</Label><Select id="debt-type" value={debtType} onChange={(event) => setDebtType(event.target.value as DebtType)}>{DEBT_TYPES.map((value) => <option key={value} value={value}>{t(`workspace:entryModal.debtTypes.${value}`)}</option>)}</Select></div>
+              <div className="grid gap-4 sm:grid-cols-3"><div><Label htmlFor="debt-balance">{t("workspace:entryModal.fields.balance")}</Label><TextInput id="debt-balance" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div><div><Label htmlFor="debt-payment">{t("workspace:entryModal.fields.monthlyPayment")}</Label><TextInput id="debt-payment" type="number" min="0" step="0.01" value={monthlyPayment} onChange={(event) => setMonthlyPayment(event.target.value)} /></div><div><Label htmlFor="debt-delinquent">{t("workspace:entryModal.fields.delinquent")}</Label><TextInput id="debt-delinquent" type="number" min="0" step="0.01" value={delinquentAmount} onChange={(event) => setDelinquentAmount(event.target.value)} /></div></div>
+              {debtType === "secured" ? <div><Label htmlFor="collateral">{t("workspace:entryModal.fields.collateral")}</Label><TextInput id="collateral" value={collateral} onChange={(event) => setCollateral(event.target.value)} /></div> : null}
+              <div className="flex items-center gap-2"><Checkbox id="collection-lawsuit" checked={flag} onChange={(event) => setFlag(event.target.checked)} /><Label htmlFor="collection-lawsuit">{t("workspace:entryModal.fields.collectionAction")}</Label></div>
             </>
           ) : null}
 
           {kind === "asset" ? (
             <>
-              <div><Label htmlFor="asset-category">Categoría</Label><Select id="asset-category" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">Seleccione</option>{ASSET_CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></div>
-              <div><Label htmlFor="asset-description">Descripción</Label><TextInput id="asset-description" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
-              <div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="asset-value">Valor estimado</Label><TextInput id="asset-value" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div><div><Label htmlFor="asset-loan">Préstamo o gravamen</Label><TextInput id="asset-loan" type="number" min="0" step="0.01" value={monthlyPayment} onChange={(event) => setMonthlyPayment(event.target.value)} /></div></div>
-              <div className="flex items-center gap-2"><Checkbox id="jointly-owned" checked={flag} onChange={(event) => setFlag(event.target.checked)} /><Label htmlFor="jointly-owned">Propiedad conjunta</Label></div>
+              <div><Label htmlFor="asset-category">{t("workspace:entryModal.fields.category")}</Label><Select id="asset-category" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">{t("workspace:entryModal.fields.select")}</option>{ASSET_CATEGORIES.map((value) => <option key={value} value={value}>{t(`workspace:entryModal.assetCategories.${value}`)}</option>)}</Select></div>
+              <div><Label htmlFor="asset-description">{t("workspace:entryModal.fields.description")}</Label><TextInput id="asset-description" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
+              <div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="asset-value">{t("workspace:entryModal.fields.estimatedValue")}</Label><TextInput id="asset-value" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div><div><Label htmlFor="asset-loan">{t("workspace:entryModal.fields.loanBalance")}</Label><TextInput id="asset-loan" type="number" min="0" step="0.01" value={monthlyPayment} onChange={(event) => setMonthlyPayment(event.target.value)} /></div></div>
+              <div className="flex items-center gap-2"><Checkbox id="jointly-owned" checked={flag} onChange={(event) => setFlag(event.target.checked)} /><Label htmlFor="jointly-owned">{t("workspace:entryModal.fields.jointlyOwned")}</Label></div>
             </>
           ) : null}
 
           {kind === "evidence" ? (
             <>
-              <div><Label htmlFor="evidence-type">Tipo de evidencia</Label><Select id="evidence-type" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">Seleccione</option>{EVIDENCE_TYPES.map((value) => <option key={value} value={value}>{value}</option>)}</Select></div>
-              <div><Label htmlFor="evidence-file">Archivo</Label><FileInput id="evidence-file" onChange={(event) => setSecondary(event.target.files?.[0]?.name ?? "")} /><p className="mt-1 text-xs text-[#777]">El demo conserva únicamente el nombre y estado del archivo en este navegador.</p></div>
-              <div><Label htmlFor="evidence-name">Nombre del documento</Label><TextInput id="evidence-name" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
-              <div><Label htmlFor="evidence-status">Estado</Label><Select id="evidence-status" value={evidenceStatus} onChange={(event) => setEvidenceStatus(event.target.value as EvidenceStatus)}><option value="requested">Solicitado</option><option value="received">Recibido</option><option value="reviewed">Revisado</option></Select></div>
-              <div><Label htmlFor="evidence-note">Nota</Label><TextInput id="evidence-note" value={note} onChange={(event) => setNote(event.target.value)} /></div>
+              <div><Label htmlFor="evidence-type">{t("workspace:entryModal.fields.evidenceType")}</Label><Select id="evidence-type" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">{t("workspace:entryModal.fields.select")}</option>{EVIDENCE_TYPES.map((value) => <option key={value} value={value}>{t(`workspace:entryModal.evidenceTypes.${value}`)}</option>)}</Select></div>
+              <div><Label htmlFor="evidence-file">{t("workspace:entryModal.fields.file")}</Label><FileInput id="evidence-file" onChange={(event) => setSecondary(event.target.files?.[0]?.name ?? "")} /><p className="mt-1 text-xs text-[#777]">{t("workspace:entryModal.fields.fileHelper")}</p></div>
+              <div><Label htmlFor="evidence-name">{t("workspace:entryModal.fields.documentName")}</Label><TextInput id="evidence-name" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
+              <div><Label htmlFor="evidence-status">{t("workspace:entryModal.fields.status")}</Label><Select id="evidence-status" value={evidenceStatus} onChange={(event) => setEvidenceStatus(event.target.value as EvidenceStatus)}><option value="requested">{t("workspace:entryModal.evidenceStatus.requested")}</option><option value="received">{t("workspace:entryModal.evidenceStatus.received")}</option><option value="reviewed">{t("workspace:entryModal.evidenceStatus.reviewed")}</option></Select></div>
+              <div><Label htmlFor="evidence-note">{t("workspace:entryModal.fields.note")}</Label><TextInput id="evidence-note" value={note} onChange={(event) => setNote(event.target.value)} /></div>
             </>
           ) : null}
         </ModalBody>
-        <ModalFooter><Button type="submit" className="glade-button">Guardar</Button><Button type="button" color="alternative" onClick={onClose}>Cancelar</Button></ModalFooter>
+        <ModalFooter><Button type="submit" className="glade-button">{t("common:actions.save")}</Button><Button type="button" color="alternative" onClick={onClose}>{t("common:actions.cancel")}</Button></ModalFooter>
       </form>
     </Modal>
   );

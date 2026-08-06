@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 import { AuthProvider } from "./auth/AuthContext";
+import { LanguageProvider } from "./i18n/LanguageContext";
+import "./i18n/i18n";
 import "./index.css";
 import { router } from "./router";
 import { BankruptcyWorkspaceProvider } from "./workspace/BankruptcyWorkspaceContext";
@@ -9,9 +11,11 @@ import { BankruptcyWorkspaceProvider } from "./workspace/BankruptcyWorkspaceCont
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AuthProvider>
-      <BankruptcyWorkspaceProvider>
-        <RouterProvider router={router} />
-      </BankruptcyWorkspaceProvider>
+      <LanguageProvider>
+        <BankruptcyWorkspaceProvider>
+          <RouterProvider router={router} />
+        </BankruptcyWorkspaceProvider>
+      </LanguageProvider>
     </AuthProvider>
   </StrictMode>,
 );

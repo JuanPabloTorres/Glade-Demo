@@ -31,3 +31,17 @@ No database sits in this chain — the backend is stateless per request; the ful
 - `components/molecules`: composed display elements (`ResponsiveDataView`, `StageOrientation`).
 - `components/organisms`: feature-level reusable sections (`AppShell`, `ModernHeader`/`ModernFooter`, `ChatPanel`, `CaseActionBar`, ...).
 - `pages`: route composition (login, dashboards, case workspace, about).
+
+## Reuse-first composition (2026-08)
+
+The frontend now follows a reusable composition path for repeated CRUD/UI behavior:
+
+- `components/ui/AppButton`: shared action primitive (icon + loading + disabled behavior).
+- `components/data-display/DataTableToolbar`: shared search/sort/page-size/clear controls.
+- `components/data-display/RowActionsMenu`: shared row actions shell (`View` + configurable `Actions`).
+- `components/feedback/ConfirmDialog`: shared destructive-confirmation modal.
+- `hooks/useConfirmation`: shared state machine for confirm/cancel/busy flow.
+- `services/api/apiClient`: shared HTTP access layer for typed requests.
+- `services/crud/createCrudService`: reusable CRUD service factory for resource-oriented modules.
+
+This keeps route pages focused on domain decisions and configuration while moving repeated interaction mechanics to shared components/hooks/services.

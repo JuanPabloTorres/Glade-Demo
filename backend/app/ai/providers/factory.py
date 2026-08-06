@@ -14,6 +14,7 @@ def get_provider(
     provider: str,
     ollama_base_url: str,
     ollama_model: str,
+    ollama_timeout_ms: int,
     ai_model_id: str,
     ai_max_new_tokens: int,
 ) -> BaseAIProvider:
@@ -25,7 +26,11 @@ def get_provider(
     """
     normalized = provider.strip().lower()
     if normalized == "ollama":
-        return OllamaProvider(base_url=ollama_base_url, model=ollama_model)
+        return OllamaProvider(
+            base_url=ollama_base_url,
+            model=ollama_model,
+            timeout_ms=ollama_timeout_ms,
+        )
     if normalized == "transformers":
         return TransformersProvider(model_id=ai_model_id, max_new_tokens=ai_max_new_tokens)
     return RuleBasedProvider()
@@ -36,6 +41,7 @@ def get_provider_for_settings(settings: Settings) -> BaseAIProvider:
         settings.ai_provider,
         settings.ollama_base_url,
         settings.ollama_model,
+        settings.ollama_timeout_ms,
         settings.ai_model_id,
         settings.ai_max_new_tokens,
     )
