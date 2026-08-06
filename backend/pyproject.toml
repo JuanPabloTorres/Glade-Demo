@@ -1,6 +1,6 @@
 [project]
 name = "freshstart-bankruptcy-api"
-version = "3.0.0"
+version = "3.1.0"
 description = "FreshStart bankruptcy intake, financial organization, and attorney collaboration API"
 requires-python = ">=3.13"
 dependencies = [

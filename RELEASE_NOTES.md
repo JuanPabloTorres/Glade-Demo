@@ -1,3 +1,18 @@
+# FreshStart 3.1.0
+
+Glade interview-demo audit (`fix/glade-demo-audit-i18n-ai-health`) — full bilingual rollout plus the regressions caught while wiring it up.
+
+- New bilingual i18next system: per-namespace locale files (es/en), a `LanguageProvider` resolving profile → persisted → browser preference, a `LanguageSelector`, `Accept-Language` propagated on every API request, and a `validate-locales` script (`npm run i18n:check`) enforcing matching keys across both languages.
+- Backend error responses are now localized from `Accept-Language` via a centralized bilingual message catalog; `DomainError` subclasses carry a `code`/`message_key`.
+- New `GET /api/v1/ai/health` endpoint (contract id `ai.health`) reports live AI provider/model/availability; the header and chat panel show real-time connectivity with retry.
+- New reusable component tier: `AppButton`, `DataTableToolbar`, `RowActionsMenu`, `ConfirmDialog`, `useConfirmation`/`useDisclosure`, and a generic `apiClient`/`createCrudService` pair.
+- Income/expense/debt/asset/evidence option values moved from literal Spanish display strings to canonical slugs so they key into the locale catalogs.
+- Fixed: evidence-completeness scoring silently read 0% instead of the correct value after the slug refactor (both frontend and backend keyword-matched against the raw slug instead of its translated label); demo seed data still held pre-refactor evidence-type strings.
+- Fixed: the attorney demo account defaulted to English while the client account defaulted to Spanish, silently flipping the UI language on attorney login.
+- Fixed: requesting a document showed the raw internal slug (e.g. `government-id`) as its file name; changing case status wrote an untranslated status slug into the case timeline.
+- Fixed: the deterministic AI provider's Spanish responses and the backend error catalog were missing accents throughout, including `anos` for `años` (a different word, not a typo).
+- Rewrote `e2e/matter-workflow.spec.ts`, stale against the v3.0.0 client-dashboard rebuild, and pinned the Playwright browser locale to `es-PR` so tests don't silently run against an English-rendered app.
+
 # FreshStart 3.0.0
 
 Intelligent-workspace refactor (`feat/freshstart-intelligent-workspace`) — see `docs/audits/FRESHSTART-UX-AI-REFACTOR-AUDIT.md` and `docs/plans/FRESHSTART-UX-AI-IMPLEMENTATION-PLAN.md` for the full audit and plan.
