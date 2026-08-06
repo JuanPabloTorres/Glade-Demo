@@ -13,6 +13,13 @@ class HealthDto(ApiModel):
     version: str
 
 
+class AIHealthDto(ApiModel):
+    status: str
+    provider: str
+    model: str
+    available: bool
+
+
 class ActivityDto(ApiModel):
     id: str
     event_type: str

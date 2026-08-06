@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     ai_max_new_tokens: int = 180
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen3:4b"
+    ollama_timeout_ms: int = 60000
     ollama_embedding_model: str = "nomic-embed-text"
 
     @property
