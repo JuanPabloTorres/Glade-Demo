@@ -1,7 +1,7 @@
-# AGENTS.md — MatterReady Demo
+# AGENTS.md — FreshStart Bankruptcy Guide
 
 ## Mission
-Build a compact, production-minded legal matter intake and readiness workspace. Preserve traceability from every frontend request to a registered backend operation.
+Build a compact, production-minded bankruptcy preparation workspace for a client and their attorney — organizing household/income/expense/debt/asset/evidence data, surfacing what's missing, and preparing questions for professional review. Preserve traceability from every frontend request to a registered backend operation. Never provide automated legal advice, chapter selection, or eligibility determination — see `docs/BANKRUPTCY_PRODUCT_BLUEPRINT.md` for the full product boundary.
 
 ## Non-negotiable rules
 1. `contracts/api-contracts.json` is the source of truth for method, path, controller, action, and operation ID.
