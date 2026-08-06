@@ -2,6 +2,19 @@
 
 Living document. Block 11's manual responsive/accessibility pass (below), extended in Block 12 with the full automated test inventory (backend pytest, frontend Vitest, Playwright).
 
+## Release screenshots (Block 14, v3.0.0)
+
+Captured live against the running app (Vite dev server + FastAPI backend) immediately before the release commit — `docs/testing/screenshots/`:
+
+| File | What it shows |
+|---|---|
+| `01-login-desktop.png` | Login — background image, role buttons with "what you'll see" hints |
+| `02-client-dashboard-desktop.png` | Client dashboard — §14.1 ordering (status, progress, next action, chat entry, tasks, documents, financials, timeline) |
+| `03-client-workspace-desktop.png` | Client case workspace — 10-stage tab flow, `StageOrientation` |
+| `04-client-workspace-mobile.png` | Same workspace at 390px — stage tabs wrap, no overflow |
+| `05-attorney-dashboard-desktop.png` | Attorney operational queue — filters, search, sort, `ResponsiveDataView` table |
+| `06-attorney-command-center-desktop.png` | Attorney case command center — full action bar |
+
 ## Block 11 — Responsive & accessibility pass
 
 Master instruction §17/§18 call for a sweep at 320/375/390/430/768/1024/1280/1440px plus a set of accessibility checks. Verified live against the running app (Vite dev server + FastAPI backend), not just read from source.
