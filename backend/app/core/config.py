@@ -31,9 +31,15 @@ class Settings(BaseSettings):
     demo_attorney_password: str = "Counsel!2026"
     demo_attorney_name: str = "Lic. Andrea Morales"
 
-    ai_provider: str = "template"
+    # AI provider selection (master instruction §7.2): "rule_based" (default,
+    # deterministic, no network/model dependency), "ollama", or "transformers".
+    # Never hardcode a model id here beyond these defaults — override via env.
+    ai_provider: str = "rule_based"
     ai_model_id: str = "Qwen/Qwen3-0.6B"
     ai_max_new_tokens: int = 180
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen3:4b"
+    ollama_embedding_model: str = "nomic-embed-text"
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -1,22 +1,40 @@
 @import "tailwindcss";
+@import "flowbite-react/plugin/tailwindcss";
 @source "../.flowbite-react/class-list.json";
 
 :root {
-  --glade-black: #111827;
-  --glade-white: #ffffff;
-  --glade-surface: #f3f6fb;
-  --glade-surface-raised: #ffffff;
-  --glade-border: #dce3ee;
+  /* FreshStart design-system palette (docs/ux/FLOWBITE-COMPONENT-STANDARDS.md).
+     Canonical names per the refactor spec; --glade-* aliases below keep
+     existing components working while they migrate to these tokens. */
+  --color-page: #f7f8fc;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f5f9;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-border: #dbe3ee;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-secondary: #4f46e5;
+  --color-accent: #7c3aed;
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-danger: #b91c1c;
+
+  --glade-black: var(--color-text);
+  --glade-white: var(--color-surface);
+  --glade-surface: var(--color-page);
+  --glade-surface-raised: var(--color-surface);
+  --glade-border: var(--color-border);
   --glade-border-strong: #c6d0df;
-  --glade-muted: #5f6b7b;
-  --glade-primary: #2563eb;
-  --glade-primary-dark: #1d4ed8;
-  --glade-indigo: #4f46e5;
-  --glade-violet: #7c3aed;
-  --glade-coral: #e95550;
-  --glade-success: #15803d;
-  --glade-warning: #b45309;
-  --glade-gradient: linear-gradient(135deg, #2563eb 0%, #4f46e5 52%, #7c3aed 100%);
+  --glade-muted: var(--color-text-muted);
+  --glade-primary: var(--color-primary);
+  --glade-primary-dark: var(--color-primary-hover);
+  --glade-indigo: var(--color-secondary);
+  --glade-violet: var(--color-accent);
+  --glade-coral: var(--color-danger);
+  --glade-success: var(--color-success);
+  --glade-warning: var(--color-warning);
+  --glade-gradient: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 52%, var(--color-accent) 100%);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--glade-black);
   background: var(--glade-surface);

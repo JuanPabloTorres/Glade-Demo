@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routers import auth, bankruptcy, health
+from app.api.routers import auth, bankruptcy, documents, health
 from app.core.config import get_settings
 from app.core.errors import DomainError, NotFoundError, ValidationError
 from app.core.version import APP_VERSION
@@ -20,6 +20,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(bankruptcy.router)
+app.include_router(documents.router)
 
 
 @app.exception_handler(DomainError)

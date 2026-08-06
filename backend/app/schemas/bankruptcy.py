@@ -133,10 +133,3 @@ class GuidanceRequestDto(ApiModel):
     message: str
     role: UserRole
     locale: str = "es"
-
-
-class GuidanceResponseDto(ApiModel):
-    reply: str
-    suggested_actions: list[str]
-    focus_section: str
-    disclaimer: str

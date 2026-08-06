@@ -3,5 +3,6 @@
   "auth.login": {"operationId":"login","method":"POST","path":"/api/v1/auth/login","controller":"AuthController","action":"login"},
   "auth.me": {"operationId":"getCurrentSession","method":"GET","path":"/api/v1/auth/me","controller":"AuthController","action":"get_current_session"},
   "bankruptcy.analyze": {"operationId":"analyzeBankruptcyCase","method":"POST","path":"/api/v1/bankruptcy/analyze","controller":"BankruptcyController","action":"analyze_case"},
-  "bankruptcy.guide": {"operationId":"guideBankruptcyCase","method":"POST","path":"/api/v1/bankruptcy/guide","controller":"BankruptcyController","action":"guide_case"}
+  "bankruptcy.guide": {"operationId":"guideBankruptcyCase","method":"POST","path":"/api/v1/bankruptcy/guide","controller":"BankruptcyController","action":"guide_case"},
+  "documents.analyze": {"operationId":"analyzeDocument","method":"POST","path":"/api/v1/documents/analyze","controller":"DocumentsController","action":"analyze_document"}
 }

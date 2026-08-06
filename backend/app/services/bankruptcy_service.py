@@ -4,14 +4,16 @@ from collections.abc import Iterable
 
 import pandas as pd  # type: ignore[import-untyped]
 
-from app.ai.text_generation import TextGenerator, get_text_generator
+from app.ai.guardrails import ResponseGuardrails
+from app.ai.providers import BaseAIProvider, get_provider_for_settings
 from app.core.config import Settings
+from app.schemas.assistant import AssistantAction, AssistantResponse
 from app.schemas.bankruptcy import (
     BankruptcyCaseDto,
     CaseAnalysisDto,
     GuidanceRequestDto,
-    GuidanceResponseDto,
 )
+from app.services.case_context_builder import CaseContextBuilder
 
 FREQUENCY_MULTIPLIERS = {
     "weekly": 52 / 12,
@@ -306,104 +308,36 @@ class BankruptcyAnalysisService:
 
 
 class BankruptcyGuidanceService:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, provider: BaseAIProvider | None = None) -> None:
         self._analysis = BankruptcyAnalysisService()
-        self._generator: TextGenerator = get_text_generator(
-            settings.ai_provider,
-            settings.ai_model_id,
-            settings.ai_max_new_tokens,
-        )
+        self._context_builder = CaseContextBuilder()
+        self._provider = provider or get_provider_for_settings(settings)
+        self._guardrails = ResponseGuardrails()
 
-    def guide(self, request: GuidanceRequestDto) -> GuidanceResponseDto:
+    def guide(self, request: GuidanceRequestDto) -> AssistantResponse:
         analysis = self._analysis.analyze(request.case)
-        reply, actions, section = self._build_reply(request, analysis)
-        final_reply = self._generator.compose(
-            locale=request.locale,
-            context=(
-                f"Monthly income {analysis.monthly_net_income}; expenses "
-                f"{analysis.monthly_expenses}; open items {len(analysis.missing_items)}."
-            ),
-            fallback=reply,
-        )
-        return GuidanceResponseDto(
-            reply=final_reply,
-            suggested_actions=actions,
-            focus_section=section,
+        context = self._context_builder.build(request.case, analysis, request.role)
+        draft = self._provider.generate(context=context, message=request.message)
+        # Guardrails run on every provider's output, rule-based or model-
+        # rewritten, before anything reaches the client (master instruction
+        # §7.7) — never skipped, never provider-specific.
+        guarded = self._guardrails.review(draft.message)
+        return AssistantResponse(
+            message=guarded.message,
+            intent=draft.intent,
+            suggested_actions=[
+                AssistantAction(id=f"suggested-{index}", label=text, icon="chat", action_type="ask")
+                for index, text in enumerate(draft.suggested_actions)
+            ],
+            focus_section=draft.focus_section,
+            requested_fields=draft.requested_fields,
+            requested_documents=draft.requested_documents,
+            warnings=draft.warnings,
+            summary_updates=[],
+            requires_attorney_review=draft.requires_attorney_review or guarded.requires_attorney_review,
+            confidence=None,
             disclaimer=(
                 "Esta orientación organiza información y preguntas. No determina elegibilidad, "
                 "no sustituye el means test oficial y no es asesoramiento legal."
             ),
         )
-
-    def _build_reply(
-        self,
-        request: GuidanceRequestDto,
-        analysis: CaseAnalysisDto,
-    ) -> tuple[str, list[str], str]:
-        message = request.message.casefold()
-        if "capítulo 7" in message or "chapter 7" in message:
-            return (
-                "Chapter 7 suele enfocarse en liquidación y descarga de deudas elegibles, pero "
-                "requiere revisar means test, bienes, exenciones y transacciones recientes con "
-                "un abogado.",
-                analysis.chapter_7_questions[:3],
-                "chapter-comparison",
-            )
-        if "capítulo 13" in message or "chapter 13" in message:
-            return (
-                "Chapter 13 permite proponer un plan de pagos de tres a cinco años para una persona "
-                "con ingreso regular. La viabilidad depende de datos completos y revisión legal.",
-                analysis.chapter_13_questions[:3],
-                "chapter-comparison",
-            )
-        if request.role == "attorney":
-            if analysis.warnings:
-                return (
-                    f"El expediente tiene {len(analysis.warnings)} alerta(s) prioritaria(s). "
-                    "Revise evidencia, urgencias de cobro y consistencia financiera antes de la consulta.",
-                    analysis.warnings[:3],
-                    "attorney-review",
-                )
-            return (
-                "El expediente está organizado para revisión profesional. Confirme formularios, "
-                "means test vigente, exenciones y preguntas pendientes antes de definir estrategia.",
-                analysis.discussion_points[:3],
-                "attorney-review",
-            )
-        if analysis.missing_items:
-            first = analysis.missing_items[0]
-            return (
-                f"El próximo paso es completar {first.lower()}. Después vincularemos evidencia y "
-                "actualizaremos el resumen financiero automáticamente.",
-                analysis.next_steps,
-                self._section_for_missing(first),
-            )
-        if request.case.status in {"draft", "collecting_information"}:
-            return (
-                "La plantilla financiera está completa. Revise acreedores, bienes y documentos antes "
-                "de enviar la solicitud al abogado.",
-                analysis.next_steps,
-                "review",
-            )
-        return (
-            "La solicitud está en revisión. Mantenga los documentos disponibles y use esta sección "
-            "para preparar preguntas para la consulta.",
-            analysis.next_steps,
-            "timeline",
-        )
-
-    def _section_for_missing(self, missing: str) -> str:
-        lowered = missing.casefold()
-        if "ingreso" in lowered:
-            return "income-expenses"
-        if "gasto" in lowered:
-            return "income-expenses"
-        if "deuda" in lowered or "acreedor" in lowered:
-            return "debts-assets"
-        if "bien" in lowered or "activo" in lowered:
-            return "debts-assets"
-        if "document" in lowered:
-            return "evidence"
-        if "hogar" in lowered or "vivienda" in lowered:
-            return "household"
-        return "overview"

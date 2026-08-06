@@ -1,6 +1,6 @@
 [project]
 name = "freshstart-bankruptcy-api"
-version = "2.0.1"
+version = "3.0.0"
 description = "FreshStart bankruptcy intake, financial organization, and attorney collaboration API"
 requires-python = ">=3.13"
 dependencies = [
@@ -21,7 +21,21 @@ ai = [
   "sentence-transformers>=5.0,<6.0",
   "accelerate>=1.10,<2.0",
 ]
-documents = ["docling>=2.60,<3.0"]
+# Document ingestion (master instruction §7.5): Docling primary, PyMuPDF PDF
+# fallback, python-docx/openpyxl for Office formats. Tesseract OCR is
+# system-level (not a pip package) and stays opt-in at the deployment layer.
+documents = [
+  "docling>=2.60,<3.0",
+  "pymupdf>=1.24,<2.0",
+  "python-docx>=1.1,<2.0",
+  "openpyxl>=3.1,<4.0",
+]
+# Local RAG (master instruction §7.6): FAISS default, Chroma as an
+# alternative — never installed together with the lightweight Vercel build.
+rag = [
+  "faiss-cpu>=1.9,<2.0",
+  "chromadb>=0.5,<1.0",
+]
 
 [dependency-groups]
 dev = [

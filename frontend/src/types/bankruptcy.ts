@@ -145,10 +145,36 @@ export interface CaseAnalysis {
   next_steps: string[];
 }
 
-export interface GuidanceResponse {
-  reply: string;
-  suggested_actions: string[];
-  focus_section: string;
+export type AssistantActionType =
+  | "navigate"
+  | "open_modal"
+  | "upload_document"
+  | "update_case"
+  | "request_document"
+  | "create_note"
+  // See backend/app/schemas/assistant.py for why this exists beyond the
+  // master instruction's six-value example list.
+  | "ask";
+
+export interface AssistantAction {
+  id: string;
+  label: string;
+  icon: string;
+  action_type: AssistantActionType;
+  target?: string | null;
+}
+
+export interface AssistantResponse {
+  message: string;
+  intent: string;
+  suggested_actions: AssistantAction[];
+  focus_section: string | null;
+  requested_fields: string[];
+  requested_documents: string[];
+  warnings: string[];
+  summary_updates: string[];
+  requires_attorney_review: boolean;
+  confidence: number | null;
   disclaimer: string;
 }
 

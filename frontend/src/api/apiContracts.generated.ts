@@ -25,6 +25,11 @@ export const apiContracts = {
     "operationId": "guideBankruptcyCase",
     "method": "POST",
     "path": "/api/v1/bankruptcy/guide"
+  },
+  "documents.analyze": {
+    "operationId": "analyzeDocument",
+    "method": "POST",
+    "path": "/api/v1/documents/analyze"
   }
 } as const;
 export type ApiOperationKey = keyof typeof apiContracts;

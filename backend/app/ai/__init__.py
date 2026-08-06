@@ -1,1 +1,1 @@
-"""Optional open-source AI providers used by the intake copilot."""
+"""Pluggable, open-source AI providers used by the bankruptcy guidance assistant. See app.ai.providers."""

@@ -2,9 +2,9 @@ import { apiContracts } from "./apiContracts.generated";
 import { http } from "./http";
 import type {
   ApiBankruptcyCase,
+  AssistantResponse,
   BankruptcyCase,
   CaseAnalysis,
-  GuidanceResponse,
 } from "../types/bankruptcy";
 import type { UserRole } from "../types/api";
 
@@ -94,8 +94,8 @@ export const bankruptcyApi = {
     caseData: BankruptcyCase,
     message: string,
     role: UserRole,
-  ): Promise<GuidanceResponse> {
-    const response = await http.post<GuidanceResponse>(pathFor("bankruptcy.guide"), {
+  ): Promise<AssistantResponse> {
+    const response = await http.post<AssistantResponse>(pathFor("bankruptcy.guide"), {
       case: toApiCase(caseData),
       message,
       role,

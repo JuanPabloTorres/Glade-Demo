@@ -103,7 +103,53 @@ def test_guidance_asks_for_missing_section(client: TestClient) -> None:
     )
     assert response.status_code == 200
     assert response.json()["focus_section"] == "debts-assets"
-    assert "bienes" in response.json()["reply"].casefold()
+    assert "bienes" in response.json()["message"].casefold()
+
+
+def test_guidance_returns_structured_actions(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/bankruptcy/guide",
+        json={"case": sample_case(), "message": "¿Qué me falta?", "role": "client", "locale": "es"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert isinstance(payload["suggested_actions"], list)
+    for action in payload["suggested_actions"]:
+        assert {"id", "label", "icon", "action_type"} <= action.keys()
+        assert action["action_type"] == "ask"
+    # New AssistantResponse fields (Block 9) are present even when empty/default.
+    for field in ("intent", "requested_fields", "requested_documents", "warnings", "summary_updates", "requires_attorney_review"):
+        assert field in payload
+
+
+def test_guidance_guardrail_forces_attorney_review(client: TestClient) -> None:
+    # "chapter 7" routes through the deterministic chapter-comparison branch,
+    # which RuleBasedProvider already flags requires_attorney_review=True -
+    # this proves that flag survives all the way through the HTTP response,
+    # not just at the GuidanceDraft/provider layer (backend/tests/
+    # test_ai_providers.py already covers the provider layer in isolation).
+    response = client.post(
+        "/api/v1/bankruptcy/guide",
+        json={"case": sample_case(), "message": "¿Qué chapter 7 me conviene?", "role": "client", "locale": "es"},
+    )
+    assert response.status_code == 200
+    assert response.json()["requires_attorney_review"] is True
+
+
+def test_guidance_rejects_role_mismatched_with_session(client: TestClient) -> None:
+    # `client` fixture authenticates as the demo client; declaring role
+    # "attorney" in the body must be rejected, not trusted (security fix,
+    # docs/audits/FRESHSTART-UX-AI-REFACTOR-AUDIT.md §6).
+    response = client.post(
+        "/api/v1/bankruptcy/guide",
+        json={
+            "case": sample_case(),
+            "message": "Resume el caso",
+            "role": "attorney",
+            "locale": "es",
+        },
+    )
+    assert response.status_code == 403
 
 
 def test_bankruptcy_endpoints_require_jwt(client: TestClient) -> None:
