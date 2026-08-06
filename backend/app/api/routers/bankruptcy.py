@@ -6,6 +6,7 @@ from app.core.config import Settings, get_settings
 from app.core.contracts import get_contract_registry
 from app.core.security import CurrentUserDep
 from app.domain.value_objects import TimelineEventType
+from app.repositories.ai_conversation_repository import AIConversationRepositoryDep
 from app.repositories.case_repository import CaseRepositoryDep
 from app.schemas.assistant import AssistantResponse
 from app.schemas.bankruptcy import (
@@ -60,6 +61,7 @@ def guide_case(
     settings: SettingsDep,
     case_access: CaseAccessDep,
     cases: CaseRepositoryDep,
+    conversations: AIConversationRepositoryDep,
 ) -> AssistantResponse:
     # Security fix (docs/audits/FRESHSTART-UX-AI-REFACTOR-AUDIT.md §6): the
     # request body's `role` was previously trusted as-is, never checked
@@ -76,7 +78,9 @@ def guide_case(
     # never checked at all before this task.
     case = case_access.authorize_for_submission(body.case, current_user)
     authorized_body = body.model_copy(update={"case": case})
-    response = BankruptcyGuidanceService(settings).guide(authorized_body)
+    response = BankruptcyGuidanceService(
+        settings, case_repository=cases, conversation_repository=conversations
+    ).guide(authorized_body)
     # `case.attorney_notes` (free text on the case row) is persisted as part
     # of the snapshot below on every call. `case_notes` (an append-only log,
     # see CaseRepository.add_note) is intentionally not auto-populated from

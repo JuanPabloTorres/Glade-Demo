@@ -4,7 +4,7 @@ import importlib
 import logging
 from typing import TYPE_CHECKING, Any
 
-from app.ai.providers.base import GuidanceDraft
+from app.ai.providers.base import GuidanceDraft, build_untrusted_case_data_block
 from app.ai.providers.rule_based import RuleBasedProvider
 
 if TYPE_CHECKING:
@@ -54,18 +54,23 @@ class TransformersProvider:
 
     def generate(self, *, context: CaseContextDto, message: str) -> GuidanceDraft:
         draft = self._fallback.generate(context=context, message=message)
-        rewritten = self._rewrite(draft_message=draft.message)
+        rewritten = self._rewrite(draft_message=draft.message, context=context)
         if rewritten:
             draft.message = rewritten
         return draft
 
-    def _rewrite(self, *, draft_message: str) -> str | None:
+    def _rewrite(self, *, draft_message: str, context: CaseContextDto) -> str | None:
         try:
             pipeline, torch = self._load()
+            # Same prompt-injection defense as OllamaProvider — see
+            # build_untrusted_case_data_block's docstring. Only `message`
+            # phrasing may be influenced; facts/actions stay rule-based.
+            case_data_block = build_untrusted_case_data_block(context)
             prompt = (
                 "You rewrite a draft response for a bankruptcy-preparation assistant into concise, "
                 "plain language. Do not add facts, legal advice, promises, or hidden assumptions. "
-                f"Keep the same language as the draft (Spanish).\n\nDraft:\n{draft_message}\n\nRewrite:"
+                f"Keep the same language as the draft (Spanish).\n\n{case_data_block}"
+                f"Draft:\n{draft_message}\n\nRewrite:"
             )
             with torch.inference_mode():
                 result = pipeline(

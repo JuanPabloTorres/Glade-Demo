@@ -33,6 +33,10 @@ ERROR_MESSAGES: dict[str, dict[str, str]] = {
         "es": "El servicio de inteligencia artificial no está disponible.",
         "en": "The artificial intelligence service is unavailable.",
     },
+    "errors.codes.RATE_LIMITED": {
+        "es": "Demasiados intentos de inicio de sesión. Intenta de nuevo en unos minutos.",
+        "en": "Too many login attempts. Try again in a few minutes.",
+    },
     "errors.codes.INTERNAL_ERROR": {
         "es": "Ocurrió un error interno inesperado.",
         "en": "An unexpected internal error occurred.",

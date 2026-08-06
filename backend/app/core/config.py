@@ -1,5 +1,7 @@
 from functools import lru_cache
+from typing import ClassVar
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,16 +12,33 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # Security audit finding #3 (docs/audits/GLADE-DEMO-GROUNDED-STATE-
+    # 2026-08-06.md §5): this literal must stay a named constant, not just an
+    # inline default, so `_reject_default_jwt_secret_in_production` below can
+    # compare against the exact same value without duplicating the string.
+    DEFAULT_JWT_SECRET: ClassVar[str] = "freshstart-public-demo-signing-key-change-before-real-data"
+
     app_name: str = "FreshStart Bankruptcy Guide"
     environment: str = "development"
     api_v1_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:5173"
 
-    jwt_secret: str = "freshstart-public-demo-signing-key-change-before-real-data"
+    jwt_secret: str = DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
     jwt_expiration_minutes: int = 45
     jwt_issuer: str = "freshstart-guide"
     jwt_audience: str = "freshstart-web"
+
+    # Login brute-force throttling (audit finding #2: "no rate limiting on
+    # login... no lockout, no delay, no attempt counter"). Enforced by the
+    # in-memory sliding-window limiter in app.core.security, keyed by
+    # (client IP, attempted email) so unrelated users/IPs never share a
+    # counter. Configurable here rather than hardcoded so a real deployment
+    # can tune it without a code change; the defaults (5 attempts / 5
+    # minutes) match OWASP's typical login-throttling guidance for a demo
+    # of this size.
+    login_rate_limit_max_attempts: int = 5
+    login_rate_limit_window_seconds: int = 300
 
     demo_client_id: str = "client-demo"
     demo_client_email: str = "client@freshstart.demo"
@@ -62,6 +81,21 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [item.strip() for item in self.cors_origins.split(",") if item.strip()]
+
+    @model_validator(mode="after")
+    def _reject_default_jwt_secret_in_production(self) -> "Settings":
+        # Security audit finding #3: refuse to boot rather than silently
+        # sign production tokens with a publicly-known demo secret. Fires
+        # the moment Settings() is constructed, which is at import time for
+        # the real app (see `settings = get_settings()` in app.main) — not
+        # just in some narrower, skippable "startup check" path.
+        if self.environment == "production" and self.jwt_secret == self.DEFAULT_JWT_SECRET:
+            raise ValueError(
+                "JWT_SECRET must be overridden before running with ENVIRONMENT=production. "
+                "Refusing to boot with the public demo signing key "
+                f"({self.DEFAULT_JWT_SECRET!r})."
+            )
+        return self
 
 
 @lru_cache

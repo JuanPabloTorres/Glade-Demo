@@ -72,6 +72,11 @@ def handle_http_exception(request: Request, exc: HTTPException) -> JSONResponse:
         404: ("RESOURCE_NOT_FOUND", "errors.codes.RESOURCE_NOT_FOUND"),
         409: ("CONFLICT", "errors.codes.CONFLICT"),
         422: ("VALIDATION_ERROR", "errors.codes.VALIDATION_ERROR"),
+        # Login rate limiting (audit finding #2) raises this from
+        # app.api.routers.auth.login; routed through the same translatable
+        # {code, messageKey, message, parameters, traceId} DTO as every
+        # other error response.
+        429: ("RATE_LIMITED", "errors.codes.RATE_LIMITED"),
     }
     code, message_key = status_to_error.get(exc.status_code, ("INTERNAL_ERROR", "errors.codes.INTERNAL_ERROR"))
     message = localize_message(message_key, locale)

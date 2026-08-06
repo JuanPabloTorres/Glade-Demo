@@ -16,6 +16,11 @@ from __future__ import annotations
 
 import pytest
 
+from app.ai.providers.rule_based import RuleBasedProvider
+from app.core.config import get_settings
+from app.schemas.assistant import CaseContextDto
+from app.schemas.bankruptcy import BankruptcyCaseDto, GuidanceRequestDto
+from app.services.bankruptcy_service import BankruptcyGuidanceService
 from app.services.documents import (
     CaseDocumentIndex,
     DocumentChunker,
@@ -143,6 +148,66 @@ class TestCaseDocumentIndexIsolation:
         index = CaseDocumentIndex()
         index.add_document("case-a", ["algo"])
         assert index.search("case-never-indexed", "algo") == []
+
+
+class TestCaseDocumentIndexIsolationThroughGuidanceFlow:
+    """
+    Mirrors TestCaseDocumentIndexIsolation above, but exercises the real
+    wiring path: docs/audits/GLADE-DEMO-GROUNDED-STATE-2026-08-06.md §4
+    flagged that `CaseDocumentIndex.search()` was implemented but never
+    called from `bankruptcy_service.py`. This proves `guide()` now calls it
+    AND that the isolation guarantee survives all the way through
+    `BankruptcyGuidanceService.guide()` into the `CaseContextDto` a provider
+    actually receives — not just at the raw `CaseDocumentIndex` layer.
+    """
+
+    class _CapturingProvider:
+        """Delegates to RuleBasedProvider (so guardrails/response shape stay
+        realistic) but records every `context` it was handed, so the test
+        can assert on what the service actually built without a live
+        Ollama/transformers model."""
+
+        def __init__(self) -> None:
+            self.contexts: list[CaseContextDto] = []
+
+        def is_available(self) -> bool:
+            return True
+
+        def generate(self, *, context: CaseContextDto, message: str):
+            self.contexts.append(context)
+            return RuleBasedProvider().generate(context=context, message=message)
+
+    def test_guide_never_surfaces_another_cases_retrieved_documents(self) -> None:
+        index = CaseDocumentIndex()
+        index.add_document("case-a", ["Elena tiene un ingreso de $2,000 mensuales por nomina."])
+        index.add_document("case-b", ["Miguel tiene una deuda hipotecaria de $150,000 en mora."])
+
+        provider = self._CapturingProvider()
+        service = BankruptcyGuidanceService(
+            get_settings(), provider=provider, document_index=index
+        )
+
+        case_a = BankruptcyCaseDto(
+            id="case-a", owner_user_id="client-demo",
+            client_name="Elena Rivera", client_email="client@freshstart.demo",
+        )
+        case_b = BankruptcyCaseDto(
+            id="case-b", owner_user_id="client-demo",
+            client_name="Miguel Santos", client_email="miguel@freshstart.demo",
+        )
+
+        service.guide(
+            GuidanceRequestDto(case=case_a, message="ingreso mensual", role="client", locale="es")
+        )
+        service.guide(
+            GuidanceRequestDto(case=case_b, message="ingreso mensual", role="client", locale="es")
+        )
+
+        context_a, context_b = provider.contexts
+        assert any("Elena" in chunk for chunk in context_a.retrieved_documents)
+        assert all("Miguel" not in chunk for chunk in context_a.retrieved_documents)
+        assert any("Miguel" in chunk for chunk in context_b.retrieved_documents)
+        assert all("Elena" not in chunk for chunk in context_b.retrieved_documents)
 
 
 class TestDocumentIngestionService:

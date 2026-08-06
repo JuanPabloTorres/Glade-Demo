@@ -12,7 +12,7 @@ import {
   Textarea,
   TextInput,
 } from "flowbite-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { bankruptcyApi } from "../api/bankruptcyApi";
@@ -38,18 +38,62 @@ import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext"
 import { currency, localCompletion, monthlyAmount } from "../workspace/caseMetrics";
 import { formatDate } from "../i18n/format";
 
-const ATTORNEY_REVIEW_TAB_INDEX = 10;
-/** Maps a backend GuidanceResponseDto.focus_section value to this page's tab index. */
-const FOCUS_SECTION_TAB_INDEX: Record<string, number> = {
-  overview: 0,
-  household: 1,
-  "income-expenses": 2,
-  "debts-assets": 4,
-  evidence: 6,
-  review: 7,
-  timeline: 9,
-  "attorney-review": ATTORNEY_REVIEW_TAB_INDEX,
-  "chapter-comparison": 0,
+/**
+ * Stable, position-independent identifiers for every stage of the workspace.
+ * This is the single source of truth for "which stage is active" — nothing
+ * else in this file encodes a stage as a positional number. The Flowbite tab
+ * index (which Flowbite's uncontrolled `Tabs` component needs) is always
+ * *derived* from a stage's position in `BASE_STAGE_ORDER` (see STAGE_ORDER
+ * below), never hardcoded, so reordering a `TabItem` can never desync a
+ * shortcut or deep-link from the tab it's supposed to open.
+ */
+export type CaseStage =
+  | "start"
+  | "household"
+  | "income"
+  | "expenses"
+  | "debts"
+  | "assets"
+  | "documents"
+  | "review"
+  | "submitted"
+  | "tracking"
+  | "attorney-review";
+
+/**
+ * Order of the always-present `TabItem`s, matching the JSX order below.
+ * "attorney-review" is appended conditionally (only attorneys get that tab) —
+ * see STAGE_ORDER in the component body, which is the only place that adds it.
+ */
+export const BASE_STAGE_ORDER: readonly CaseStage[] = [
+  "start",
+  "household",
+  "income",
+  "expenses",
+  "debts",
+  "assets",
+  "documents",
+  "review",
+  "submitted",
+  "tracking",
+];
+
+/**
+ * Translates the backend's `GuidanceResponseDto.focus_section` vocabulary
+ * (see ChatPanel.tsx, which builds `?focus=<value>`) into a canonical
+ * `CaseStage`. This is a vocabulary alias, not a position map — it never
+ * encodes an index, so it can't go stale when tabs are reordered.
+ */
+export const FOCUS_PARAM_TO_STAGE: Record<string, CaseStage> = {
+  overview: "start",
+  household: "household",
+  "income-expenses": "income",
+  "debts-assets": "debts",
+  evidence: "documents",
+  review: "review",
+  timeline: "tracking",
+  "attorney-review": "attorney-review",
+  "chapter-comparison": "start",
 };
 
 function statusColor(status: CaseStatus): "gray" | "warning" | "success" | "info" {
@@ -71,8 +115,30 @@ export function CaseWorkspacePage() {
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [modalKind, setModalKind] = useState<EntryKind | null>(null);
-  const [activeTab, setActiveTab] = useState(0);
+  // Single source of truth for which stage is active — see CaseStage and
+  // BASE_STAGE_ORDER above. Replaces the old `activeTab` positional index.
+  const [activeStage, setActiveStage] = useState<CaseStage>("start");
   const tabsRef = useRef<TabsRef>(null);
+  const isAttorney = user?.role === "attorney";
+
+  // The attorney-review TabItem only renders for attorneys (JSX below), so it
+  // only belongs in STAGE_ORDER for that role — this is the one place that
+  // appends it, so the Flowbite index Tabs sees always matches what's
+  // actually rendered.
+  const STAGE_ORDER = useMemo<CaseStage[]>(
+    () => (isAttorney ? [...BASE_STAGE_ORDER, "attorney-review"] : [...BASE_STAGE_ORDER]),
+    [isAttorney],
+  );
+
+  // Every navigation — user clicks and URL deep-links alike — goes through
+  // this single function. It only ever sets `activeStage`; nothing here (or
+  // anywhere else) computes a Flowbite tab index directly.
+  const navigateToStage = useCallback(
+    (stage: CaseStage) => {
+      setActiveStage(STAGE_ORDER.includes(stage) ? stage : "start");
+    },
+    [STAGE_ORDER],
+  );
 
   useEffect(() => {
     if (!caseData) return;
@@ -88,17 +154,43 @@ export function CaseWorkspacePage() {
   }, [caseData, t]);
 
   // Deep-link support for the chat's "Abrir sección recomendada" action —
-  // see ChatPanel.tsx, which navigates here with ?focus=<section>.
+  // see ChatPanel.tsx, which navigates here with ?focus=<section>. Resolves
+  // through the same navigateToStage() every click uses, so a deep-link and
+  // a stepper click for the same stage always land in the same place.
   useEffect(() => {
     const focus = searchParams.get("focus");
     if (!focus) return;
-    const index = FOCUS_SECTION_TAB_INDEX[focus];
-    if (index !== undefined) tabsRef.current?.setActiveTab(index);
+    const stage = FOCUS_PARAM_TO_STAGE[focus];
+    if (stage) navigateToStage(stage);
     const next = new URLSearchParams(searchParams);
     next.delete("focus");
     setSearchParams(next, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, setSearchParams, navigateToStage]);
+
+  // The ONE place that drives Flowbite's uncontrolled Tabs component from
+  // `activeStage`. Flowbite's Tabs exposes no controlled `activeTab` prop —
+  // only this imperative ref — so this effect is the sole call site for it;
+  // every navigation path (deep-link, stepper, attorney-review shortcut)
+  // goes through navigateToStage()/setActiveStage() above instead of calling
+  // this ref directly.
+  //
+  // Flowbite's ref.setActiveTab() synchronously re-invokes onActiveTabChange
+  // (see flowbite-react's Tabs.tsx: both the click handler and the ref call
+  // route through the same setActiveTabWithCallback). Without the guard
+  // below, that echo calls setActiveStage() with this effect's own *stale*
+  // render-time index — e.g. on first mount, before the deep-link effect's
+  // setActiveStage("tracking") has committed — clobbering the real
+  // navigation with whatever `activeStage` this effect closed over. The
+  // ref flags "this setActiveTab call originated from us", so the echoed
+  // onActiveTabChange is a no-op instead of a second, wrong navigation.
+  const isSyncingTabsRef = useRef(false);
+  useEffect(() => {
+    const index = STAGE_ORDER.indexOf(activeStage);
+    if (index < 0) return;
+    isSyncingTabsRef.current = true;
+    tabsRef.current?.setActiveTab(index);
+    isSyncingTabsRef.current = false;
+  }, [activeStage, STAGE_ORDER]);
 
   if (!caseData || !user) return <Navigate to={ROUTES.home} replace />;
   if (user.role === "client" && caseData.ownerUserId !== user.id) return <Navigate to={ROUTES.home} replace />;
@@ -127,7 +219,6 @@ export function CaseWorkspacePage() {
     update((current) => ({ ...current, household: { ...current.household, urgentCollectionAction: !current.household.urgentCollectionAction } }));
 
   const completion = analysis?.completion_score ?? localCompletion(caseData);
-  const isAttorney = user.role === "attorney";
   const isSubmitted = caseData.status !== "draft" && caseData.status !== "collecting_information";
   const stageStepperTitles = [
     t("workspace:tabs.start"),
@@ -194,7 +285,7 @@ export function CaseWorkspacePage() {
             analysis={analysis}
             onUpdate={update}
             onMarkUrgent={markUrgent}
-            onOpenAttorneyReviewTab={() => tabsRef.current?.setActiveTab(ATTORNEY_REVIEW_TAB_INDEX)}
+            onOpenAttorneyReviewTab={() => navigateToStage("attorney-review")}
           />
         </Card>
       ) : null}
@@ -202,8 +293,8 @@ export function CaseWorkspacePage() {
       {!isAttorney ? (
         <CaseStageStepper
           stages={stageStepperTitles}
-          currentIndex={Math.max(0, Math.min(activeTab, stageStepperTitles.length - 1))}
-          onSelect={(index) => tabsRef.current?.setActiveTab(index)}
+          currentIndex={Math.max(0, STAGE_ORDER.indexOf(activeStage))}
+          onSelect={(index) => navigateToStage(STAGE_ORDER[index] ?? "start")}
         />
       ) : null}
 
@@ -211,7 +302,14 @@ export function CaseWorkspacePage() {
         ref={tabsRef}
         variant="underline"
         className="workspace-tabs"
-        onActiveTabChange={(index) => setActiveTab(index)}
+        onActiveTabChange={(index) => {
+          // Ignore the echo from our own sync effect (see isSyncingTabsRef
+          // above) — only react to genuine user-driven tab clicks/keyboard
+          // navigation on Flowbite's own tab strip.
+          if (isSyncingTabsRef.current) return;
+          const stage = STAGE_ORDER[index];
+          if (stage) setActiveStage(stage);
+        }}
       >
         <TabItem title={t("workspace:tabs.start")} active>
           <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">

@@ -6,7 +6,7 @@ import urllib.error
 import urllib.request
 from typing import TYPE_CHECKING
 
-from app.ai.providers.base import GuidanceDraft
+from app.ai.providers.base import GuidanceDraft, build_untrusted_case_data_block
 from app.ai.providers.rule_based import RuleBasedProvider
 
 if TYPE_CHECKING:
@@ -50,13 +50,23 @@ class OllamaProvider:
 
     def generate(self, *, context: CaseContextDto, message: str) -> GuidanceDraft:
         draft = self._fallback.generate(context=context, message=message)
-        rewritten = self._rewrite(draft_message=draft.message)
+        rewritten = self._rewrite(draft_message=draft.message, context=context)
         if rewritten:
             draft.message = rewritten
         return draft
 
-    def _rewrite(self, *, draft_message: str) -> str | None:
-        prompt = f"{_REWRITE_SYSTEM_PROMPT}\n\nDraft:\n{draft_message}\n\nRewrite:"
+    def _rewrite(self, *, draft_message: str, context: CaseContextDto) -> str | None:
+        # Retrieved RAG chunks (context.retrieved_documents) may contain
+        # attacker- or client-authored text; build_untrusted_case_data_block
+        # frames them as inert reference data, never as instructions, before
+        # they ever reach the model (prompt-injection defense — see its
+        # docstring). Only `draft.message` phrasing can be influenced this
+        # way; intent/actions/focus_section/requires_attorney_review were
+        # already decided by RuleBasedProvider above and are untouched here.
+        case_data_block = build_untrusted_case_data_block(context)
+        prompt = (
+            f"{_REWRITE_SYSTEM_PROMPT}\n\n{case_data_block}Draft:\n{draft_message}\n\nRewrite:"
+        )
         payload = json.dumps(
             {"model": self._model, "prompt": prompt, "stream": False}
         ).encode("utf-8")

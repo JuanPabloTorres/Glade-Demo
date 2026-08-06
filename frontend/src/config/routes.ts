@@ -12,7 +12,7 @@ export const ROUTES = {
 
 /**
  * Deep-link focus sections understood by CaseWorkspacePage's `?focus=`
- * query param (see FOCUS_SECTION_TAB_INDEX in CaseWorkspacePage.tsx). Kept
+ * query param (see FOCUS_PARAM_TO_STAGE in CaseWorkspacePage.tsx). Kept
  * here so the sidebar can link straight to a stage without duplicating the
  * raw string keys.
  */

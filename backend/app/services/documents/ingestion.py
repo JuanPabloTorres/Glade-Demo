@@ -6,7 +6,7 @@ from app.services.documents.chunking import DocumentChunker
 from app.services.documents.classification import DocumentClassifier
 from app.services.documents.evidence_extraction import ExtractedAmount, FinancialEvidenceExtractor
 from app.services.documents.extraction import DocumentTextExtractor
-from app.services.documents.index import CaseDocumentIndex
+from app.services.documents.index import CaseDocumentIndex, get_shared_case_document_index
 
 
 @dataclass
@@ -37,7 +37,12 @@ class DocumentIngestionService:
         self._classifier = classifier or DocumentClassifier()
         self._evidence_extractor = evidence_extractor or FinancialEvidenceExtractor()
         self._chunker = chunker or DocumentChunker()
-        self._index = index or CaseDocumentIndex()
+        # Defaults to the process-wide shared index (see
+        # `get_shared_case_document_index`'s docstring) so documents ingested
+        # here are actually visible to `BankruptcyGuidanceService.guide()`'s
+        # RAG search by default — pass an explicit `index=` (as tests do) to
+        # opt out of the shared instance.
+        self._index = index or get_shared_case_document_index()
 
     def ingest(self, *, case_id: str, filename: str, content: bytes) -> IngestionResult:
         text = self._extractor.extract(filename=filename, content=content)

@@ -51,6 +51,29 @@ class CaseDocumentIndex:
         return len(self._buckets.get(case_id, []))
 
 
+_shared_index: CaseDocumentIndex | None = None
+
+
+def get_shared_case_document_index() -> CaseDocumentIndex:
+    """
+    One process-wide `CaseDocumentIndex` — the same instance
+    `DocumentIngestionService` writes into (`app.services.documents
+    .ingestion`) and `BankruptcyGuidanceService.guide()` reads from
+    (`app.services.bankruptcy_service`). Without this, documents ingested
+    via `POST /documents/analyze` would sit in one process-local index while
+    `guide()` searched a different, always-empty one — the exact "RAG is
+    indexed but never retrieved" gap from
+    docs/audits/GLADE-DEMO-GROUNDED-STATE-2026-08-06.md §4. Tests that need
+    isolation from this shared instance should construct their own
+    `CaseDocumentIndex()` explicitly and inject it, rather than use this
+    getter.
+    """
+    global _shared_index
+    if _shared_index is None:
+        _shared_index = CaseDocumentIndex()
+    return _shared_index
+
+
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
     if not a or not b or len(a) != len(b):
         return 0.0

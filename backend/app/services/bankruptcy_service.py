@@ -8,6 +8,8 @@ from app.ai.guardrails import ResponseGuardrails
 from app.ai.providers import BaseAIProvider, get_provider_for_settings
 from app.core.config import Settings
 from app.core.i18n import resolve_locale
+from app.domain.value_objects import ConversationRole
+from app.repositories.protocols import AIConversationRepositoryProtocol, CaseRepositoryProtocol
 from app.schemas.assistant import AssistantAction, AssistantResponse
 from app.schemas.bankruptcy import (
     BankruptcyCaseDto,
@@ -15,6 +17,14 @@ from app.schemas.bankruptcy import (
     GuidanceRequestDto,
 )
 from app.services.case_context_builder import CaseContextBuilder
+from app.services.documents.index import CaseDocumentIndex, get_shared_case_document_index
+
+# CaseContextDto.timeline / recent_conversation are kept small — this is
+# context for the assistant to sound aware, not a full audit dump the
+# provider has to wade through.
+_TIMELINE_CONTEXT_LIMIT = 10
+_CONVERSATION_CONTEXT_LIMIT = 6
+_RETRIEVED_DOCUMENTS_TOP_K = 3
 
 FREQUENCY_MULTIPLIERS = {
     "weekly": 52 / 12,
@@ -330,21 +340,76 @@ class BankruptcyAnalysisService:
 
 
 class BankruptcyGuidanceService:
-    def __init__(self, settings: Settings, provider: BaseAIProvider | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        provider: BaseAIProvider | None = None,
+        case_repository: CaseRepositoryProtocol | None = None,
+        conversation_repository: AIConversationRepositoryProtocol | None = None,
+        document_index: CaseDocumentIndex | None = None,
+    ) -> None:
         self._analysis = BankruptcyAnalysisService()
         self._context_builder = CaseContextBuilder()
         self._provider = provider or get_provider_for_settings(settings)
         self._guardrails = ResponseGuardrails()
+        # All three are optional (None-safe below) so this service stays
+        # constructible/testable without a database — the router is the one
+        # place that wires the real repositories in
+        # (app.api.routers.bankruptcy.guide_case).
+        self._cases = case_repository
+        self._conversations = conversation_repository
+        # Defaults to the same process-wide index DocumentIngestionService
+        # writes into — see get_shared_case_document_index's docstring.
+        self._document_index = document_index or get_shared_case_document_index()
 
     def guide(self, request: GuidanceRequestDto) -> AssistantResponse:
         analysis = self._analysis.analyze(request.case)
         locale = resolve_locale(request.locale)
-        context = self._context_builder.build(request.case, analysis, request.role, locale)
+
+        # RAG retrieval (docs/audits/GLADE-DEMO-GROUNDED-STATE-2026-08-06.md
+        # §4: "CaseDocumentIndex.search() is implemented but never called").
+        # The query is the user's own message; search() is isolated per
+        # case_id by construction (CaseDocumentIndex docstring), so this can
+        # never surface another case's chunks.
+        retrieved_documents = self._document_index.search(
+            request.case.id, request.message, top_k=_RETRIEVED_DOCUMENTS_TOP_K
+        )
+        timeline = (
+            self._cases.get_recent_timeline(request.case.id, limit=_TIMELINE_CONTEXT_LIMIT)
+            if self._cases is not None
+            else []
+        )
+        recent_conversation = (
+            self._conversations.list_recent(request.case.id, limit=_CONVERSATION_CONTEXT_LIMIT)
+            if self._conversations is not None
+            else []
+        )
+
+        context = self._context_builder.build(
+            request.case,
+            analysis,
+            request.role,
+            locale,
+            timeline=timeline,
+            recent_conversation=recent_conversation,
+            retrieved_documents=retrieved_documents,
+        )
         draft = self._provider.generate(context=context, message=request.message)
         # Guardrails run on every provider's output, rule-based or model-
         # rewritten, before anything reaches the client (master instruction
         # §7.7) — never skipped, never provider-specific.
         guarded = self._guardrails.review(draft.message)
+
+        if self._conversations is not None:
+            # Persisted as two turns (schema is case_id/role/message/
+            # created_at only, no separate "response" column — see
+            # AIConversationModel docstring) so `list_recent` can read both
+            # sides of the exchange back in chronological order next time.
+            self._conversations.add_turn(request.case.id, ConversationRole.USER, request.message)
+            self._conversations.add_turn(
+                request.case.id, ConversationRole.ASSISTANT, guarded.message
+            )
+
         return AssistantResponse(
             message=guarded.message,
             intent=draft.intent,

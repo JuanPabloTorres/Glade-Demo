@@ -189,6 +189,30 @@ class SqlAlchemyCaseRepository:
             )
         )
 
+    def get_recent_timeline(self, case_id: str, limit: int = 10) -> list[TimelineEventEntity]:
+        # Isolation by construction, same WHERE-clause pattern as
+        # DocumentRepository.list_for_case: no code path here can return
+        # another case's timeline rows. Ordered newest-first for the LIMIT,
+        # then reversed so callers (CaseContextBuilder) see chronological
+        # order, oldest-first, matching how a human would read a timeline.
+        stmt = (
+            select(CaseTimelineModel)
+            .where(CaseTimelineModel.case_id == case_id)
+            .order_by(CaseTimelineModel.created_at.desc())
+            .limit(limit)
+        )
+        rows = self._session.execute(stmt).scalars().all()
+        return [
+            TimelineEventEntity(
+                id=row.id,
+                case_id=row.case_id,
+                event_type=TimelineEventType(row.event_type),
+                message=row.message,
+                created_at=row.created_at,
+            )
+            for row in reversed(rows)
+        ]
+
     def add_note(self, case_id: str, author_user_id: str, body: str) -> None:
         self._session.add(
             CaseNoteModel(case_id=case_id, author_user_id=author_user_id, body=body)
