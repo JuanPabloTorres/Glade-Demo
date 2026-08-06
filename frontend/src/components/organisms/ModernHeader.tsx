@@ -9,20 +9,52 @@ import {
   Navbar,
   NavbarBrand,
   NavbarCollapse,
-  NavbarLink,
   NavbarToggle,
   Tooltip,
+  useNavbarContext,
 } from "flowbite-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../../auth/AuthContext";
 import { APP_VERSION } from "../../config/version";
 import { useAiHealth } from "../../hooks/useAiHealth";
 import { LanguageSelector } from "../molecules/LanguageSelector";
 import { useBankruptcyWorkspace } from "../../workspace/BankruptcyWorkspaceContext";
 import { localCompletion } from "../../workspace/caseMetrics";
-import { AppIcon } from "../atoms/AppIcon";
+import { AppIcon, type AppIconName } from "../atoms/AppIcon";
+
+/**
+ * A header tab is a route + a referential icon (never a generic bullet) so
+ * the icon actually maps to what the section is — a folder for the case
+ * file, an inbox for the attorney's queue, etc. The active tab renders on
+ * the brand gradient with white text (guaranteed contrast on a colored
+ * background); the inactive/hover state stays on light, muted-indigo
+ * surfaces with dark text — never a colored background paired with
+ * same-hue text.
+ */
+function HeaderTab({ to, icon, label }: { to: string; icon: AppIconName; label: string }) {
+  const location = useLocation();
+  const { setIsOpen } = useNavbarContext();
+  const isActive = location.pathname === to || (to !== "/" && location.pathname.startsWith(`${to}/`));
+
+  return (
+    <li>
+      <Link
+        to={to}
+        onClick={() => setIsOpen(false)}
+        className={`flex items-center gap-2 rounded-lg px-3 py-2 font-semibold transition-colors ${
+          isActive
+            ? "glade-gradient text-white shadow-md shadow-indigo-950/15"
+            : "text-(--color-text) hover:bg-indigo-50 hover:text-indigo-700"
+        }`}
+      >
+        <AppIcon name={icon} size={17} />
+        {label}
+      </Link>
+    </li>
+  );
+}
 
 /**
  * Role-aware navigation per master instruction §12. Client sees their own
@@ -179,11 +211,15 @@ export function ModernHeader() {
         </div>
 
         <NavbarCollapse>
-          <NavbarLink href="/" className="rounded-lg px-3 py-2 font-medium">{isAttorney ? t("navigation:header.queue") : t("navigation:header.homeClient")}</NavbarLink>
+          <HeaderTab
+            to="/"
+            icon={isAttorney ? "queue" : "home"}
+            label={isAttorney ? t("navigation:header.queue") : t("navigation:header.homeClient")}
+          />
           {activeClientCase ? (
-            <NavbarLink href={`/case/${activeClientCase.id}`} className="rounded-lg px-3 py-2 font-medium">{t("navigation:header.workspace")}</NavbarLink>
+            <HeaderTab to={`/case/${activeClientCase.id}`} icon="folder" label={t("navigation:header.workspace")} />
           ) : null}
-          <NavbarLink href="/about" className="rounded-lg px-3 py-2 font-medium">{t("navigation:header.help")}</NavbarLink>
+          <HeaderTab to="/about" icon="help" label={t("navigation:header.help")} />
         </NavbarCollapse>
       </Navbar>
     </header>

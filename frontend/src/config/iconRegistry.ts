@@ -4,12 +4,18 @@ import {
   HiCalculator,
   HiChatBubbleLeftRight,
   HiCheckCircle,
+  HiClipboardDocumentCheck,
   HiCreditCard,
   HiClock,
   HiDocument,
   HiDocumentText,
   HiExclamationTriangle,
+  HiFolderOpen,
+  HiHandRaised,
   HiHome,
+  HiInboxStack,
+  HiInformationCircle,
+  HiLockClosed,
   HiMagnifyingGlass,
   HiQuestionMarkCircle,
   HiReceiptPercent,
@@ -47,6 +53,13 @@ export const iconRegistry = {
   document: HiDocument,
   search: HiMagnifyingGlass,
   help: HiQuestionMarkCircle,
+  // Header/footer navigation tabs (referential, not generic bullets):
+  folder: HiFolderOpen, // case workspace / "Expediente"
+  queue: HiInboxStack, // attorney case inbox / "Bandeja"
+  info: HiInformationCircle, // "Acerca de"
+  lock: HiLockClosed, // "Privacidad"
+  accessibility: HiHandRaised, // "Accesibilidad"
+  terms: HiClipboardDocumentCheck, // "Términos"
 } as const satisfies Record<string, IconType>;
 
 export type IconRegistryName = keyof typeof iconRegistry;

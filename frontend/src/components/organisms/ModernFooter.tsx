@@ -1,7 +1,37 @@
-import { Badge, Footer, FooterCopyright, FooterDivider, FooterLink, FooterLinkGroup } from "flowbite-react";
+import { Badge, Footer, FooterCopyright, FooterDivider, FooterLinkGroup } from "flowbite-react";
 import { useTranslation } from "react-i18next";
+import { Link, useLocation } from "react-router";
 import { APP_VERSION } from "../../config/version";
-import { AppIcon } from "../atoms/AppIcon";
+import { AppIcon, type AppIconName } from "../atoms/AppIcon";
+
+/**
+ * Same contrast rule as the header tabs: the active link sits on a solid
+ * indigo pill with white text (never a colored background paired with
+ * same-hue text), everything else stays on a neutral surface with muted
+ * text that darkens on hover — and every link carries an icon that
+ * actually refers to what it links to (a lock for privacy, a shield for
+ * security, etc.), not a bare text link.
+ */
+function FooterTab({ to, icon, label }: { to: string; icon: AppIconName; label: string }) {
+  const location = useLocation();
+  const isActive = `${location.pathname}${location.hash}` === to;
+
+  return (
+    <li>
+      <Link
+        to={to}
+        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors ${
+          isActive
+            ? "bg-indigo-600 text-white"
+            : "text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
+        }`}
+      >
+        <AppIcon name={icon} size={15} />
+        {label}
+      </Link>
+    </li>
+  );
+}
 
 export function ModernFooter() {
   const { t } = useTranslation(["navigation", "common"]);
@@ -24,14 +54,14 @@ export function ModernFooter() {
               {t("navigation:footer.disclaimer")}
             </p>
           </div>
-          <FooterLinkGroup className="flex-wrap gap-x-6 gap-y-3 lg:justify-end">
-            <FooterLink href="/">{t("navigation:footer.portal")}</FooterLink>
-            <FooterLink href="/about">{t("navigation:footer.about")}</FooterLink>
-            <FooterLink href="/about#privacy">{t("navigation:footer.privacy")}</FooterLink>
-            <FooterLink href="/about#security">{t("navigation:footer.security")}</FooterLink>
-            <FooterLink href="/about#accessibility">{t("navigation:footer.accessibility")}</FooterLink>
-            <FooterLink href="/about#terms">{t("navigation:footer.terms")}</FooterLink>
-            <FooterLink href="/about#help">{t("navigation:footer.help")}</FooterLink>
+          <FooterLinkGroup className="flex-wrap gap-x-2 gap-y-2 lg:justify-end">
+            <FooterTab to="/" icon="home" label={t("navigation:footer.portal")} />
+            <FooterTab to="/about" icon="info" label={t("navigation:footer.about")} />
+            <FooterTab to="/about#privacy" icon="lock" label={t("navigation:footer.privacy")} />
+            <FooterTab to="/about#security" icon="shield" label={t("navigation:footer.security")} />
+            <FooterTab to="/about#accessibility" icon="accessibility" label={t("navigation:footer.accessibility")} />
+            <FooterTab to="/about#terms" icon="terms" label={t("navigation:footer.terms")} />
+            <FooterTab to="/about#help" icon="help" label={t("navigation:footer.help")} />
           </FooterLinkGroup>
         </div>
         <FooterDivider />
