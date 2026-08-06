@@ -34,13 +34,21 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
     operation_id=registry.get("admin.resetDemoData").operation_id,
 )
 def reset_demo_data_endpoint(
-    _current_user: CurrentUserDep,
+    current_user: CurrentUserDep,
     settings: SettingsDep,
 ) -> DemoResetResultDto:
     if settings.environment == "production":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Demo data reset is disabled in production.",
+        )
+    # Any authenticated client could otherwise wipe shared demo state out from
+    # under a concurrent attorney/client viewing the same demo — restrict the
+    # reset action to the attorney persona (flagged by security-reviewer).
+    if current_user.role != "attorney":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the attorney demo persona can reset demo data.",
         )
     reset_demo_data(settings)
     return DemoResetResultDto(status="reset", case_id=DEMO_CASE_ID)

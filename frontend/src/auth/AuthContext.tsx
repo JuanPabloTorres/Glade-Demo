@@ -19,7 +19,7 @@ interface AuthContextValue {
   user: AuthUserDto | null;
   isAuthenticated: boolean;
   isInitializing: boolean;
-  login: (dto: LoginDto) => Promise<void>;
+  login: (dto: LoginDto, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
 }
 
@@ -52,13 +52,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsInitializing(false));
   }, []);
 
-  const login = async (dto: LoginDto) => {
+  const login = async (dto: LoginDto, rememberMe = false) => {
     const token = await authApi.login(dto);
-    writeSession({
-      accessToken: token.access_token,
-      expiresAt: Date.now() + token.expires_in * 1000,
-      user: token.user,
-    });
+    writeSession(
+      {
+        accessToken: token.access_token,
+        expiresAt: Date.now() + token.expires_in * 1000,
+        user: token.user,
+      },
+      rememberMe,
+    );
     setUser(token.user);
   };
 

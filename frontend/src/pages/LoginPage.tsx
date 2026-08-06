@@ -42,7 +42,7 @@ export function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      await auth.login(credentials);
+      await auth.login(credentials, rememberMe);
       const destination = (location.state as { from?: string } | null)?.from ?? ROUTES.home;
       navigate(destination, { replace: true });
     } catch (error) {

@@ -16,8 +16,8 @@ from app.repositories.orm_models import CaseModel, UserModel
 from app.repositories.seed import DEMO_CASE_ID
 
 
-def test_reset_demo_data_recreates_demo_accounts_and_case(client: TestClient) -> None:
-    response = client.post("/api/v1/admin/demo/reset")
+def test_reset_demo_data_recreates_demo_accounts_and_case(attorney_client: TestClient) -> None:
+    response = attorney_client.post("/api/v1/admin/demo/reset")
     assert response.status_code == 200
     assert response.json() == {"status": "reset", "case_id": DEMO_CASE_ID}
 
@@ -44,12 +44,19 @@ def test_reset_demo_data_requires_jwt(client: TestClient) -> None:
     assert response.status_code == 401
 
 
-def test_reset_demo_data_is_disabled_in_production(client: TestClient) -> None:
+def test_reset_demo_data_is_disabled_in_production(attorney_client: TestClient) -> None:
     settings = get_settings()
     original_environment = settings.environment
     settings.environment = "production"
     try:
-        response = client.post("/api/v1/admin/demo/reset")
+        response = attorney_client.post("/api/v1/admin/demo/reset")
         assert response.status_code == 403
     finally:
         settings.environment = original_environment
+
+
+def test_reset_demo_data_requires_attorney_role(client: TestClient) -> None:
+    """The client demo persona must not be able to wipe shared demo state
+    out from under a concurrent attorney/client viewing the same demo."""
+    response = client.post("/api/v1/admin/demo/reset")
+    assert response.status_code == 403
