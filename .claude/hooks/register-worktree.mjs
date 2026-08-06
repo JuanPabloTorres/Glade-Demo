@@ -1,0 +1,10 @@
+import { readStdinJson, readJson, worktreeRegistryPath, writeJson } from "../../scripts/agent/common.mjs";
+const action = process.argv[2];
+const input = await readStdinJson();
+const registry = readJson(worktreeRegistryPath(), { worktrees: [] });
+const path = input.worktree_path || input.path;
+const branch = input.branch;
+if (!path) process.exit(0);
+if (action === "create") registry.worktrees.push({ path, branch, source: "claude-hook", createdAt: new Date().toISOString() });
+if (action === "remove") registry.worktrees = registry.worktrees.filter((item) => item.path !== path);
+writeJson(worktreeRegistryPath(), registry);

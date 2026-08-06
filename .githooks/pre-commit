@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+node scripts/agent/architecture-check.mjs
+node scripts/agent/flowbite-check.mjs
 make contracts
+npm --prefix frontend run i18n:check

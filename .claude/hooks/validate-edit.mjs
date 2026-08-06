@@ -1,0 +1,13 @@
+import { currentBranch, deny, loadActiveTask, matchesGlob, readStdinJson, repoRelative } from "../../scripts/agent/common.mjs";
+const input = await readStdinJson();
+const rawPath = input.tool_input?.file_path || input.tool_input?.path || input.file_path || input.path;
+if (currentBranch() === "main") deny("Main is read-only. Create a governed branch/worktree before editing.");
+const task = loadActiveTask();
+if (!task) deny("No active task manifest. Run /start-change before editing.");
+if (!rawPath) deny("Unable to determine edited path.");
+const path = repoRelative(rawPath);
+const owned = task.ownedPaths.some((pattern) => matchesGlob(pattern, path));
+const shared = task.sharedPaths.some((pattern) => matchesGlob(pattern, path));
+if (!owned && !shared) deny(`${path} is outside task ${task.taskId} ownership.`);
+if (["VERSION", "RELEASE_NOTES.md"].includes(path) && task.versionStrategy.owner !== "integration-manager") deny(`${path} is controlled by integration-manager.`);
+if (/\.env($|\.)/.test(path) && path !== ".env.example") deny("Do not write local secrets through an agent.");

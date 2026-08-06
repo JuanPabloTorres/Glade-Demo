@@ -1,0 +1,11 @@
+import { readStdinJson, repoRelative } from "../../scripts/agent/common.mjs";
+const input = await readStdinJson();
+const raw = input.tool_input?.file_path || input.tool_input?.path;
+if (!raw) process.exit(0);
+const path = repoRelative(raw);
+const checks = [];
+if (path.includes("/locales/")) checks.push("npm --prefix frontend run i18n:check");
+if (path === "contracts/api-contracts.json") checks.push("make contracts");
+if (/\.py$/.test(path)) checks.push("uv run ruff check <file> and relevant pytest");
+if (/\.(ts|tsx|css)$/.test(path)) checks.push("npm run agent:flowbite and relevant frontend tests");
+if (checks.length) console.log(`[governance] Next targeted checks for ${path}: ${checks.join("; ")}`);

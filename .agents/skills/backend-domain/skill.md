@@ -1,15 +1,9 @@
 ---
 name: backend-domain
-description: Implement FastAPI domain behavior using DTOs, services, repositories, unit of work, enums, and provider abstractions.
+description: Compatibility pointer to the current FastAPI service and contract workflows.
 ---
+# Compatibility
 
-# Backend Domain Skill
+Authoritative skills: `.claude/skills/backend-service-change/SKILL.md` and `.claude/skills/api-contract-change/SKILL.md`.
 
-- Add route metadata to `contracts/api-contracts.json` first.
-- Load route path and operation ID through `ContractRegistry`.
-- Keep router functions thin.
-- Put orchestration in services.
-- Persist through repository interfaces obtained from `SqlAlchemyUnitOfWork`.
-- Use enums for statuses, field names, case types, and document types.
-- Return Pydantic response DTOs.
-- Add service and API tests.
+The current backend does not implement SqlAlchemyUnitOfWork. Persistence requires an accepted ADR and real implementation.

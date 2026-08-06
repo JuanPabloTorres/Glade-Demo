@@ -1,14 +1,7 @@
 ---
 name: quality-gate
-description: Validate contracts, formatting, type safety, tests, build, and deployment readiness.
+description: Compatibility pointer to governed verification and independent release acceptance.
 ---
+# Compatibility
 
-# Quality Gate Skill
-
-Run in order:
-1. `make contracts`
-2. `make lint`
-3. `make test`
-4. `cd frontend && npm run build`
-5. Review `.env.example` and deployment docs for missing variables.
-6. Confirm all visible sample data is synthetic.
+Use `.claude/skills/targeted-verify/SKILL.md`, `.claude/skills/finish-change/SKILL.md`, and `.claude/agents/release-gate.md`. Run `npm run agent:verify` before declaring completion.
