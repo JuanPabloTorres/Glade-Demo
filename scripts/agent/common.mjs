@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 
 export const root = resolve(process.env.CLAUDE_PROJECT_DIR || process.cwd());
 
@@ -8,8 +8,37 @@ export function git(args, options = {}) {
   return execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...options }).trim();
 }
 
-export function currentBranch() {
-  try { return git(["branch", "--show-current"]); } catch { return ""; }
+/**
+ * Resolve which checkout a path belongs to.
+ *
+ * `root` is the primary worktree (CLAUDE_PROJECT_DIR). Rule 01-git-delivery
+ * mandates worktrees for parallel work, but every path helper below used to
+ * resolve against `root` unconditionally — so a file inside a linked
+ * worktree came out of `repoRelative` as `../Glade-Demo-<task>/backend/...`,
+ * matched no `ownedPaths` glob, and was denied. The governed workflow was
+ * unusable in exactly the setup the rules require.
+ *
+ * Walks up to the nearest existing directory first, so a path being created
+ * (Write on a new file in a new folder) resolves as well as an existing one.
+ */
+export function worktreeRootFor(target) {
+  if (!target) return root;
+  let candidate = resolve(root, target);
+  while (!existsSync(candidate)) {
+    const parent = dirname(candidate);
+    if (parent === candidate) return root;
+    candidate = parent;
+  }
+  const start = statSync(candidate).isDirectory() ? candidate : dirname(candidate);
+  try {
+    return resolve(execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: start, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim());
+  } catch {
+    return root;
+  }
+}
+
+export function currentBranch(cwd = root) {
+  try { return git(["branch", "--show-current"], { cwd }); } catch { return ""; }
 }
 
 export function commonDir() {
@@ -23,7 +52,29 @@ export function stateDir() {
   return dir;
 }
 
-export function activeTaskPath() { return resolve(stateDir(), "active-task.json"); }
+/**
+ * Path to the active task manifest **for one checkout**.
+ *
+ * Was a single `active-task.json` under the shared git common dir, which
+ * meant N concurrent worktrees fought over one file: registering a task in
+ * one worktree silently replaced the active task of every other, and the
+ * ownership hooks then denied edits in the worktree whose task had just been
+ * overwritten. Now keyed by worktree directory name, so each checkout owns
+ * its own manifest and `tasks/` stays the shared archive.
+ *
+ * The legacy single-file location is still read (never written) when no
+ * per-worktree manifest exists yet, so a task registered before this change
+ * keeps working instead of vanishing mid-flight — but only for the checkout
+ * that actually registered it. See loadActiveTask.
+ */
+export function activeTaskPath(forPath = root) {
+  const worktree = worktreeRootFor(forPath);
+  const dir = resolve(stateDir(), "active");
+  mkdirSync(dir, { recursive: true });
+  return resolve(dir, `${basename(worktree)}.json`);
+}
+
+export function legacyActiveTaskPath() { return resolve(stateDir(), "active-task.json"); }
 export function worktreeRegistryPath() { return resolve(stateDir(), "worktrees.json"); }
 
 export function readJson(path, fallback = null) {
@@ -36,7 +87,20 @@ export function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-export function loadActiveTask() { return readJson(activeTaskPath()); }
+export function loadActiveTask(forPath = root) {
+  const own = readJson(activeTaskPath(forPath));
+  if (own) return own;
+  // Fall back to the pre-migration shared manifest only when it actually
+  // describes THIS checkout. Nothing writes that file any more, so an
+  // unscoped fallback turns the last task registered before the migration
+  // into a permanent zombie: once a worktree completes its own manifest, the
+  // stale one reappears and every gate starts reporting someone else's task
+  // on someone else's branch. Matching workingBranch keeps the compatibility
+  // path working for the worktree that owns it and silent everywhere else.
+  const legacy = readJson(legacyActiveTaskPath());
+  if (!legacy) return null;
+  return legacy.workingBranch === currentBranch(worktreeRootFor(forPath)) ? legacy : null;
+}
 
 export function parseArgs(argv = process.argv.slice(2)) {
   const result = { _: [] };
@@ -67,7 +131,11 @@ export function matchesGlob(pattern, filePath) {
 }
 
 export function repoRelative(filePath) {
-  return relative(root, resolve(root, filePath)).replaceAll("\\", "/");
+  // Relative to the checkout the file actually lives in, not always the
+  // primary one — otherwise every path inside a linked worktree comes out as
+  // `../Glade-Demo-<task>/…` and matches no ownership glob.
+  const absolute = resolve(root, filePath);
+  return relative(worktreeRootFor(absolute), absolute).replaceAll("\\", "/");
 }
 
 export async function readStdinJson() {
