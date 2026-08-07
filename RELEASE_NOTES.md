@@ -1,3 +1,41 @@
+# FreshStart 4.0.0
+
+Strands Agents orchestration replaces the rewrite-only Ollama provider (`feat/strands-agent-layer`). Contract-breaking: see `docs/decisions/0002-strands-agent-orchestration.md` for the decision, the rejected options and the rollback path.
+
+## The assistant can now look things up
+
+Until 3.1.0 a model could only rephrase a deterministic draft — `RuleBasedProvider` decided every fact, action and section, and `OllamaProvider` swapped the prose. Safe, but the assistant could never answer anything the rule engine had not anticipated.
+
+An orchestrator now delegates to five role-gated specialists (Agents-as-Tools), each holding only the read-only tools it needs: case status, financial figures, documents and RAG search, product help, and attorney review notes. Facts reach the model through tools, never through the prompt.
+
+## What did not change
+
+- **No automated legal advice.** The model cannot author the disclaimer and cannot lower `requires_attorney_review` — both are server-computed from the deterministic draft and the guardrails.
+- **No cross-case access.** No tool accepts a `case_id` or `role`; tools close over the case `CaseAccessService` already authorized. Asserted against the JSON schema the model is actually handed, not just the Python signature.
+- **The assistant always answers.** The deterministic draft is computed on every request. Missing extra, missing credentials, timeout, bad output or any other failure degrades to it, reported honestly as `degraded: true`.
+- **Default deployment is unchanged.** `AI_PROVIDER` stays `rule_based`; the agent layer is an optional `agents` extra, excluded from the trimmed Vercel function.
+
+## Breaking change
+
+`AssistantResponse` becomes `language/message/handled_by/actions/cards/warnings/requires_attorney_review/degraded/disclaimer`. `intent`, `suggested_actions`, `focus_section`, `requested_fields`, `requested_documents`, `summary_updates` and `confidence` are gone. `focus_section` returns as an `open_page` action so the "open the recommended section" affordance survives — a regression a real end-to-end request caught and the unit tests had not. The frontend consumer, types and tests are updated in the same delivery; no other client exists.
+
+Config: `OLLAMA_TIMEOUT_MS` removed (the SDK owns transport); `AI_TEMPERATURE`, `AI_MAX_OUTPUT_TOKENS` and `OPENAI_API_KEY` added. `OLLAMA_EMBEDDING_MODEL` is untouched — it belongs to RAG, not to `AI_PROVIDER`.
+
+## Governance tooling
+
+`scripts/agent/common.mjs` and both `.claude/hooks` resolved every path against the primary worktree and shared one `active-task.json`. A file inside a linked worktree therefore resolved to `../Glade-Demo-<task>/…`, matched no ownership glob and was always denied; and registering a task in any worktree silently replaced every other worktree's manifest. Rule `01-git-delivery` mandates worktrees for parallel work, so the governed workflow was unusable in exactly the setup the rules require. Paths now resolve per checkout, and each checkout owns its manifest under `claude-state/active/`.
+
+## Evidence
+
+Backend 133 tests, ruff, mypy. Frontend 47 tests (10 new), lint, i18n parity, production build. Real end-to-end HTTP against a running server: auth, ownership, persistence, serialization, 403 on role mismatch, 401 unauthenticated. Real Strands SDK integration: agents construct, tool specs generate from docstrings and type hints, `as_tool()` delegation registers, role gating holds.
+
+## Known open items
+
+- **No live LLM has run through this layer.** No reachable Ollama daemon and no `OPENAI_API_KEY` in the validation environment. Everything up to the SDK's tool surface is exercised; the model call is not. Confirm a real turn with `AI_PROVIDER=ollama` before treating the agent path as proven.
+- `AI_PROVIDER=openai` sends reduced case context (income, debts, and for an attorney session the private notes) to a third party. Opt-in, off by default; enabling it is a data-egress decision.
+- Write actions are not implemented; phase 1 is read-only. `requires_confirmation` is carried in the contract so the signed-confirmation flow is additive rather than another breaking change.
+- Carried over from 3.1.0: no visual/screenshot QA, no committed production CORS origin, SQLite on Vercel's `/tmp` is not durable across cold starts.
+
 # FreshStart 3.1.0
 
 Glade interview-demo audit (`fix/glade-demo-audit-i18n-ai-health`) — full bilingual rollout plus the regressions caught while wiring it up. Two later change sets landed on top of this same 3.1.0 line without a version bump (see each subsection).
