@@ -1,14 +1,17 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover is what makes env(safe-area-inset-bottom) resolve to
+         a real value on notched devices. Without it that inset is always 0 and
+         the floating bottom navigation sits under the home indicator. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta
       name="description"
-      content="MatterReady is an AI-ready case preparation workspace for structured intake, document review, human-approved decisions, and readiness tracking."
+      content="Fresh Start organiza ingresos, gastos, deudas, bienes y evidencia para preparar una consulta de bancarrota con un abogado. No es un bufete y no ofrece asesoramiento legal."
     />
-    <meta name="theme-color" content="#1d4ed8" />
-    <title>MatterReady | AI-ready case preparation</title>
+    <meta name="theme-color" content="#2563eb" />
+    <title>Fresh Start | Preparación de bancarrota</title>
   </head>
   <body>
     <div id="root"></div>

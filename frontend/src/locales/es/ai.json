@@ -25,6 +25,7 @@
     "comingSoon": "Próximamente",
     "uploadHint": "La carga de documentos reales desde el chat llega en una fase posterior del proyecto (pipeline de documentos). Por ahora, registra la evidencia como metadato en la sección Documentos del expediente.",
     "responseError": "El asistente no respondió. Intenta de nuevo en un momento.",
-    "healthError": "No fue posible consultar el estado del asistente."
+    "healthError": "No fue posible consultar el estado del asistente.",
+    "pageDisclaimer": "El asistente prepara información y preguntas para tu abogado. No ofrece asesoramiento legal, no determina elegibilidad y no selecciona capítulo."
   }
 }

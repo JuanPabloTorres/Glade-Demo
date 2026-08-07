@@ -1,0 +1,143 @@
+{
+  "title": "Ayuda",
+  "description": "Cómo funciona Fresh Start, área por área. Abre una pregunta para leer la respuesta.",
+  "aboutHint": "¿Buscas privacidad, seguridad, accesibilidad o términos? Están en",
+  "aboutLink": "Acerca de la plataforma",
+  "sections": {
+    "gettingStarted": {
+      "title": "Primeros pasos",
+      "items": [
+        {
+          "question": "¿Para qué sirve Fresh Start?",
+          "answer": "Organiza en un solo lugar tu núcleo familiar, ingresos, gastos, deudas, bienes y documentos de respaldo, para que tu abogado revise un panorama completo. Prepara información y preguntas para una consulta profesional; no presenta nada en tu nombre."
+        },
+        {
+          "question": "¿Fresh Start decide si debo declararme en bancarrota o qué capítulo me corresponde?",
+          "answer": "No. Fresh Start no determina elegibilidad, no selecciona capítulo y no ejecuta el means test oficial. Esas decisiones corresponden a un abogado con licencia que revise tu caso."
+        },
+        {
+          "question": "¿Cómo empiezo mi solicitud?",
+          "answer": "Desde Inicio, elige empezar una solicitud. Fresh Start crea tu caso y te lleva dentro. A partir de ahí, Inicio muestra tu progreso y lo siguiente que debes hacer."
+        },
+        {
+          "question": "¿Tengo que terminarlo de una sola vez?",
+          "answer": "No. Todo lo que ingresas se guarda en tu caso a medida que avanzas, y el indicador de progreso en Inicio muestra cuánto está completo. Puedes salir y volver a la sección donde estabas."
+        }
+      ]
+    },
+    "documents": {
+      "title": "Documentos",
+      "items": [
+        {
+          "question": "¿Qué documentos necesito?",
+          "answer": "La sección Documentos lista la evidencia que tu caso necesita y marca cada elemento como presente o pendiente, para que siempre sepas qué falta en lugar de adivinarlo."
+        },
+        {
+          "question": "¿Cómo agrego un documento?",
+          "answer": "Abre Documentos y usa la acción de agregar. Registras qué es el documento y su estado; la lista de verificación al lado se actualiza para reflejar lo que el caso ya tiene."
+        },
+        {
+          "question": "¿Qué significan los estados de un documento?",
+          "answer": "\"Solicitado\" significa que tu abogado lo pidió, \"recibido\" que Fresh Start ya lo tiene, y \"revisado\" que tu abogado ya lo miró. Lo que siga en solicitado es en lo que conviene trabajar."
+        },
+        {
+          "question": "¿Por qué mi abogado sigue pidiendo un documento que ya agregué?",
+          "answer": "Un documento permanece como solicitado hasta que tu abogado lo marca como revisado. Si algo parece atascado, coméntalo en el asistente o directamente con tu abogado."
+        }
+      ]
+    },
+    "tasks": {
+      "title": "Tareas",
+      "items": [
+        {
+          "question": "¿Qué muestra la sección Tareas?",
+          "answer": "Una lista de verificación de cada parte de tu caso — núcleo familiar, ingresos, gastos, deudas, bienes y documentos — con lo que está completo y lo que aún necesita atención antes de que tu abogado lo revise."
+        },
+        {
+          "question": "¿Tengo que completar todas las tareas?",
+          "answer": "Todo lo que quede incompleto se convierte en una pregunta que tu abogado tendrá que hacerte después, así que completarlo desde el inicio ahorra una ida y vuelta. Si algo realmente no aplica en tu caso, indícalo en el asistente y tu abogado verá la nota."
+        },
+        {
+          "question": "¿Qué pasa cuando todo está completo?",
+          "answer": "Puedes enviar el caso a tu abogado. Fresh Start registra cuándo se envió y el estado del caso cambia, para que ambos vean en qué punto está."
+        }
+      ]
+    },
+    "activity": {
+      "title": "Actividad",
+      "items": [
+        {
+          "question": "¿Qué hay en la sección Actividad?",
+          "answer": "Una línea de tiempo con fechas de lo que ha ocurrido en tu caso: información agregada, documentos solicitados y recibidos, cambios de estado y notas del abogado."
+        },
+        {
+          "question": "¿Quién puede ver esta actividad?",
+          "answer": "Tú y el abogado asignado a tu caso. Fresh Start delimita cada caso a su propietario, así que ningún otro cliente puede verlo."
+        },
+        {
+          "question": "¿Por qué aparece una entrada que yo no creé?",
+          "answer": "Tu abogado también actúa sobre el caso — por ejemplo solicitando un documento o cambiando el estado — y esas acciones quedan registradas en la misma línea de tiempo, para que nada le ocurra a tu caso de forma invisible."
+        }
+      ]
+    },
+    "assistant": {
+      "title": "Asistente de IA",
+      "items": [
+        {
+          "question": "¿Qué puede hacer el asistente?",
+          "answer": "Responde preguntas sobre tu propio caso usando la información que ya contiene, explica qué pide cada sección y te señala la sección que necesita atención a continuación."
+        },
+        {
+          "question": "¿Puede darme asesoramiento legal?",
+          "answer": "No. No asesora, no determina elegibilidad y no elige capítulo. Te ayuda a preparar información y preguntas para tu abogado, y cada respuesta incluye ese recordatorio."
+        },
+        {
+          "question": "¿Qué información ve?",
+          "answer": "Solo tu caso, y solo las partes apropiadas para tu rol. No puede ver los casos de otros clientes."
+        },
+        {
+          "question": "¿Qué hago si el asistente no está disponible?",
+          "answer": "La conversación te avisa cuando el servicio está sin conexión y ofrece reintentar. Nada más en Fresh Start depende de él: puedes seguir trabajando en tu caso."
+        }
+      ]
+    },
+    "account": {
+      "title": "Cuenta y ajustes",
+      "items": [
+        {
+          "question": "¿Cómo cambio el idioma?",
+          "answer": "Usa el botón de idioma en la cabecera. Cambia directamente entre español e inglés y muestra el idioma al que va a cambiar. Tu elección se recuerda."
+        },
+        {
+          "question": "¿Cómo cierro sesión?",
+          "answer": "Abre el menú del avatar en la cabecera y elige cerrar sesión. Tu sesión termina de inmediato."
+        },
+        {
+          "question": "¿Cómo vuelvo rápido a mi caso?",
+          "answer": "En el teléfono, la barra inferior contiene Inicio, Documentos, el asistente, Tareas y Actividad. En tableta o computadora los mismos destinos están en el menú lateral de la izquierda."
+        }
+      ]
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "items": [
+        {
+          "question": "¿Fresh Start es un bufete de abogados?",
+          "answer": "No. Fresh Start no es un bufete y no ofrece asesoramiento legal. Organiza información para una consulta con un abogado con licencia."
+        },
+        {
+          "question": "¿Los datos de este demo son reales?",
+          "answer": "No. Todos los casos, nombres y cifras de este demo son sintéticos."
+        },
+        {
+          "question": "¿Otro cliente puede ver mi información?",
+          "answer": "No. Cada caso está delimitado a su propietario y esa propiedad se verifica en el servidor, no solo se oculta en la interfaz."
+        },
+        {
+          "question": "Algo no funciona. ¿Qué hago?",
+          "answer": "Anota qué estabas haciendo y coméntaselo a tu abogado. La línea de tiempo de Actividad es un registro útil de lo que ha hecho el caso y cuándo."
+        }
+      ]
+    }
+  }
+}

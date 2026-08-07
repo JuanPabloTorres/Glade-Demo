@@ -25,6 +25,7 @@
     "comingSoon": "Coming soon",
     "uploadHint": "Real document upload from chat is coming in a later phase (document pipeline). For now, register evidence as metadata in the case Documents section.",
     "responseError": "The assistant did not respond. Try again in a moment.",
-    "healthError": "Could not check assistant status."
+    "healthError": "Could not check assistant status.",
+    "pageDisclaimer": "The assistant prepares information and questions for your attorney. It does not provide legal advice, determine eligibility or select a chapter."
   }
 }

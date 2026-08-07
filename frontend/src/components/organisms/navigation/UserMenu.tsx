@@ -66,7 +66,7 @@ export function UserMenu() {
           label={isAttorney ? t("navigation:header.homeAttorney") : t("navigation:header.homeClient")}
         />
       </DropdownItem>
-      <DropdownItem onClick={() => navigate(ROUTES.about)}>
+      <DropdownItem onClick={() => navigate(ROUTES.help)}>
         <MenuEntry icon="help" label={t("navigation:header.help")} />
       </DropdownItem>
 

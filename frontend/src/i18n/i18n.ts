@@ -6,6 +6,7 @@ import enCommon from "../locales/en/common.json";
 import enDashboard from "../locales/en/dashboard.json";
 import enErrors from "../locales/en/errors.json";
 import enForms from "../locales/en/forms.json";
+import enHelp from "../locales/en/help.json";
 import enNavigation from "../locales/en/navigation.json";
 import enReports from "../locales/en/reports.json";
 import enSettings from "../locales/en/settings.json";
@@ -19,6 +20,7 @@ import esCommon from "../locales/es/common.json";
 import esDashboard from "../locales/es/dashboard.json";
 import esErrors from "../locales/es/errors.json";
 import esForms from "../locales/es/forms.json";
+import esHelp from "../locales/es/help.json";
 import esNavigation from "../locales/es/navigation.json";
 import esReports from "../locales/es/reports.json";
 import esSettings from "../locales/es/settings.json";
@@ -43,6 +45,7 @@ const resources = {
     settings: esSettings,
     ai: esAi,
     workspace: esWorkspace,
+    help: esHelp,
   },
   en: {
     common: enCommon,
@@ -58,6 +61,7 @@ const resources = {
     settings: enSettings,
     ai: enAi,
     workspace: enWorkspace,
+    help: enHelp,
   },
 } as const;
 
@@ -83,6 +87,7 @@ void i18n.use(initReactI18next).init({
     "settings",
     "ai",
     "workspace",
+    "help",
   ],
 });
 

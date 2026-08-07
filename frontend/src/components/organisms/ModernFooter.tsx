@@ -23,7 +23,9 @@ const LEGAL_LINKS: FooterLink[] = [
 const SUPPORT_LINKS: FooterLink[] = [
   { to: "/about#security", icon: "shield", labelKey: "navigation:footer.security" },
   { to: "/about#accessibility", icon: "accessibility", labelKey: "navigation:footer.accessibility" },
-  { to: "/about#help", icon: "help", labelKey: "navigation:footer.help" },
+  // Help is its own page now, not an accordion panel on /about — the fragment
+  // link would land on the platform/legal disclosures instead of the answers.
+  { to: "/help", icon: "help", labelKey: "navigation:footer.help" },
 ];
 
 /**

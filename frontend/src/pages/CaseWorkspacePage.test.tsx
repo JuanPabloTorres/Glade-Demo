@@ -88,6 +88,10 @@ function renderWorkspace(initialPath: string) {
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
         <Route path="/case/:caseId" element={<CaseWorkspacePage />} />
+        <Route path="/case/:caseId/:section" element={<CaseWorkspacePage />} />
+        {/* The overview redirect and the legacy ?focus= redirect both resolve
+            here, so a test can assert where a link actually lands. */}
+        <Route path="*" element={<p>elsewhere</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -104,17 +108,23 @@ describe("CaseWorkspacePage stage navigation", () => {
       submitCase: vi.fn(),
       updateStatus: vi.fn(),
     });
-    mockUseChatPanel.mockReturnValue({ openChat: vi.fn() });
+    mockUseChatPanel.mockReturnValue({ openAssistant: vi.fn() });
   });
 
-  it("lands on the tracking stage via the ?focus=timeline URL deep-link", async () => {
+  it("opens the section named in the URL path, so a reload or a shared link lands where it says it will", async () => {
+    renderWorkspace("/case/case-1/activity");
+
+    expect(await screen.findByRole("heading", { name: "Proceso del caso" })).toBeInTheDocument();
+  });
+
+  it("still honours the legacy ?focus= vocabulary the backend speaks, redirecting it to the canonical section path", async () => {
     renderWorkspace("/case/case-1?focus=timeline");
 
     expect(await screen.findByRole("heading", { name: "Proceso del caso" })).toBeInTheDocument();
   });
 
-  it("lands on the SAME tracking stage via the stepper click — same stage key, same destination, proving there is one source of truth instead of three independently-computed indexes", async () => {
-    renderWorkspace("/case/case-1");
+  it("lands on the SAME section via the stepper click — one source of truth, and the click changes the URL rather than hidden state", async () => {
+    renderWorkspace("/case/case-1/overview");
 
     // Sanity check: mounts on the "start" stage.
     expect(await screen.findByRole("heading", { name: "Próximos pasos" })).toBeInTheDocument();
@@ -122,6 +132,18 @@ describe("CaseWorkspacePage stage navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: /Seguimiento/ }));
 
     expect(await screen.findByRole("heading", { name: "Proceso del caso" })).toBeInTheDocument();
+  });
+
+  it("gives a bare /case/:id its canonical overview URL, so 'My case' and a section entry can never both look active", async () => {
+    renderWorkspace("/case/case-1");
+
+    expect(await screen.findByRole("heading", { name: "Próximos pasos" })).toBeInTheDocument();
+  });
+
+  it("falls back to the overview for a section slug that does not exist rather than rendering an empty stage", async () => {
+    renderWorkspace("/case/case-1/not-a-real-section");
+
+    expect(await screen.findByRole("heading", { name: "Próximos pasos" })).toBeInTheDocument();
   });
 });
 

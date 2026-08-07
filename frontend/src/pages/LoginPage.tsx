@@ -7,7 +7,7 @@ import { useAuth } from "../auth/AuthContext";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { AppButton } from "../components/ui/AppButton";
 import { FloatingField } from "../components/molecules/FloatingField";
-import { LanguageSelector } from "../components/molecules/LanguageSelector";
+import { LanguageToggle } from "../components/molecules/LanguageToggle";
 import { ROUTES } from "../config/routes";
 import { resolveApiErrorMessage } from "../i18n/backendErrors";
 
@@ -99,7 +99,7 @@ export function LoginPage() {
       <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,15,29,0.92)_0%,rgba(7,15,29,0.72)_48%,rgba(7,15,29,0.42)_100%)]" />
 
       <div className="absolute right-4 top-4 z-10">
-        <LanguageSelector compact />
+        <LanguageToggle compact />
       </div>
 
       <div className="relative mx-auto grid min-h-screen w-full max-w-360 gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_480px] lg:items-center lg:gap-16 lg:px-10 xl:px-16">

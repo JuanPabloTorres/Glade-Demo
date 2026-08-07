@@ -23,7 +23,13 @@ import { CaseTimeline } from "../components/organisms/CaseTimeline";
 import { CaseStageStepper } from "../components/molecules/CaseStageStepper";
 import { ResponsiveDataView } from "../components/molecules/ResponsiveDataView";
 import { StageOrientation } from "../components/molecules/StageOrientation";
-import { ROUTES } from "../config/routes";
+import {
+  CASE_SECTION,
+  type CaseSectionSlug,
+  FOCUS_PARAM_TO_SECTION,
+  isCaseSectionSlug,
+  ROUTES,
+} from "../config/routes";
 import type {
   BankruptcyCase,
   CaseAnalysis,
@@ -77,22 +83,32 @@ export const BASE_STAGE_ORDER: readonly CaseStage[] = [
 ];
 
 /**
- * Translates the backend's `GuidanceResponseDto.focus_section` vocabulary
- * (see ChatPanel.tsx, which builds `?focus=<value>`) into a canonical
- * `CaseStage`. This is a vocabulary alias, not a position map — it never
- * encodes an index, so it can't go stale when stages are reordered.
+ * Maps the URL's section slug (see CASE_SECTION in config/routes.ts) to the
+ * internal stage it opens, and back. These are two vocabularies on purpose:
+ * the URL is user-facing and stable, while `CaseStage` is an implementation
+ * detail free to be renamed. "tasks" and "activity" read better in a URL than
+ * the "review" and "tracking" stages they resolve to.
+ *
+ * This is a name alias, never a position map — nothing here encodes an index,
+ * so it cannot go stale when `BASE_STAGE_ORDER` is reordered.
  */
-export const FOCUS_PARAM_TO_STAGE: Record<string, CaseStage> = {
-  overview: "start",
-  household: "household",
-  "income-expenses": "income",
-  "debts-assets": "debts",
-  evidence: "documents",
-  review: "review",
-  timeline: "tracking",
-  "attorney-review": "attorney-review",
-  "chapter-comparison": "start",
+export const SECTION_TO_STAGE: Record<CaseSectionSlug, CaseStage> = {
+  [CASE_SECTION.overview]: "start",
+  [CASE_SECTION.household]: "household",
+  [CASE_SECTION.income]: "income",
+  [CASE_SECTION.expenses]: "expenses",
+  [CASE_SECTION.debts]: "debts",
+  [CASE_SECTION.assets]: "assets",
+  [CASE_SECTION.documents]: "documents",
+  [CASE_SECTION.tasks]: "review",
+  [CASE_SECTION.submitted]: "submitted",
+  [CASE_SECTION.activity]: "tracking",
+  [CASE_SECTION.attorneyReview]: "attorney-review",
 };
+
+export const STAGE_TO_SECTION = Object.fromEntries(
+  Object.entries(SECTION_TO_STAGE).map(([section, stage]) => [stage, section as CaseSectionSlug]),
+) as Record<CaseStage, CaseSectionSlug>;
 
 /**
  * Maps every `CaseStage` to its i18n key — the single, stable place that
@@ -125,19 +141,16 @@ function statusColor(status: CaseStatus): "gray" | "warning" | "success" | "info
 
 export function CaseWorkspacePage() {
   const { t } = useTranslation(["workspace", "common"]);
-  const { caseId } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { caseId, section } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const workspace = useBankruptcyWorkspace();
-  const { openChat } = useChatPanel();
+  const { openAssistant } = useChatPanel();
   const caseData = workspace.cases.find((item) => item.id === caseId);
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [modalKind, setModalKind] = useState<EntryKind | null>(null);
-  // Single source of truth for which stage is active — see CaseStage and
-  // BASE_STAGE_ORDER above. Replaces the old `activeTab` positional index.
-  const [activeStage, setActiveStage] = useState<CaseStage>("start");
   const isAttorney = user?.role === "attorney";
 
   // The attorney-review stage content only renders for attorneys (JSX
@@ -149,14 +162,25 @@ export function CaseWorkspacePage() {
     [isAttorney],
   );
 
-  // Every navigation — user clicks and URL deep-links alike — goes through
-  // this single function. It only ever sets `activeStage`; nothing here (or
-  // anywhere else) computes a Flowbite tab index directly.
+  // The URL is the single source of truth for which stage is open — there is
+  // no `activeStage` state to drift from it. An unknown or role-inappropriate
+  // slug falls back to the overview rather than rendering nothing.
+  const activeStage: CaseStage = useMemo(() => {
+    if (!isCaseSectionSlug(section)) return "start";
+    const stage = SECTION_TO_STAGE[section];
+    return STAGE_ORDER.includes(stage) ? stage : "start";
+  }, [section, STAGE_ORDER]);
+
+  // Every navigation — stepper clicks, shortcuts and deep-links alike — goes
+  // through this single function, and every one of them changes the URL. That
+  // is what makes reload, back and forward work identically to a click.
   const navigateToStage = useCallback(
     (stage: CaseStage) => {
-      setActiveStage(STAGE_ORDER.includes(stage) ? stage : "start");
+      if (!caseId) return;
+      const target = STAGE_ORDER.includes(stage) ? stage : "start";
+      navigate(ROUTES.caseSection(caseId, STAGE_TO_SECTION[target]));
     },
-    [STAGE_ORDER],
+    [STAGE_ORDER, caseId, navigate],
   );
 
   useEffect(() => {
@@ -172,22 +196,22 @@ export function CaseWorkspacePage() {
     };
   }, [caseData, t]);
 
-  // Deep-link support for the chat's "Abrir sección recomendada" action —
-  // see ChatPanel.tsx, which navigates here with ?focus=<section>. Resolves
-  // through the same navigateToStage() every click uses, so a deep-link and
-  // a stepper click for the same stage always land in the same place.
-  useEffect(() => {
-    const focus = searchParams.get("focus");
-    if (!focus) return;
-    const stage = FOCUS_PARAM_TO_STAGE[focus];
-    if (stage) navigateToStage(stage);
-    const next = new URLSearchParams(searchParams);
-    next.delete("focus");
-    setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams, navigateToStage]);
+  // Backwards compatibility for `?focus=<section>` links — the vocabulary the
+  // backend's `focus_section` still speaks, plus any URL a user bookmarked
+  // before sections became path segments. It resolves to the canonical path
+  // and replaces the history entry, so back doesn't bounce through the old
+  // form. This is the only place the legacy parameter is understood.
+  const legacyFocus = searchParams.get("focus");
+  const legacySection = legacyFocus ? FOCUS_PARAM_TO_SECTION[legacyFocus] : undefined;
 
   if (!caseData || !user) return <Navigate to={ROUTES.home} replace />;
   if (user.role === "client" && caseData.ownerUserId !== user.id) return <Navigate to={ROUTES.home} replace />;
+  if (legacySection) return <Navigate to={ROUTES.caseSection(caseData.id, legacySection)} replace />;
+  // `/case/:id` with no section is the overview; give it its canonical URL so
+  // the sidebar's "My case" entry and a section entry can't both look active.
+  if (!isCaseSectionSlug(section)) {
+    return <Navigate to={ROUTES.caseSection(caseData.id, CASE_SECTION.overview)} replace />;
+  }
 
   const update = (updater: (value: BankruptcyCase) => BankruptcyCase) => workspace.updateCase(caseData.id, updater);
   const addEntry = (submission: EntrySubmission) => {
@@ -354,7 +378,7 @@ export function CaseWorkspacePage() {
             percentComplete={householdComplete ? 100 : 0}
             missingItems={householdComplete ? [] : [t("workspace:caseWorkspace.householdMissing.maritalStatus"), t("workspace:caseWorkspace.householdMissing.housingStatus")]}
             example={t("workspace:caseWorkspace.householdExample")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.household"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.household"))}
           />
           <Card className="border border-[var(--color-border)] bg-white shadow-sm">
             <div className="grid gap-5 lg:grid-cols-2">
@@ -398,7 +422,7 @@ export function CaseWorkspacePage() {
             example={t("workspace:caseWorkspace.incomeExample")}
             primaryActionLabel={t("workspace:entryModal.titles.income")}
             onPrimaryAction={() => setModalKind("income")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.income"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.income"))}
           />
           <ResponsiveDataView
             emptyMessage={t("workspace:caseWorkspace.empty.incomes")}
@@ -426,7 +450,7 @@ export function CaseWorkspacePage() {
             example={t("workspace:caseWorkspace.expenseExample")}
             primaryActionLabel={t("workspace:entryModal.titles.expense")}
             onPrimaryAction={() => setModalKind("expense")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.expenses"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.expenses"))}
           />
           <ResponsiveDataView
             emptyMessage={t("workspace:caseWorkspace.empty.expenses")}
@@ -454,7 +478,7 @@ export function CaseWorkspacePage() {
             example={t("workspace:caseWorkspace.debtExample")}
             primaryActionLabel={t("workspace:entryModal.titles.debt")}
             onPrimaryAction={() => setModalKind("debt")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.debts"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.debts"))}
           />
           <div className="grid gap-3 lg:grid-cols-2">
             {caseData.debts.map((item) => (
@@ -486,7 +510,7 @@ export function CaseWorkspacePage() {
             example={t("workspace:caseWorkspace.assetExample")}
             primaryActionLabel={t("workspace:entryModal.titles.asset")}
             onPrimaryAction={() => setModalKind("asset")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.assets"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.assets"))}
           />
           <div className="grid gap-3 lg:grid-cols-2">
             {caseData.assets.map((item) => (
@@ -512,7 +536,7 @@ export function CaseWorkspacePage() {
             example={t("workspace:caseWorkspace.documentsExample")}
             primaryActionLabel={t("workspace:entryModal.titles.evidence")}
             onPrimaryAction={() => setModalKind("evidence")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.documents"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.documents"))}
           />
           <div className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
             <Card className="border border-[var(--color-border)] bg-white shadow-sm">

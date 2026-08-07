@@ -77,7 +77,12 @@ export const iconRegistry = {
   // Previously-bypassed inline react-icons imports, now routed centrally:
   "eye-show": HiEye, // LoginPage password visibility toggle
   "eye-hide": HiEyeSlash, // LoginPage password visibility toggle
-  language: HiLanguage, // LanguageSelector trigger
+  language: HiLanguage, // language toggle trigger
+  // The AI assistant is the product's primary action, so it gets its own name
+  // rather than borrowing `brand` (same glyph, different meaning — a rename of
+  // one must not silently move the other) or `chat` (which refers to the
+  // conversation surface, not the assistant as a destination).
+  assistant: HiSparkles,
   // Shell polish (ux-shell-polish-2026-08-06): the avatar dropdown and the
   // collapsible sidebar needed glyphs the registry didn't carry yet.
   logout: HiArrowLeftOnRectangle, // avatar dropdown "Cerrar sesión"
