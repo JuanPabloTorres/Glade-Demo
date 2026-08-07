@@ -64,6 +64,55 @@ global surface; no contract, route or business-rule change)
 | `npx playwright test` | 80/80 pass (`--workers=1`) |
 | Visual | 24 screenshots, ES + EN, 320/390/768/1024/1440 |
 
+## Version and release notes — deferred to integration-manager
+
+This branch does **not** bump `VERSION` and does **not** write `RELEASE_NOTES.md`,
+per rule 02: in a parallel initiative the worktrees produce only their change
+fragment and integration-manager performs the single bump. Seven checkouts are
+live, so this is that case.
+
+The bump was attempted and reverted, so the intent is on record:
+
+- `main` is at **4.7.1**; this delivery is **MINOR** → **4.8.0** (new shared
+  primitives and a new global surface; no contract, route or business-rule
+  change). `npm run version:minor` applies it cleanly and syncs the package
+  manifests.
+- The cross-worktree guard additionally refused `RELEASE_NOTES.md`, naming
+  `Glade-Demo-skills-standard`. That checkout's tree is **clean** and its work is
+  already in `main` at 4.7.1, so the entry in the edit ledger is stale — a false
+  positive worth clearing before it blocks the next integration.
+
+Draft release-notes copy for 4.8.0, ready to lift:
+
+> **The sidebar stopped halfway down the page, tooltips hid behind cards, and
+> English sessions kept rendering Spanish.** Three symptoms, five causes, all
+> structural.
+>
+> `overflow-x: hidden` on `html`/`body` computes `overflow-y` to `auto`, which
+> makes the element a scroll container; every `position: sticky` descendant then
+> binds to a scrollport that never scrolls. The sidebar and header silently
+> stopped sticking. `clip` suppresses horizontal scroll without creating a
+> scroll container — measured both ways, before and after.
+>
+> `flowbite-react` renders Tooltip and Dropdown as absolutely positioned
+> siblings at `z-10` with no portal, so every table wrapper and Card clipped
+> them; clipping resolves before stacking, so no z-index would have helped. Both
+> are now portaled and positioned against the viewport on an eleven-rung layer
+> scale declared once.
+>
+> The mixed-language bug was never in the locale files: the attorney's generated
+> summary was seventeen hardcoded Spanish template literals, the profile's
+> language outranked the device's explicit choice on reload, and `fallbackLng`
+> pointed at Spanish so every gap read as a translation that existed. The
+> validator now catches the class — identical-value detection plus descent into
+> arrays, which had hidden the entire help page from every previous check.
+>
+> Nine equal action buttons became one `ActionGroup` with a primary segment, a
+> portaled menu, permission gating and mandatory confirmation before anything
+> destructive runs. The language switcher stopped rendering near-black on the
+> near-black login hero. The assistant is now reachable from every authenticated
+> route, keeping its draft across a minimize.
+
 ## Known debt
 
 - **Backend seed content stays Spanish in an English session** (client goal,
