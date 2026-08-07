@@ -35,9 +35,9 @@ export function CaseStageStepper({ stages, currentIndex, onSelect }: CaseStageSt
   const { t } = useTranslation("workspace");
 
   return (
-    <section className="rounded-xl border border-(--color-border) bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-default bg-neutral-primary p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-label text-indigo-700">{t("workspace:stageStepper.title")}</h2>
+        <h2 className="text-label text-fg-brand">{t("workspace:stageStepper.title")}</h2>
         <Badge color="indigo">
           {t("workspace:stageStepper.stepOf", { current: currentIndex + 1, total: stages.length })}
         </Badge>
@@ -54,7 +54,7 @@ export function CaseStageStepper({ stages, currentIndex, onSelect }: CaseStageSt
                   <span
                     aria-hidden="true"
                     className={`h-0.5 w-6 shrink-0 sm:w-10 ${
-                      index <= currentIndex ? "bg-indigo-600" : "bg-(--color-border)"
+                      index <= currentIndex ? "bg-brand" : "bg-default"
                     }`}
                   />
                 ) : null}
@@ -63,15 +63,15 @@ export function CaseStageStepper({ stages, currentIndex, onSelect }: CaseStageSt
                   aria-current={isCurrent ? "step" : undefined}
                   aria-label={stepLabel}
                   onClick={() => onSelect(index)}
-                  className="group flex shrink-0 flex-col items-center gap-1.5 rounded-lg px-1.5 py-1 outline-none focus-visible:ring-4 focus-visible:ring-indigo-100"
+                  className="group flex shrink-0 flex-col items-center gap-1.5 rounded-lg px-1.5 py-1 outline-none focus-visible:ring-4 focus-visible:ring-brand-soft"
                 >
                   <span
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
                       isCompleted
                         ? "glade-gradient text-white"
                         : isCurrent
-                          ? "glade-gradient text-white ring-4 ring-indigo-100"
-                          : "border-2 border-(--color-border) bg-white text-(--color-text-muted) group-hover:border-indigo-300 group-hover:text-indigo-600"
+                          ? "glade-gradient text-white ring-4 ring-brand-soft"
+                          : "border-2 border-default bg-neutral-primary text-body group-hover:border-brand group-hover:text-fg-brand"
                     }`}
                   >
                     {isCompleted ? <AppIcon name="check" size={16} className="text-white" /> : index + 1}
@@ -79,10 +79,10 @@ export function CaseStageStepper({ stages, currentIndex, onSelect }: CaseStageSt
                   <span
                     className={`max-w-20 truncate text-center text-xs font-medium ${
                       isCurrent
-                        ? "text-indigo-700"
+                        ? "text-fg-brand"
                         : isCompleted
-                          ? "text-(--color-text)"
-                          : "text-(--color-text-muted)"
+                          ? "text-heading"
+                          : "text-body"
                     }`}
                   >
                     {stage}

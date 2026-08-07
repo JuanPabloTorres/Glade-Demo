@@ -42,6 +42,10 @@
   --color-fg-danger-strong: #991b1b;
   --color-fg-success: var(--color-success);
   --color-fg-warning: var(--color-warning);
+  /* Soft warning surface + its hairline, for advisory notes that must read as
+     a caution without the weight of an Alert. */
+  --color-warning-soft: #fffbeb;
+  --color-warning-subtle: #fde68a;
 
   /* Neutral surfaces. This app is light-only (`color-scheme: light`), so the
      `primary` rung collapses to white — the ladder still earns its keep on

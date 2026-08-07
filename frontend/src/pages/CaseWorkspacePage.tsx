@@ -291,7 +291,7 @@ export function CaseWorkspacePage() {
 
       {isAttorney ? (
         <Card className="app-card">
-          <p className="text-label mb-3 text-indigo-700">{t("workspace:actions.caseActions")}</p>
+          <p className="text-label mb-3 text-fg-brand">{t("workspace:actions.caseActions")}</p>
           <CaseActionBar
             caseData={caseData}
             analysis={analysis}
@@ -543,12 +543,16 @@ export function CaseWorkspacePage() {
             <Card className="border border-[var(--color-border)] bg-white shadow-sm">
               <div className="space-y-3">
                 {caseData.evidence.map((item) => (
-                  <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-surface-muted)]"><AppIcon name="evidence" /></span>
-                      <div><p className="font-semibold">{item.name || t("workspace:entryModal.pendingFileName")}</p><p className="text-sm text-[var(--color-text-muted)]">{t(`workspace:entryModal.evidenceTypes.${item.evidenceType}`)}</p></div>
+                  // min-w-0 on the row and on the name column is what lets
+                  // `truncate` engage: a flex item's automatic minimum size is
+                  // its content, so an unbroken uploaded file name would
+                  // otherwise widen the card instead of ellipsizing.
+                  <div key={item.id} className="flex min-w-0 flex-col gap-3 rounded-xl border border-[var(--color-border)] p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-surface-muted)]"><AppIcon name="evidence" /></span>
+                      <div className="min-w-0"><p className="truncate font-semibold" title={item.name || undefined}>{item.name || t("workspace:entryModal.pendingFileName")}</p><p className="truncate text-sm text-[var(--color-text-muted)]">{t(`workspace:entryModal.evidenceTypes.${item.evidenceType}`)}</p></div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
                       <Badge color={item.status === "reviewed" ? "success" : item.status === "received" ? "info" : item.status === "requested" ? "warning" : "gray"}>{t(`workspace:entryModal.evidenceStatus.${item.status}`)}</Badge>
                       <AppButton size="xs" color="light" onClick={() => removeEntry("evidence", item.id)}>{t("common:actions.delete")}</AppButton>
                     </div>
@@ -565,7 +569,7 @@ export function CaseWorkspacePage() {
                   const present = requiredEvidencePresent(requirement);
                   return (
                     <div key={requirement} className="flex gap-2 rounded-lg bg-[var(--color-surface-muted)] p-3 text-sm">
-                      <AppIcon name={present ? "check" : "document"} className={present ? "text-emerald-700" : "text-[var(--color-text-muted)]"} />
+                      <AppIcon name={present ? "check" : "document"} className={present ? "text-fg-success" : "text-[var(--color-text-muted)]"} />
                       <span>{requirement}</span>
                     </div>
                   );
@@ -590,7 +594,7 @@ export function CaseWorkspacePage() {
                 [t("workspace:tabs.documents"), caseData.evidence.length > 0],
               ].map(([label, done]) => (
                 <div key={String(label)} className="flex items-center gap-2 rounded-lg bg-[var(--color-surface-muted)] p-3 text-sm">
-                  <AppIcon name={done ? "check" : "alert"} size={16} className={done ? "text-emerald-700" : "text-[var(--color-warning)]"} />
+                  <AppIcon name={done ? "check" : "alert"} size={16} className={done ? "text-fg-success" : "text-fg-warning"} />
                   <span>{label}</span>
                 </div>
               ))}
@@ -609,7 +613,7 @@ export function CaseWorkspacePage() {
           <Card className="border border-[var(--color-border)] bg-white shadow-sm">
             {isSubmitted ? (
               <>
-                <div className="flex items-center gap-3"><AppIcon name="check" className="text-emerald-700" /><h2 className="text-xl font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.submitted.sentTitle")}</h2></div>
+                <div className="flex items-center gap-3"><AppIcon name="check" className="text-fg-success" /><h2 className="text-xl font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.submitted.sentTitle")}</h2></div>
                 <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
                   {caseData.submittedAt ? t("workspace:caseWorkspace.submitted.sentAt", { date: formatDate(caseData.submittedAt) }) : t("workspace:caseWorkspace.submitted.attorneyHasAccess")}
                   {" "}{t("workspace:caseWorkspace.submitted.followUp")}
