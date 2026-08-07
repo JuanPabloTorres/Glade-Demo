@@ -1,6 +1,39 @@
+# FreshStart 4.8.0
+
+Integrates `refactor/ui-global-audit`: one overlay layer system, one action control, one language switcher. No contract, route or business-rule change.
+
+## Sticky positioning had been disabled globally
+
+`overflow-x: hidden` on `html`/`body` computes `overflow-y` to `auto`, which makes the element a scroll container — and `position: sticky` descendants then bind to a scrollport that never scrolls. The sidebar *and* the header scrolled away on any long page.
+
+`overflow-x: clip` suppresses horizontal scroll without creating a scroll container. Both values were measured before and after rather than reasoned about.
+
+## Overlays could not escape their containers
+
+`flowbite-react`'s `Tooltip` and `Dropdown` render as absolutely positioned siblings at `z-10` with no portal, so every table wrapper and `Card` clipped them — and `z-10` sits below the header and the bottom bar. Replaced with portaled primitives on a documented layer scale (`--z-index-*` in `index.css`, `docs/ux/OVERLAY-LAYERS-AND-ACTIONS.md`).
+
+`useOverlayPosition` handles viewport-aware placement — flip, shift, scroll and resize tracking. `AppTooltip` adds hover plus keyboard focus, Escape, and `aria-describedby`.
+
+## Copy composed in code bypassed i18n entirely
+
+The attorney's generated summary was roughly seventeen hardcoded Spanish template literals. Locale-file parity passed the whole time, because none of that text lived in a locale file — the check could only see what was declared to it.
+
+Two related defects: the profile's language outranked the device's explicit choice on every load, silently reverting a switch to English; and `fallbackLng` pointed at Spanish, so any English gap rendered Spanish and looked like a translation that existed.
+
+## Nine equal buttons became one action control
+
+`ActionGroup` is the standard: a primary segment plus a portaled menu, keyboard navigation, permission gating, an async loading guard, and mandatory confirmation for destructive actions.
+
+`LanguageSwitcher` replaces the competing switchers with one component in `surface` and `onDark` tones. The assistant becomes a global surface (`AiLauncher`, `AiPanel`) with `closed | open | minimized` state.
+
+## Evidence
+
+Frontend 88 tests (10 new), lint 0 errors, i18n parity across 14 namespaces, production build. Backend 231 tests, `ruff` and `mypy` clean. `agent:verify` passes.
+
 # FreshStart 4.7.2
 
-Production was running the agent against a model called `llama-3.3-70b-versatile
+Production was running the agent against a model called `llama-3.3-70b-versatile
+
 `.
 
 ## What happened
