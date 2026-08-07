@@ -1,3 +1,33 @@
+# FreshStart 4.1.0
+
+Every dialog in the app now composes one governed modal shell, and the preparation assistant is one of them (`feat/ui-responsive-branding-nav`). Additive: no API, payload or contract change.
+
+## Dialogs stopped escaping their own panel
+
+Documents → Add Evidence rendered its footer, and both its actions, outside the modal on short viewports — at 320×568 the footer sat 64px below the panel and 23px below the viewport. The cause was structural, not cosmetic: a `<form>` wrapped body and footer *inside* Flowbite's flex column, carrying neither `flex-col` nor `min-h-0`, so it overflowed the panel's `max-h` and dragged the footer out with it.
+
+`components/overlays/AppModal` now owns viewport, scroll and focus behaviour in one place, with `components/forms` (`FormField`, `TextField`, `SelectField`, `TextareaField`, `CheckboxField`, `FileField`, `FormGrid`, `FormActions`) for what goes inside. `ConfirmDialog`, the six `CaseActionBar` action modals and `BankruptcyEntryModal` all compose it.
+
+## The assistant is a dialog, not a drawer
+
+It was a right-edge Drawer capped at `md:max-w-md`, so the assistant's cards — a two-column list of case figures — were squeezed into ~380px on a 1440px display, and below `sm` it took the full width anyway. It is now centred on the same shell: 672px at 1440×900, with the shell's focus trap, Escape, outside-click dismissal and focus return.
+
+`fillHeight` gives it a stable working height. Without it the panel hugged its content, so it grew with every turn and walked the composer down the screen while the user was typing in it.
+
+Four controls left, with their seven i18n keys in both languages: the upload button and its "coming soon" dialog (a placeholder that opened a second dialog from inside the first to say the feature does not exist), the "open recommended section" button (it navigated to the same destination as one of the chips above it), the custom close button, and an unreachable "open a case first" branch.
+
+## A real model has now run through the agent layer
+
+4.0.0 shipped with an open question: *"No live LLM has run through this layer."* `backend/scripts/live_agent_turns.py` closes it. Eight turns against `llama3.1:8b` — five answered by real specialists, three degraded to the deterministic draft, all recorded in `docs/evidence/live-agent-turns.json`.
+
+The answers check out against the case's known figures: `$308.33` monthly cash flow and `$18,000` total debt are exact, and asked directly whether the client qualifies for Chapter 7 the assistant refused and routed to the attorney — once on each path. Every assistant response in the chat's tests is a verbatim transcript of that run.
+
+It also exposed three defects in the 4.0.0 agent layer, recorded in `changes/chat-modal-centered.md` and **not yet fixed**: `handled_by` can come back empty; a refusal that tells the user to consult a lawyer does not raise `requires_attorney_review`; and action labels leak across languages in both directions.
+
+## Evidence
+
+Frontend 67 tests (24 new), lint 0 errors, i18n parity, production build. Backend 133 tests. E2E: `chat-modal.spec.ts` (10) and `documents-add-evidence.spec.ts` (13) across 320–1440, asserting panel geometry, centring, no page-level horizontal overflow, focus trap, Escape and focus return. `matter-workflow`'s client 10-step flow passes again, including the step 4.0.0 recorded as failing.
+
 # FreshStart 4.0.0
 
 Strands Agents orchestration replaces the rewrite-only Ollama provider (`feat/strands-agent-layer`). Contract-breaking: see `docs/decisions/0002-strands-agent-orchestration.md` for the decision, the rejected options and the rollback path.
