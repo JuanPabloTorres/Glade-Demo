@@ -59,3 +59,21 @@ export function formatPercentage(value: number, locale = getActiveLocale()): str
 export function formatRelativeTime(value: number, unit: Intl.RelativeTimeFormatUnit, locale = getActiveLocale()): string {
   return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(value, unit);
 }
+
+const FILE_SIZE_UNITS = ["B", "KB", "MB", "GB"] as const;
+
+/**
+ * Compact file size for an attachment caption, e.g. `2.4 MB`.
+ *
+ * The unit symbols are deliberately not translated: KB/MB/GB are written the
+ * same way in both of the app's languages, so routing them through i18n would
+ * add two identical string tables. Only the number is localized.
+ */
+export function formatFileSize(bytes: number, locale = getActiveLocale()): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return `0 ${FILE_SIZE_UNITS[0]}`;
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), FILE_SIZE_UNITS.length - 1);
+  const value = bytes / 1024 ** exponent;
+  return `${new Intl.NumberFormat(locale, {
+    maximumFractionDigits: exponent === 0 ? 0 : 1,
+  }).format(value)} ${FILE_SIZE_UNITS[exponent]}`;
+}

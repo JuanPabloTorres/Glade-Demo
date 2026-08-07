@@ -1,17 +1,10 @@
-import {
-  Checkbox,
-  FileInput,
-  Label,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-  Select,
-  TextInput,
-} from "flowbite-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { Alert } from "flowbite-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { AppButton } from "../ui/AppButton";
+import { AppModal, AppModalBody, AppModalFooter, AppModalForm } from "../overlays/AppModal";
+import { FileField, type SelectedFile } from "../forms/FileField";
+import { CheckboxField, FormGrid, SelectField, TextField, TextareaField } from "../forms/fields";
 import {
   ASSET_CATEGORIES,
   DEBT_TYPES,
@@ -31,7 +24,8 @@ interface Props {
   open: boolean;
   kind: EntryKind | null;
   onClose: () => void;
-  onSave: (submission: EntrySubmission) => void;
+  /** May be async; the modal keeps its submitting state until it settles. */
+  onSave: (submission: EntrySubmission) => void | Promise<void>;
 }
 
 const FREQUENCIES: Array<[Frequency, string]> = [
@@ -42,6 +36,33 @@ const FREQUENCIES: Array<[Frequency, string]> = [
   ["quarterly", "quarterly"],
   ["annual", "annual"],
 ];
+
+/**
+ * The fields each entry kind requires, by the state key that backs them.
+ *
+ * This is a direct transcription of the `required` attributes the form
+ * previously relied on — the rules are unchanged, they are simply evaluated
+ * here so the message can be rendered inline, next to the field it belongs to,
+ * instead of in a native validation bubble the app cannot translate.
+ */
+const REQUIRED_FIELDS: Record<EntryKind, ReadonlyArray<"primary" | "secondary" | "amount">> = {
+  income: ["primary", "secondary", "amount"],
+  expense: ["primary", "secondary", "amount"],
+  debt: ["primary", "secondary", "amount"],
+  asset: ["primary", "secondary", "amount"],
+  evidence: ["primary", "secondary"],
+};
+
+/** The DOM id of each required field, so the first invalid one can take focus. */
+const FIELD_IDS: Record<EntryKind, Record<string, string>> = {
+  income: { primary: "income-category", secondary: "income-source", amount: "gross-amount" },
+  expense: { primary: "expense-category", secondary: "expense-description", amount: "expense-amount" },
+  debt: { primary: "creditor", secondary: "debt-description", amount: "debt-balance" },
+  asset: { primary: "asset-category", secondary: "asset-description", amount: "asset-value" },
+  evidence: { primary: "evidence-type", secondary: "evidence-name" },
+};
+
+type FieldKey = "primary" | "secondary" | "amount";
 
 export function BankruptcyEntryModal({ open, kind, onClose, onSave }: Props) {
   const { t } = useTranslation(["workspace", "common"]);
@@ -57,6 +78,14 @@ export function BankruptcyEntryModal({ open, kind, onClose, onSave }: Props) {
   const [flag, setFlag] = useState(false);
   const [evidenceStatus, setEvidenceStatus] = useState<EvidenceStatus>("received");
   const [note, setNote] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<SelectedFile | null>(null);
+
+  const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitFailed, setSubmitFailed] = useState(false);
+  // Guards against a second submit slipping through before React has
+  // re-rendered the disabled button (double-click, or Enter held down).
+  const submitLock = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -72,26 +101,69 @@ export function BankruptcyEntryModal({ open, kind, onClose, onSave }: Props) {
     setFlag(false);
     setEvidenceStatus("received");
     setNote("");
+    setEvidenceFile(null);
+    setErrors({});
+    setSubmitting(false);
+    setSubmitFailed(false);
+    submitLock.current = false;
   }, [open, kind]);
 
   if (!kind) return null;
 
-  const submit = (event: FormEvent) => {
+  const values: Record<FieldKey, string> = { primary, secondary, amount };
+
+  /** Clears a field's error as soon as it has a value, so the fix is immediate. */
+  const clearError = (field: FieldKey) =>
+    setErrors((current) => (current[field] ? { ...current, [field]: undefined } : current));
+
+  const validate = () => {
+    const next: Partial<Record<FieldKey, string>> = {};
+    for (const field of REQUIRED_FIELDS[kind]) {
+      if (!values[field].trim()) next[field] = t("common:validation.required");
+    }
+    return next;
+  };
+
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (submitLock.current) return;
+
+    const found = validate();
+    setErrors(found);
+    if (Object.keys(found).length) {
+      const firstInvalid = REQUIRED_FIELDS[kind].find((field) => found[field]);
+      const elementId = firstInvalid ? FIELD_IDS[kind][firstInvalid] : undefined;
+      if (elementId) document.getElementById(elementId)?.focus();
+      return;
+    }
+
+    submitLock.current = true;
+    setSubmitting(true);
+    setSubmitFailed(false);
+
     const entryId = `${kind}-${crypto.randomUUID()}`;
     const numericAmount = Number(amount || 0);
-    if (kind === "income") {
-      onSave({ kind, value: { id: entryId, category: primary, source: secondary, grossAmount: numericAmount, netAmount: netAmount ? Number(netAmount) : undefined, frequency, evidenceIds: [] } });
-    } else if (kind === "expense") {
-      onSave({ kind, value: { id: entryId, category: primary, description: secondary, monthlyAmount: numericAmount, essential: flag, evidenceIds: [] } });
-    } else if (kind === "debt") {
-      onSave({ kind, value: { id: entryId, creditor: primary, debtType, description: secondary, balance: numericAmount, monthlyPayment: Number(monthlyPayment || 0), delinquentAmount: Number(delinquentAmount || 0), collateral: collateral || undefined, collectionLawsuit: flag, evidenceIds: [] } });
-    } else if (kind === "asset") {
-      onSave({ kind, value: { id: entryId, category: primary, description: secondary, estimatedValue: numericAmount, loanBalance: Number(monthlyPayment || 0), jointlyOwned: flag, evidenceIds: [] } });
-    } else {
-      onSave({ kind, value: { id: entryId, evidenceType: primary, name: secondary, status: evidenceStatus, note: note || undefined, relatedEntryIds: [] } });
+    try {
+      if (kind === "income") {
+        await onSave({ kind, value: { id: entryId, category: primary, source: secondary, grossAmount: numericAmount, netAmount: netAmount ? Number(netAmount) : undefined, frequency, evidenceIds: [] } });
+      } else if (kind === "expense") {
+        await onSave({ kind, value: { id: entryId, category: primary, description: secondary, monthlyAmount: numericAmount, essential: flag, evidenceIds: [] } });
+      } else if (kind === "debt") {
+        await onSave({ kind, value: { id: entryId, creditor: primary, debtType, description: secondary, balance: numericAmount, monthlyPayment: Number(monthlyPayment || 0), delinquentAmount: Number(delinquentAmount || 0), collateral: collateral || undefined, collectionLawsuit: flag, evidenceIds: [] } });
+      } else if (kind === "asset") {
+        await onSave({ kind, value: { id: entryId, category: primary, description: secondary, estimatedValue: numericAmount, loanBalance: Number(monthlyPayment || 0), jointlyOwned: flag, evidenceIds: [] } });
+      } else {
+        await onSave({ kind, value: { id: entryId, evidenceType: primary, name: secondary, status: evidenceStatus, note: note || undefined, relatedEntryIds: [] } });
+      }
+      onClose();
+    } catch {
+      // The entry is still on screen and still editable — surface the failure
+      // at form level (it belongs to no single field) and release the lock so
+      // the user can retry.
+      setSubmitFailed(true);
+      submitLock.current = false;
+      setSubmitting(false);
     }
-    onClose();
   };
 
   const titles: Record<EntryKind, string> = {
@@ -102,73 +174,377 @@ export function BankruptcyEntryModal({ open, kind, onClose, onSave }: Props) {
     evidence: t("workspace:entryModal.titles.evidence"),
   };
 
+  const selectPlaceholder = t("workspace:entryModal.fields.select");
+
   return (
-    // Shell follows Flowbite's modal block: ruled header, body, and a footer
-    // whose primary action fills the width on narrow screens. The *fields* are
-    // deliberately left on this app's governed `.app-input` styling rather than
-    // the block's `bg-neutral-secondary-medium` inputs — `.app-input` is the
-    // app-wide input contract (index.css), so adopting the block there would
-    // restyle every form in the product, which is a larger decision than this
-    // modal.
-    <Modal show={open} onClose={onClose} dismissible size="2xl">
-      <ModalHeader className="border-b border-default [&>h3]:text-lg [&>h3]:font-medium [&>h3]:text-heading">
-        {titles[kind]}
-      </ModalHeader>
-      <form onSubmit={submit}>
-        <ModalBody className="max-h-[72vh] space-y-5 overflow-y-auto">
+    <AppModal open={open} onClose={onClose} title={titles[kind]} size="2xl">
+      <AppModalForm onSubmit={submit}>
+        <AppModalBody>
+          {submitFailed ? (
+            <Alert color="failure" role="alert">
+              {t("common:validation.submitFailed")}
+            </Alert>
+          ) : null}
+
           {kind === "income" ? (
             <>
-              <div><Label htmlFor="income-category">{t("workspace:entryModal.fields.category")}</Label><Select id="income-category" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">{t("workspace:entryModal.fields.select")}</option>{INCOME_CATEGORIES.map((value) => <option key={value} value={value}>{t(`workspace:entryModal.incomeCategories.${value}`)}</option>)}</Select></div>
-              <div><Label htmlFor="income-source">{t("workspace:entryModal.fields.incomeSource")}</Label><TextInput id="income-source" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
-              <div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="gross-amount">{t("workspace:entryModal.fields.grossIncome")}</Label><TextInput id="gross-amount" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div><div><Label htmlFor="net-amount">{t("workspace:entryModal.fields.netIncome")}</Label><TextInput id="net-amount" type="number" min="0" step="0.01" value={netAmount} onChange={(event) => setNetAmount(event.target.value)} /></div></div>
-              <div><Label htmlFor="income-frequency">{t("workspace:entryModal.fields.frequency")}</Label><Select id="income-frequency" value={frequency} onChange={(event) => setFrequency(event.target.value as Frequency)}>{FREQUENCIES.map(([value, label]) => <option key={value} value={value}>{t(`workspace:entryModal.frequencies.${label}`)}</option>)}</Select></div>
+              <SelectField
+                id="income-category"
+                label={t("workspace:entryModal.fields.category")}
+                required
+                error={errors.primary}
+                value={primary}
+                onChange={(event) => {
+                  setPrimary(event.target.value);
+                  clearError("primary");
+                }}
+              >
+                <option value="">{selectPlaceholder}</option>
+                {INCOME_CATEGORIES.map((value) => (
+                  <option key={value} value={value}>
+                    {t(`workspace:entryModal.incomeCategories.${value}`)}
+                  </option>
+                ))}
+              </SelectField>
+              <TextField
+                id="income-source"
+                label={t("workspace:entryModal.fields.incomeSource")}
+                required
+                error={errors.secondary}
+                value={secondary}
+                onChange={(event) => {
+                  setSecondary(event.target.value);
+                  clearError("secondary");
+                }}
+              />
+              <FormGrid>
+                <TextField
+                  id="gross-amount"
+                  label={t("workspace:entryModal.fields.grossIncome")}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  error={errors.amount}
+                  value={amount}
+                  onChange={(event) => {
+                    setAmount(event.target.value);
+                    clearError("amount");
+                  }}
+                />
+                <TextField
+                  id="net-amount"
+                  label={t("workspace:entryModal.fields.netIncome")}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={netAmount}
+                  onChange={(event) => setNetAmount(event.target.value)}
+                />
+              </FormGrid>
+              <SelectField
+                id="income-frequency"
+                label={t("workspace:entryModal.fields.frequency")}
+                value={frequency}
+                onChange={(event) => setFrequency(event.target.value as Frequency)}
+              >
+                {FREQUENCIES.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {t(`workspace:entryModal.frequencies.${label}`)}
+                  </option>
+                ))}
+              </SelectField>
             </>
           ) : null}
 
           {kind === "expense" ? (
             <>
-              <div><Label htmlFor="expense-category">{t("workspace:entryModal.fields.category")}</Label><Select id="expense-category" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">{t("workspace:entryModal.fields.select")}</option>{EXPENSE_CATEGORIES.map((value) => <option key={value} value={value}>{t(`workspace:entryModal.expenseCategories.${value}`)}</option>)}</Select></div>
-              <div><Label htmlFor="expense-description">{t("workspace:entryModal.fields.description")}</Label><TextInput id="expense-description" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
-              <div><Label htmlFor="expense-amount">{t("workspace:entryModal.fields.monthlyAmount")}</Label><TextInput id="expense-amount" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div>
-              <div className="flex items-center gap-2"><Checkbox id="essential-expense" checked={flag} onChange={(event) => setFlag(event.target.checked)} /><Label htmlFor="essential-expense">{t("workspace:entryModal.fields.essentialExpense")}</Label></div>
+              <SelectField
+                id="expense-category"
+                label={t("workspace:entryModal.fields.category")}
+                required
+                error={errors.primary}
+                value={primary}
+                onChange={(event) => {
+                  setPrimary(event.target.value);
+                  clearError("primary");
+                }}
+              >
+                <option value="">{selectPlaceholder}</option>
+                {EXPENSE_CATEGORIES.map((value) => (
+                  <option key={value} value={value}>
+                    {t(`workspace:entryModal.expenseCategories.${value}`)}
+                  </option>
+                ))}
+              </SelectField>
+              <TextField
+                id="expense-description"
+                label={t("workspace:entryModal.fields.description")}
+                required
+                error={errors.secondary}
+                value={secondary}
+                onChange={(event) => {
+                  setSecondary(event.target.value);
+                  clearError("secondary");
+                }}
+              />
+              <TextField
+                id="expense-amount"
+                label={t("workspace:entryModal.fields.monthlyAmount")}
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                error={errors.amount}
+                value={amount}
+                onChange={(event) => {
+                  setAmount(event.target.value);
+                  clearError("amount");
+                }}
+              />
+              <CheckboxField
+                id="essential-expense"
+                label={t("workspace:entryModal.fields.essentialExpense")}
+                checked={flag}
+                onChange={setFlag}
+              />
             </>
           ) : null}
 
           {kind === "debt" ? (
             <>
-              <div><Label htmlFor="creditor">{t("workspace:entryModal.fields.creditor")}</Label><TextInput id="creditor" value={primary} onChange={(event) => setPrimary(event.target.value)} required /></div>
-              <div><Label htmlFor="debt-description">{t("workspace:entryModal.fields.description")}</Label><TextInput id="debt-description" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
-              <div><Label htmlFor="debt-type">{t("workspace:entryModal.fields.type")}</Label><Select id="debt-type" value={debtType} onChange={(event) => setDebtType(event.target.value as DebtType)}>{DEBT_TYPES.map((value) => <option key={value} value={value}>{t(`workspace:entryModal.debtTypes.${value}`)}</option>)}</Select></div>
-              <div className="grid gap-4 sm:grid-cols-3"><div><Label htmlFor="debt-balance">{t("workspace:entryModal.fields.balance")}</Label><TextInput id="debt-balance" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div><div><Label htmlFor="debt-payment">{t("workspace:entryModal.fields.monthlyPayment")}</Label><TextInput id="debt-payment" type="number" min="0" step="0.01" value={monthlyPayment} onChange={(event) => setMonthlyPayment(event.target.value)} /></div><div><Label htmlFor="debt-delinquent">{t("workspace:entryModal.fields.delinquent")}</Label><TextInput id="debt-delinquent" type="number" min="0" step="0.01" value={delinquentAmount} onChange={(event) => setDelinquentAmount(event.target.value)} /></div></div>
-              {debtType === "secured" ? <div><Label htmlFor="collateral">{t("workspace:entryModal.fields.collateral")}</Label><TextInput id="collateral" value={collateral} onChange={(event) => setCollateral(event.target.value)} /></div> : null}
-              <div className="flex items-center gap-2"><Checkbox id="collection-lawsuit" checked={flag} onChange={(event) => setFlag(event.target.checked)} /><Label htmlFor="collection-lawsuit">{t("workspace:entryModal.fields.collectionAction")}</Label></div>
+              <TextField
+                id="creditor"
+                label={t("workspace:entryModal.fields.creditor")}
+                required
+                error={errors.primary}
+                value={primary}
+                onChange={(event) => {
+                  setPrimary(event.target.value);
+                  clearError("primary");
+                }}
+              />
+              <TextField
+                id="debt-description"
+                label={t("workspace:entryModal.fields.description")}
+                required
+                error={errors.secondary}
+                value={secondary}
+                onChange={(event) => {
+                  setSecondary(event.target.value);
+                  clearError("secondary");
+                }}
+              />
+              <SelectField
+                id="debt-type"
+                label={t("workspace:entryModal.fields.type")}
+                value={debtType}
+                onChange={(event) => setDebtType(event.target.value as DebtType)}
+              >
+                {DEBT_TYPES.map((value) => (
+                  <option key={value} value={value}>
+                    {t(`workspace:entryModal.debtTypes.${value}`)}
+                  </option>
+                ))}
+              </SelectField>
+              <FormGrid>
+                <TextField
+                  id="debt-balance"
+                  label={t("workspace:entryModal.fields.balance")}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  error={errors.amount}
+                  value={amount}
+                  onChange={(event) => {
+                    setAmount(event.target.value);
+                    clearError("amount");
+                  }}
+                />
+                <TextField
+                  id="debt-payment"
+                  label={t("workspace:entryModal.fields.monthlyPayment")}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={monthlyPayment}
+                  onChange={(event) => setMonthlyPayment(event.target.value)}
+                />
+                <TextField
+                  id="debt-delinquent"
+                  label={t("workspace:entryModal.fields.delinquent")}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={delinquentAmount}
+                  onChange={(event) => setDelinquentAmount(event.target.value)}
+                />
+                {debtType === "secured" ? (
+                  <TextField
+                    id="collateral"
+                    label={t("workspace:entryModal.fields.collateral")}
+                    value={collateral}
+                    onChange={(event) => setCollateral(event.target.value)}
+                  />
+                ) : null}
+              </FormGrid>
+              <CheckboxField
+                id="collection-lawsuit"
+                label={t("workspace:entryModal.fields.collectionAction")}
+                checked={flag}
+                onChange={setFlag}
+              />
             </>
           ) : null}
 
           {kind === "asset" ? (
             <>
-              <div><Label htmlFor="asset-category">{t("workspace:entryModal.fields.category")}</Label><Select id="asset-category" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">{t("workspace:entryModal.fields.select")}</option>{ASSET_CATEGORIES.map((value) => <option key={value} value={value}>{t(`workspace:entryModal.assetCategories.${value}`)}</option>)}</Select></div>
-              <div><Label htmlFor="asset-description">{t("workspace:entryModal.fields.description")}</Label><TextInput id="asset-description" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
-              <div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="asset-value">{t("workspace:entryModal.fields.estimatedValue")}</Label><TextInput id="asset-value" type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div><div><Label htmlFor="asset-loan">{t("workspace:entryModal.fields.loanBalance")}</Label><TextInput id="asset-loan" type="number" min="0" step="0.01" value={monthlyPayment} onChange={(event) => setMonthlyPayment(event.target.value)} /></div></div>
-              <div className="flex items-center gap-2"><Checkbox id="jointly-owned" checked={flag} onChange={(event) => setFlag(event.target.checked)} /><Label htmlFor="jointly-owned">{t("workspace:entryModal.fields.jointlyOwned")}</Label></div>
+              <SelectField
+                id="asset-category"
+                label={t("workspace:entryModal.fields.category")}
+                required
+                error={errors.primary}
+                value={primary}
+                onChange={(event) => {
+                  setPrimary(event.target.value);
+                  clearError("primary");
+                }}
+              >
+                <option value="">{selectPlaceholder}</option>
+                {ASSET_CATEGORIES.map((value) => (
+                  <option key={value} value={value}>
+                    {t(`workspace:entryModal.assetCategories.${value}`)}
+                  </option>
+                ))}
+              </SelectField>
+              <TextField
+                id="asset-description"
+                label={t("workspace:entryModal.fields.description")}
+                required
+                error={errors.secondary}
+                value={secondary}
+                onChange={(event) => {
+                  setSecondary(event.target.value);
+                  clearError("secondary");
+                }}
+              />
+              <FormGrid>
+                <TextField
+                  id="asset-value"
+                  label={t("workspace:entryModal.fields.estimatedValue")}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  error={errors.amount}
+                  value={amount}
+                  onChange={(event) => {
+                    setAmount(event.target.value);
+                    clearError("amount");
+                  }}
+                />
+                <TextField
+                  id="asset-loan"
+                  label={t("workspace:entryModal.fields.loanBalance")}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={monthlyPayment}
+                  onChange={(event) => setMonthlyPayment(event.target.value)}
+                />
+              </FormGrid>
+              <CheckboxField
+                id="jointly-owned"
+                label={t("workspace:entryModal.fields.jointlyOwned")}
+                checked={flag}
+                onChange={setFlag}
+              />
             </>
           ) : null}
 
           {kind === "evidence" ? (
             <>
-              <div><Label htmlFor="evidence-type">{t("workspace:entryModal.fields.evidenceType")}</Label><Select id="evidence-type" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">{t("workspace:entryModal.fields.select")}</option>{EVIDENCE_TYPES.map((value) => <option key={value} value={value}>{t(`workspace:entryModal.evidenceTypes.${value}`)}</option>)}</Select></div>
-              <div><Label htmlFor="evidence-file">{t("workspace:entryModal.fields.file")}</Label><FileInput id="evidence-file" onChange={(event) => setSecondary(event.target.files?.[0]?.name ?? "")} /><p className="mt-1 text-xs text-body">{t("workspace:entryModal.fields.fileHelper")}</p></div>
-              <div><Label htmlFor="evidence-name">{t("workspace:entryModal.fields.documentName")}</Label><TextInput id="evidence-name" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
-              <div><Label htmlFor="evidence-status">{t("workspace:entryModal.fields.status")}</Label><Select id="evidence-status" value={evidenceStatus} onChange={(event) => setEvidenceStatus(event.target.value as EvidenceStatus)}><option value="requested">{t("workspace:entryModal.evidenceStatus.requested")}</option><option value="received">{t("workspace:entryModal.evidenceStatus.received")}</option><option value="reviewed">{t("workspace:entryModal.evidenceStatus.reviewed")}</option></Select></div>
-              <div><Label htmlFor="evidence-note">{t("workspace:entryModal.fields.note")}</Label><TextInput id="evidence-note" value={note} onChange={(event) => setNote(event.target.value)} /></div>
+              {/* The two classifying selects pair on desktop and stack below
+                  `md`; the attachment, its name and the note stay full width,
+                  because halving them would truncate exactly the values most
+                  likely to be long. */}
+              <FormGrid>
+                <SelectField
+                  id="evidence-type"
+                  label={t("workspace:entryModal.fields.evidenceType")}
+                  required
+                  error={errors.primary}
+                  value={primary}
+                  onChange={(event) => {
+                    setPrimary(event.target.value);
+                    clearError("primary");
+                  }}
+                >
+                  <option value="">{selectPlaceholder}</option>
+                  {EVIDENCE_TYPES.map((value) => (
+                    <option key={value} value={value}>
+                      {t(`workspace:entryModal.evidenceTypes.${value}`)}
+                    </option>
+                  ))}
+                </SelectField>
+                <SelectField
+                  id="evidence-status"
+                  label={t("workspace:entryModal.fields.status")}
+                  value={evidenceStatus}
+                  onChange={(event) => setEvidenceStatus(event.target.value as EvidenceStatus)}
+                >
+                  <option value="requested">{t("workspace:entryModal.evidenceStatus.requested")}</option>
+                  <option value="received">{t("workspace:entryModal.evidenceStatus.received")}</option>
+                  <option value="reviewed">{t("workspace:entryModal.evidenceStatus.reviewed")}</option>
+                </SelectField>
+              </FormGrid>
+              <FileField
+                id="evidence-file"
+                label={t("workspace:entryModal.fields.file")}
+                hint={t("workspace:entryModal.fields.fileHelper")}
+                file={evidenceFile}
+                onSelect={(file) => {
+                  setEvidenceFile(file ? { name: file.name, size: file.size } : null);
+                  // Unchanged from before this refactor: picking a file names
+                  // the document after it. The file is now tracked separately
+                  // so editing the name no longer discards the attachment.
+                  if (file) {
+                    setSecondary(file.name);
+                    clearError("secondary");
+                  }
+                }}
+              />
+              <TextField
+                id="evidence-name"
+                label={t("workspace:entryModal.fields.documentName")}
+                required
+                error={errors.secondary}
+                value={secondary}
+                onChange={(event) => {
+                  setSecondary(event.target.value);
+                  clearError("secondary");
+                }}
+              />
+              <TextareaField
+                id="evidence-note"
+                label={t("workspace:entryModal.fields.note")}
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+              />
             </>
           ) : null}
-        </ModalBody>
-        <ModalFooter className="border-t border-default">
-          <AppButton type="submit" className="glade-button w-full sm:w-auto">{t("common:actions.save")}</AppButton>
-          <AppButton type="button" color="alternative" className="w-full sm:w-auto" onClick={onClose}>{t("common:actions.cancel")}</AppButton>
-        </ModalFooter>
-      </form>
-    </Modal>
+        </AppModalBody>
+
+        <AppModalFooter>
+          <AppButton type="button" color="alternative" className="w-full sm:w-auto" onClick={onClose} disabled={submitting}>
+            {t("common:actions.cancel")}
+          </AppButton>
+          <AppButton type="submit" className="glade-button w-full sm:w-auto" loading={submitting}>
+            {submitting ? t("common:actions.saving") : t("common:actions.save")}
+          </AppButton>
+        </AppModalFooter>
+      </AppModalForm>
+    </AppModal>
   );
 }

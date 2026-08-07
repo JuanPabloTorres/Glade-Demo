@@ -23,7 +23,8 @@
     "send": "Enviar",
     "submit": "Enviar",
     "start": "Iniciar",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "saving": "Guardando..."
   },
   "labels": {
     "language": "Idioma",
@@ -63,5 +64,15 @@
     "loading": "Cargando...",
     "loadError": "No fue posible cargar esta información.",
     "restoringSession": "Restaurando tu espacio de trabajo seguro"
+  },
+  "validation": {
+    "required": "Este campo es obligatorio.",
+    "submitFailed": "No pudimos guardar la información. Verifica los datos e intenta nuevamente."
+  },
+  "fileField": {
+    "prompt": "Selecciona un archivo",
+    "dropHint": "o arrástralo hasta aquí",
+    "replace": "Reemplazar archivo",
+    "remove": "Quitar archivo"
   }
 }

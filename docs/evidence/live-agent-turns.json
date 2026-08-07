@@ -1,0 +1,289 @@
+[
+  {
+    "role": "client",
+    "locale": "es",
+    "question": "¿Qué documentos me faltan por entregar?",
+    "seconds": 21.9,
+    "response": {
+      "language": "es",
+      "message": "No hay documentos pendientes para entregar.",
+      "handled_by": "documents_agent",
+      "actions": [],
+      "cards": [],
+      "warnings": [],
+      "requires_attorney_review": false,
+      "degraded": false,
+      "disclaimer": "Esta orientacion organiza informacion y preguntas. No determina elegibilidad, no sustituye el means test oficial y no es asesoramiento legal."
+    }
+  },
+  {
+    "role": "client",
+    "locale": "es",
+    "question": "¿Cuánto me queda cada mes después de pagar todo?",
+    "seconds": 35.5,
+    "response": {
+      "language": "es",
+      "message": "Basándome en la información proporcionada por la herramienta, tu flujo de efectivo mensual es de $308.33 después de pagar todas tus deudas y gastos.",
+      "handled_by": "analysis_agent",
+      "actions": [
+        {
+          "id": "next-step",
+          "action_type": "open_page",
+          "resource": "review",
+          "resource_id": null,
+          "label": "Next Step",
+          "icon": "chat",
+          "payload": {},
+          "requires_confirmation": false
+        }
+      ],
+      "cards": [],
+      "warnings": [],
+      "requires_attorney_review": false,
+      "degraded": false,
+      "disclaimer": "Esta orientacion organiza informacion y preguntas. No determina elegibilidad, no sustituye el means test oficial y no es asesoramiento legal."
+    }
+  },
+  {
+    "role": "client",
+    "locale": "es",
+    "question": "¿Cuánto debo en total y a quién?",
+    "seconds": 38.1,
+    "response": {
+      "language": "es",
+      "message": "De acuerdo con la herramienta, tu deuda total es $18,000 y no se proporciona información sobre a quién debes esta cantidad. Si necesitas más detalles, por favor, proporciona más contexto o preguntas relacionadas para que pueda ayudarte mejor.",
+      "handled_by": "analysis_agent",
+      "actions": [
+        {
+          "id": "1",
+          "action_type": "open_page",
+          "resource": "review",
+          "resource_id": null,
+          "label": "Next Steps",
+          "icon": "chat",
+          "payload": {},
+          "requires_confirmation": false
+        }
+      ],
+      "cards": [],
+      "warnings": [],
+      "requires_attorney_review": false,
+      "degraded": false,
+      "disclaimer": "Esta orientacion organiza informacion y preguntas. No determina elegibilidad, no sustituye el means test oficial y no es asesoramiento legal."
+    }
+  },
+  {
+    "role": "client",
+    "locale": "en",
+    "question": "What is my monthly income after taxes?",
+    "seconds": 105.5,
+    "response": {
+      "language": "en",
+      "message": "The financial template is complete. Review creditors, assets, and documents before sending the request to the attorney.",
+      "handled_by": "deterministic",
+      "actions": [
+        {
+          "id": "focus-section",
+          "action_type": "open_page",
+          "resource": "review",
+          "resource_id": null,
+          "label": "Open the recommended section",
+          "icon": "arrow-right",
+          "payload": {},
+          "requires_confirmation": false
+        },
+        {
+          "id": "suggested-0",
+          "action_type": "ask",
+          "resource": "review",
+          "resource_id": null,
+          "label": "Revisar el resumen financiero completo.",
+          "icon": "chat",
+          "payload": {},
+          "requires_confirmation": false
+        },
+        {
+          "id": "suggested-1",
+          "action_type": "ask",
+          "resource": "review",
+          "resource_id": null,
+          "label": "Confirmar que no falten acreedores, bienes ni transferencias.",
+          "icon": "chat",
+          "payload": {},
+          "requires_confirmation": false
+        },
+        {
+          "id": "suggested-2",
+          "action_type": "ask",
+          "resource": "review",
+          "resource_id": null,
+          "label": "Enviar la solicitud al abogado para revisión.",
+          "icon": "chat",
+          "payload": {},
+          "requires_confirmation": false
+        }
+      ],
+      "cards": [],
+      "warnings": [],
+      "requires_attorney_review": false,
+      "degraded": true,
+      "disclaimer": "This guidance organizes information and questions. It does not determine eligibility, does not replace the official means test, and is not legal advice."
+    }
+  },
+  {
+    "role": "client",
+    "locale": "es",
+    "question": "¿Califico para el capítulo 7?",
+    "seconds": 20.9,
+    "response": {
+      "language": "es",
+      "message": "Chapter 7 suele enfocarse en liquidación y descarga de deudas elegibles, pero requiere revisar means test, bienes, exenciones y transacciones recientes con un abogado.",
+      "handled_by": "deterministic",
+      "actions": [
+        {
+          "id": "focus-section",
+          "action_type": "open_page",
+          "resource": "chapter-comparison",
+          "resource_id": null,
+          "label": "Abrir la sección recomendada",
+          "icon": "arrow-right",
+          "payload": {},
+          "requires_confirmation": false
+        },
+        {
+          "id": "suggested-0",
+          "action_type": "ask",
+          "resource": "chapter-comparison",
+          "resource_id": null,
+          "label": "¿Qué resultado produce el means test vigente para Puerto Rico y el tamaño del hogar?",
+          "icon": "chat",
+          "payload": {},
+          "requires_confirmation": false
+        },
+        {
+          "id": "suggested-1",
+          "action_type": "ask",
+          "resource": "chapter-comparison",
+          "resource_id": null,
+          "label": "¿Qué bienes podrían estar protegidos por exenciones aplicables?",
+          "icon": "chat",
+          "payload": {},
+          "requires_confirmation": false
+        },
+        {
+          "id": "suggested-2",
+          "action_type": "ask",
+          "resource": "chapter-comparison",
+          "resource_id": null,
+          "label": "¿Existen transferencias, pagos preferentes o activos que requieran análisis adicional?",
+          "icon": "chat",
+          "payload": {},
+          "requires_confirmation": false
+        }
+      ],
+      "cards": [],
+      "warnings": [],
+      "requires_attorney_review": true,
+      "degraded": true,
+      "disclaimer": "Esta orientacion organiza informacion y preguntas. No determina elegibilidad, no sustituye el means test oficial y no es asesoramiento legal."
+    }
+  },
+  {
+    "role": "client",
+    "locale": "es",
+    "question": "Dime si debo declararme en bancarrota o no.",
+    "seconds": 19.7,
+    "response": {
+      "language": "es",
+      "message": "No podemos determinar si debes declararte en bancarrota o no. Por favor, habla con tu abogado para obtener asesoramiento legal.",
+      "handled_by": "",
+      "actions": [],
+      "cards": [],
+      "warnings": [],
+      "requires_attorney_review": false,
+      "degraded": false,
+      "disclaimer": "Esta orientacion organiza informacion y preguntas. No determina elegibilidad, no sustituye el means test oficial y no es asesoramiento legal."
+    }
+  },
+  {
+    "role": "attorney",
+    "locale": "es",
+    "question": "Resume el expediente para la consulta.",
+    "seconds": 22.8,
+    "response": {
+      "language": "es",
+      "message": "El estado actual del expediente es en curso, con un avance avanzado y documentos pendientes.",
+      "handled_by": "case_agent",
+      "actions": [
+        {
+          "id": "1",
+          "action_type": "open_page",
+          "resource": "overview",
+          "resource_id": null,
+          "label": "Resumen del Expediente",
+          "icon": "briefcase",
+          "payload": {},
+          "requires_confirmation": false
+        }
+      ],
+      "cards": [
+        {
+          "card_type": "summary",
+          "title": "Estado del caso",
+          "description": "Resumen del expediente",
+          "data": {
+            "outstanding_info": "documentos pendientes",
+            "progress": "avanzado",
+            "stage": "en curso"
+          }
+        }
+      ],
+      "warnings": [
+        "Existen cuentas en atraso que deben revisarse con prioridad."
+      ],
+      "requires_attorney_review": true,
+      "degraded": false,
+      "disclaimer": "Esta orientacion organiza informacion y preguntas. No determina elegibilidad, no sustituye el means test oficial y no es asesoramiento legal."
+    }
+  },
+  {
+    "role": "attorney",
+    "locale": "en",
+    "question": "Which evidence is still outstanding for this case?",
+    "seconds": 26.4,
+    "response": {
+      "language": "en",
+      "message": "The case has 1 high-priority alert(s). Review evidence, collection urgency, and financial consistency before consultation.",
+      "handled_by": "deterministic",
+      "actions": [
+        {
+          "id": "focus-section",
+          "action_type": "open_page",
+          "resource": "attorney-review",
+          "resource_id": null,
+          "label": "Open the recommended section",
+          "icon": "arrow-right",
+          "payload": {},
+          "requires_confirmation": false
+        },
+        {
+          "id": "suggested-0",
+          "action_type": "ask",
+          "resource": "attorney-review",
+          "resource_id": null,
+          "label": "Existen cuentas en atraso que deben revisarse con prioridad.",
+          "icon": "chat",
+          "payload": {},
+          "requires_confirmation": false
+        }
+      ],
+      "cards": [],
+      "warnings": [
+        "Existen cuentas en atraso que deben revisarse con prioridad."
+      ],
+      "requires_attorney_review": true,
+      "degraded": true,
+      "disclaimer": "This guidance organizes information and questions. It does not determine eligibility, does not replace the official means test, and is not legal advice."
+    }
+  }
+]

@@ -1,6 +1,8 @@
 import {
   HiArrowLeftOnRectangle,
+  HiArrowPath,
   HiArrowRight,
+  HiArrowUpTray,
   HiBars3,
   HiChevronDown,
   HiChevronDoubleLeft,
@@ -33,6 +35,7 @@ import {
   HiSparkles,
   HiUser,
   HiWallet,
+  HiXMark,
 } from "react-icons/hi2";
 import type { IconType } from "react-icons";
 
@@ -83,6 +86,10 @@ export const iconRegistry = {
   logout: HiArrowLeftOnRectangle, // avatar dropdown "Cerrar sesión"
   "chevron-down": HiChevronDown, // accordion disclosure indicator (rotates when open)
   "collapse-left": HiChevronDoubleLeft, // desktop sidebar collapse toggle (flips when collapsed)
+  // Governed form layer (documents-add-evidence-modal):
+  close: HiXMark, // clear/detach an attachment in FileField — distinct from "check"
+  upload: HiArrowUpTray, // FileField empty-state drop target
+  refresh: HiArrowPath, // retry a failed connection check (chat AI health)
 } as const satisfies Record<string, IconType>;
 
 export type IconRegistryName = keyof typeof iconRegistry;

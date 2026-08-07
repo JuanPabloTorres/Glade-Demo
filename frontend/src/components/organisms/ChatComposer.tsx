@@ -17,8 +17,11 @@ interface ChatComposerProps {
 export function ChatComposer({ value, onChange, onSubmit, suggestedActions, onSelectAction, busy }: ChatComposerProps) {
   const { t } = useTranslation("ai");
 
+  // No separator or padding of its own: the composer is placed inside the
+  // modal's pinned footer bar, which already draws the rule between it and the
+  // transcript. Owning one here too produced a double border.
   return (
-    <div className="border-t border-(--color-border) pt-3">
+    <div>
       {suggestedActions.length ? (
         <div className="mb-3 flex flex-wrap gap-2">
           {suggestedActions.map((action) => (

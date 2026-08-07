@@ -1,6 +1,6 @@
-import { Modal, ModalBody, ModalFooter, ModalHeader } from "flowbite-react";
 import { useTranslation } from "react-i18next";
 import { AppButton } from "../ui/AppButton";
+import { AppModal, AppModalBody, AppModalFooter } from "../overlays/AppModal";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -17,8 +17,13 @@ interface ConfirmDialogProps {
 }
 
 /**
- * Destructive/irreversible-action gate, following Flowbite's modal block
- * (ruled header, ruled footer, primary action full-width below `sm`).
+ * Destructive/irreversible-action gate.
+ *
+ * Composes the shared AppModal rather than Flowbite's `Modal` directly, so it
+ * inherits the same viewport cap, scrolling body and stacking action row as
+ * every other dialog — it previously carried its own copy of Flowbite's footer,
+ * which put two `w-full sm:w-auto` buttons on one unwrapped row and squeezed
+ * them on narrow screens.
  *
  * The confirm/cancel labels default to the localized `common:actions.*` keys.
  * They previously defaulted to the hardcoded Spanish strings "Confirmar" and
@@ -40,14 +45,11 @@ export function ConfirmDialog({
   const { t } = useTranslation("common");
 
   return (
-    <Modal show={open} onClose={onCancel}>
-      <ModalHeader className="border-b border-default [&>h3]:text-lg [&>h3]:font-medium [&>h3]:text-heading">
-        {title}
-      </ModalHeader>
-      <ModalBody>
+    <AppModal open={open} onClose={onCancel} title={title} size="md">
+      <AppModalBody>
         <p className="text-sm leading-6 text-body">{message}</p>
-      </ModalBody>
-      <ModalFooter className="border-t border-default">
+      </AppModalBody>
+      <AppModalFooter>
         <AppButton color="light" className="w-full sm:w-auto" onClick={onCancel} disabled={busy}>
           {cancelLabel ?? t("actions.cancel")}
         </AppButton>
@@ -59,7 +61,7 @@ export function ConfirmDialog({
         >
           {confirmLabel ?? t("actions.confirm")}
         </AppButton>
-      </ModalFooter>
-    </Modal>
+      </AppModalFooter>
+    </AppModal>
   );
 }

@@ -1,4 +1,4 @@
-import { Drawer, Tooltip } from "flowbite-react";
+import { Tooltip } from "flowbite-react";
 import { useTranslation } from "react-i18next";
 import { Outlet } from "react-router";
 import { ChatPanelProvider, useChatPanel } from "../../chat/ChatPanelContext";
@@ -28,9 +28,7 @@ function ChatEntryPoint() {
           <AppIcon name="chat" size={24} />
         </button>
       </Tooltip>
-      <Drawer open={isOpen} onClose={closeChat} position="right" className="w-full p-0 sm:max-w-sm md:max-w-md">
-        <ChatPanel onClose={closeChat} />
-      </Drawer>
+      <ChatPanel open={isOpen} onClose={closeChat} />
     </>
   );
 }
