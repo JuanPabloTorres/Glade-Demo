@@ -2,7 +2,9 @@
   "name": "matter-ready-demo",
   "private": true,
   "version": "4.0.0",
-  "engines": { "node": "22.x" },
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "install:web": "npm --prefix frontend ci --no-audit --no-fund",
     "build": "npm --prefix frontend run build",

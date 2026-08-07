@@ -107,7 +107,7 @@ export function ClientDashboardPage() {
           <div className="flex gap-3">
             <span className="icon-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"><AppIcon name="arrow-right" /></span>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-700">{t("workspace:clientDashboard.nextAction")}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fg-brand">{t("workspace:clientDashboard.nextAction")}</p>
               <p className="mt-1 font-semibold text-[var(--color-text)]">
                 {nextStep ?? t("workspace:clientDashboard.nextActionFallback")}
               </p>

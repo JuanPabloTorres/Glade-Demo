@@ -49,7 +49,7 @@ export function StageOrientation({
       {missingItems.length ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {missingItems.map((item) => (
-            <span key={item} className="text-caption flex items-center gap-1.5 rounded-full bg-white px-3 py-1 font-medium text-[var(--color-warning)] ring-1 ring-inset ring-amber-200">
+            <span key={item} className="text-caption flex items-center gap-1.5 rounded-full bg-white px-3 py-1 font-medium text-fg-warning ring-1 ring-inset ring-warning-subtle">
               <AppIcon name="alert" size={13} /> {item}
             </span>
           ))}

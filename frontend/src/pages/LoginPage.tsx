@@ -1,4 +1,4 @@
-import { Alert, Badge, Card, Label, TextInput } from "flowbite-react";
+import { Alert, Card } from "flowbite-react";
 import axios from "axios";
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import { Navigate, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthContext";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { AppButton } from "../components/ui/AppButton";
+import { FloatingField } from "../components/molecules/FloatingField";
 import { LanguageSelector } from "../components/molecules/LanguageSelector";
 import { ROUTES } from "../config/routes";
 import { resolveApiErrorMessage } from "../i18n/backendErrors";
@@ -34,9 +35,21 @@ export function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [backgroundFailed, setBackgroundFailed] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const steps = t("auth:login.steps.items", { returnObjects: true }) as Array<{ title: string; detail: string }>;
 
   if (auth.isAuthenticated) return <Navigate to={ROUTES.home} replace />;
+
+  // Exactly one alert slot: error > validation error > background-load fallback.
+  // These conditions are not mutually exclusive in the underlying state (a
+  // background failure and a stale validation error could both be true at
+  // once), so priority is chosen explicitly instead of stacking every
+  // active Alert.
+  const activeAlert = error
+    ? { color: "failure" as const, message: error }
+    : validationError
+      ? { color: "warning" as const, message: validationError }
+      : backgroundFailed
+        ? { color: "info" as const, message: t("auth:login.backgroundFallback") }
+        : null;
 
   const openSession = async (credentials: typeof CLIENT) => {
     setBusy(true);
@@ -84,7 +97,6 @@ export function LoginPage() {
         onError={() => setBackgroundFailed(true)}
       />
       <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,15,29,0.92)_0%,rgba(7,15,29,0.72)_48%,rgba(7,15,29,0.42)_100%)]" />
-      <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_78%_20%,rgba(79,70,229,0.26),transparent_35%)]" />
 
       <div className="absolute right-4 top-4 z-10">
         <LanguageSelector compact />
@@ -92,17 +104,18 @@ export function LoginPage() {
 
       <div className="relative mx-auto grid min-h-screen w-full max-w-360 gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_480px] lg:items-center lg:gap-16 lg:px-10 xl:px-16">
         <section className="max-w-3xl text-white">
-          <Badge color="gray" className="mb-6 w-fit border border-white/15 bg-white/10 px-3 py-1.5 text-white backdrop-blur-md">
-            {t("auth:login.heroBadge")}
-          </Badge>
-
-          <div className="mb-7 flex items-center gap-4">
-            <span className="brand-mark flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-xl shadow-indigo-950/30">
-              <AppIcon name="brand" size={30} />
-            </span>
-            <div>
-              <p className="text-xl font-semibold tracking-[-0.02em]">FreshStart</p>
-              <p className="text-sm text-white/70">{t("common:app.subtitle")}</p>
+          <div className="mb-7">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
+              {t("auth:login.heroBadge")}
+            </p>
+            <div className="flex items-center gap-4">
+              <span className="brand-mark flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-xl shadow-indigo-950/30">
+                <AppIcon name="brand" size={30} />
+              </span>
+              <div>
+                <p className="text-xl font-semibold tracking-[-0.02em]">Fresh Start</p>
+                <p className="text-sm text-white/70">{t("common:app.subtitle")}</p>
+              </div>
             </div>
           </div>
 
@@ -112,37 +125,18 @@ export function LoginPage() {
           <p className="mt-6 max-w-2xl text-base leading-7 text-white/78 sm:text-lg sm:leading-8">
             {t("auth:login.heroBody")}
           </p>
-
-          <div id="how-it-works" className="mt-8 grid gap-3 sm:grid-cols-2">
-            {[
-              ["client", steps[0]?.title ?? "", steps[0]?.detail ?? ""],
-              ["calculator", steps[1]?.title ?? "", steps[1]?.detail ?? ""],
-              ["evidence", steps[2]?.title ?? "", steps[2]?.detail ?? ""],
-              ["attorney", steps[3]?.title ?? "", steps[3]?.detail ?? ""],
-            ].map(([icon, title, detail], index) => (
-              <Card key={title} className="border border-white/15 bg-white/10 shadow-none backdrop-blur-md">
-                <div className="flex gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#1e293b] shadow-sm">
-                    <AppIcon name={icon as "client" | "calculator" | "evidence" | "attorney"} size={20} />
-                  </span>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/60">{t("auth:login.steps.step", { index: index + 1 })}</p>
-                    <p className="mt-1 font-semibold text-white">{title}</p>
-                    <p className="mt-1 text-sm leading-5 text-white/68">{detail}</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
         </section>
 
         <section className="flex items-center justify-center lg:justify-end">
           <Card className="w-full max-w-120 overflow-hidden border border-white/40 bg-white/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
             <form className="space-y-6" onSubmit={submit}>
-              <div>
-                <Badge color="success" className="mb-4 w-fit">{t("auth:login.demoBadge")}</Badge>
-                <h2 className="text-2xl font-semibold tracking-[-0.03em] text-(--glade-black) sm:text-3xl">{t("auth:login.title")}</h2>
-                <p className="mt-2 text-sm leading-6 text-(--glade-muted)">{t("auth:login.subtitle")}</p>
+              {/* Header follows Flowbite's authentication-modal block: title on a
+                  ruled row, no badge stack above it. The "demo" badge that used
+                  to sit here is gone — the disclaimer at the foot of this form
+                  already says the data is synthetic, and said it twice. */}
+              <div className="border-b border-default pb-4 md:pb-5">
+                <h2 className="text-lg font-medium text-heading sm:text-xl">{t("auth:login.title")}</h2>
+                <p className="mt-2 text-sm leading-6 text-body">{t("auth:login.subtitle")}</p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -150,7 +144,7 @@ export function LoginPage() {
                   <AppButton type="button" size="lg" className="primary-action w-full" disabled={busy} iconLeft="client" onClick={() => openSession(CLIENT)}>
                     {t("auth:login.asClient")}
                   </AppButton>
-                  <p className="mt-1.5 text-xs leading-4 text-(--color-text-muted)">
+                  <p className="mt-1.5 text-xs leading-4 text-body">
                     {t("auth:login.clientHint")}
                   </p>
                 </div>
@@ -158,65 +152,75 @@ export function LoginPage() {
                   <AppButton type="button" size="lg" color="light" className="secondary-action w-full" disabled={busy} iconLeft="attorney" onClick={() => openSession(ATTORNEY)}>
                     {t("auth:login.asAttorney")}
                   </AppButton>
-                  <p className="mt-1.5 text-xs leading-4 text-(--color-text-muted)">
+                  <p className="mt-1.5 text-xs leading-4 text-body">
                     {t("auth:login.attorneyHint")}
                   </p>
                 </div>
               </div>
 
-              <div className="relative flex items-center py-1">
-                <div className="h-px flex-1 bg-(--glade-border)" />
-                <span className="px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#7b8494]">{t("auth:login.credentials")}</span>
-                <div className="h-px flex-1 bg-(--glade-border)" />
-              </div>
+              <p className="text-label text-body">{t("auth:login.credentials")}</p>
 
-              {error ? <Alert color="failure" rounded>{error}</Alert> : null}
-              {validationError ? <Alert color="warning" rounded>{validationError}</Alert> : null}
-              {backgroundFailed ? (
-                <Alert color="info" rounded>
-                  {t("auth:login.backgroundFallback")}
+              {activeAlert ? (
+                <Alert color={activeAlert.color} rounded>
+                  {activeAlert.message}
                 </Alert>
               ) : null}
 
-              <div className="space-y-2">
-                <Label htmlFor="login-email" className="font-semibold text-[#273244]">{t("auth:login.email")}</Label>
-                <TextInput className="app-input" id="login-email" type="email" icon={() => <AppIcon name="client" size={16} />} value={email} onChange={(event) => setEmail(event.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="login-password" className="font-semibold text-[#273244]">{t("auth:login.password")}</Label>
-                <div className="relative">
-                  <TextInput className="app-input" id="login-password" type={showPassword ? "text" : "password"} icon={() => <AppIcon name="shield" size={16} />} value={password} onChange={(event) => setPassword(event.target.value)} required />
-                  <button
-                    type="button"
-                    aria-label={showPassword ? t("auth:login.hidePassword") : t("auth:login.showPassword")}
-                    className="absolute inset-y-0 right-3 flex items-center text-slate-500"
-                    onClick={() => setShowPassword((value) => !value)}
-                  >
-                    <AppIcon name={showPassword ? "eye-hide" : "eye-show"} size={18} />
-                  </button>
-                </div>
+              {/* Floating-label fields (Flowbite's floating form block). The label
+                  doubles as the field's resting placeholder, so the form loses a
+                  stacked label row per field without losing the label itself. */}
+              <div className="space-y-7">
+                <FloatingField
+                  id="login-email"
+                  type="email"
+                  label={t("auth:login.email")}
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
+                  required
+                />
+                <FloatingField
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  label={t("auth:login.password")}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="current-password"
+                  required
+                  trailing={
+                    <button
+                      type="button"
+                      aria-label={showPassword ? t("auth:login.hidePassword") : t("auth:login.showPassword")}
+                      className="flex h-11 w-11 items-center justify-center text-body hover:text-fg-brand"
+                      onClick={() => setShowPassword((value) => !value)}
+                    >
+                      <AppIcon name={showPassword ? "eye-hide" : "eye-show"} size={18} />
+                    </button>
+                  }
+                />
               </div>
 
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <label className="inline-flex items-center gap-2 text-(--color-text-muted)">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <div className="flex items-center">
                   <input
+                    id="login-remember"
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(event) => setRememberMe(event.target.checked)}
-                    className="rounded border-slate-300"
+                    className="h-4 w-4 rounded-xs border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
                   />
-                  {t("auth:login.rememberMe")}
-                </label>
-                <span className="text-xs text-(--color-text-muted)">{t("auth:login.forgotPassword")}</span>
+                  <label htmlFor="login-remember" className="ms-2 text-sm font-medium text-heading">
+                    {t("auth:login.rememberMe")}
+                  </label>
+                </div>
+                <span className="ms-auto text-xs text-body">{t("auth:login.forgotPassword")}</span>
               </div>
 
               <AppButton type="submit" size="lg" className="primary-action w-full" disabled={busy} iconRight={!busy ? "arrow-right" : undefined}>
                 {busy ? t("auth:login.openingPortal") : t("auth:login.openPortal")}
               </AppButton>
 
-              <Alert color="info" rounded>
-                {t("auth:login.disclaimer")}
-              </Alert>
+              <p className="text-xs leading-5 text-body">{t("auth:login.disclaimer")}</p>
             </form>
           </Card>
         </section>

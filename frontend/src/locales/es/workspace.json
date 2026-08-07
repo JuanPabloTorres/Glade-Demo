@@ -72,8 +72,8 @@
     "documentsDescription": "El demo guarda metadatos locales, no archivos reales. Cada documento respalda una cifra que ya declaraste."
   },
   "about": {
-    "title": "Acerca de FreshStart",
-    "description": "FreshStart es una plataforma de preparación para consultas de bancarrota. Organiza información financiera, identifica faltantes y prepara preguntas para revisión profesional. No es un bufete, no ofrece asesoramiento legal, no selecciona un capítulo como conclusión jurídica, no determina elegibilidad y no presenta peticiones.",
+    "title": "Acerca de Fresh Start",
+    "description": "Fresh Start es una plataforma de preparación para consultas de bancarrota. Organiza información financiera, identifica faltantes y prepara preguntas para revisión profesional. No es un bufete, no ofrece asesoramiento legal, no selecciona un capítulo como conclusión jurídica, no determina elegibilidad y no presenta peticiones.",
     "sections": {
       "privacy": {
         "title": "Privacidad",

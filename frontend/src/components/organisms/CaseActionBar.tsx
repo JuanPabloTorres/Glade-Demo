@@ -235,7 +235,7 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
       <Modal show={openAction === "generate-summary"} onClose={close} size="2xl">
         <ModalHeader>{t("workspace:actionBar.summary.title")}</ModalHeader>
         <ModalBody>
-          <p className="mb-3 rounded-lg bg-amber-50 p-3 text-xs font-medium text-amber-800">{t("workspace:actionBar.summary.disclaimer")}</p>
+          <p className="mb-3 rounded-lg bg-warning-soft p-3 text-xs font-medium text-fg-warning">{t("workspace:actionBar.summary.disclaimer")}</p>
           <Textarea rows={14} value={summaryDraft} onChange={(event) => setSummaryDraft(event.target.value)} className="font-mono text-xs" />
         </ModalBody>
         <ModalFooter>

@@ -1,0 +1,72 @@
+{
+  "page": {
+    "title": "Help center",
+    "subtitle": "How to use Fresh Start to prepare your bankruptcy consultation, what the platform does, and what always stays with an attorney.",
+    "searchHint": "Open a section to see the questions it contains."
+  },
+  "sections": {
+    "gettingStarted": {
+      "title": "Getting started",
+      "q1": "What is Fresh Start?",
+      "a1": "A preparation workspace. It organizes your financial information (income, expenses, debts, assets and evidence) and prepares questions for a professional consultation. It is not a law firm, it does not file cases, and it does not provide legal advice.",
+      "q2": "Where do I start?",
+      "a2": "From Home, create your request. From there the case file moves through stages: household, income, expenses, debts, assets, documents and review. You can leave and come back — whatever you captured is saved.",
+      "q3": "Do I have to complete everything in one sitting?",
+      "a3": "No. The progress indicator shows how much information is still missing, and the next-action card takes you straight to the most useful next step."
+    },
+    "documents": {
+      "title": "Managing documents",
+      "q1": "How do I register a document?",
+      "a1": "In the Documents stage, use Add evidence. Give the document a type, a name and a status.",
+      "q2": "Are real files uploaded?",
+      "a2": "Not in this demo. What is recorded is the document's record (type, name, status and notes), not the file itself. Real file upload belongs to a later phase of the project.",
+      "q3": "What do the statuses mean?",
+      "a3": "Requested: the attorney asked for it and it has not arrived. Received: it is registered. Reviewed: the attorney has reviewed it."
+    },
+    "tasks": {
+      "title": "Tasks",
+      "q1": "Where do my tasks come from?",
+      "a1": "From two places: the gaps the case review detects, and the documents the attorney explicitly requests.",
+      "q2": "Where do I see them?",
+      "a2": "The Tasks entry in the menu opens the review stage of the case file, with the checklist and everything still outstanding before you submit.",
+      "q3": "Can I submit the case file with tasks outstanding?",
+      "a3": "Yes, but the review will point out what is missing. The more complete it arrives, the more useful the consultation."
+    },
+    "activities": {
+      "title": "Activity",
+      "q1": "What does activity show?",
+      "a1": "The case file timeline: when it was created, which stages were completed, when it was sent to the attorney and what came back.",
+      "q2": "Is there activity across several cases?",
+      "a2": "Not yet. The timeline is per case file. For attorneys, a cross-case activity view does not exist yet and appears disabled in the menu rather than leading to an empty screen."
+    },
+    "assistant": {
+      "title": "AI assistant",
+      "q1": "What can the assistant do?",
+      "a1": "Answer questions about your case file: what is missing, which document backs a figure, or how your monthly balance looks. It works only with the context of the case you have access to.",
+      "q2": "Can it tell me whether chapter 7 or 13 suits me?",
+      "a2": "No. The platform does not determine eligibility or select a chapter: that is a legal conclusion and belongs to an attorney. The assistant can help you prepare the question, not answer it.",
+      "q3": "What happens if the model is unavailable?",
+      "a3": "The assistant falls back to deterministic, rule-based guidance and tells you so. It would rather answer less than invent."
+    },
+    "account": {
+      "title": "Account and preferences",
+      "q1": "How do I change the language?",
+      "a1": "With the language button in the header. It switches directly between Spanish and English and translates the whole interface immediately.",
+      "q2": "What does 'Remember me on this device' do?",
+      "a2": "It keeps your session open when you come back. Do not enable it on a shared computer.",
+      "q3": "Are the demo credentials private?",
+      "a3": "No. They are public and shared by every visitor. Never enter real personal or financial information."
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "q1": "Does Fresh Start file my case with the court?",
+      "a1": "No. It prepares and organizes the information; filing belongs to an attorney.",
+      "q2": "Does it run the official means test?",
+      "a2": "No. The calculations you see are there to guide the conversation with your attorney, not as an official determination.",
+      "q3": "Is my data real?",
+      "a3": "In this demo every name, case and figure is synthetic.",
+      "q4": "What happens when I submit the case file?",
+      "a4": "It moves to attorney review. You can follow the status in the case activity and respond to any documents you are asked for."
+    }
+  }
+}

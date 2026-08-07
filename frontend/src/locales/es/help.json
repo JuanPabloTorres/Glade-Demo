@@ -1,0 +1,72 @@
+{
+  "page": {
+    "title": "Centro de ayuda",
+    "subtitle": "Cómo usar Fresh Start para preparar tu consulta de bancarrota, qué hace la plataforma y qué queda siempre en manos de un abogado.",
+    "searchHint": "Abre una sección para ver las preguntas que contiene."
+  },
+  "sections": {
+    "gettingStarted": {
+      "title": "Primeros pasos",
+      "q1": "¿Qué es Fresh Start?",
+      "a1": "Un espacio de preparación. Organiza tu información financiera (ingresos, gastos, deudas, bienes y evidencia) y prepara preguntas para una consulta profesional. No es un bufete, no presenta casos y no ofrece asesoramiento legal.",
+      "q2": "¿Por dónde empiezo?",
+      "a2": "Desde Inicio, crea tu solicitud. A partir de ahí el expediente se recorre por etapas: hogar, ingresos, gastos, deudas, bienes, documentos y revisión. Puedes salir y volver: lo que capturaste queda guardado.",
+      "q3": "¿Tengo que completar todo de una vez?",
+      "a3": "No. El indicador de progreso muestra cuánta información falta, y la tarjeta de próxima acción te lleva directamente a lo siguiente más útil."
+    },
+    "documents": {
+      "title": "Gestión de documentos",
+      "q1": "¿Cómo registro un documento?",
+      "a1": "En la etapa Documentos, usa Añadir evidencia. Indica el tipo, el nombre y el estado del documento.",
+      "q2": "¿Se suben archivos reales?",
+      "a2": "No en esta demostración. Se registra la ficha del documento (tipo, nombre, estado y notas), no el archivo. La carga real de archivos pertenece a una fase posterior del proyecto.",
+      "q3": "¿Qué significan los estados?",
+      "a3": "Solicitado: el abogado lo pidió y aún no llega. Recibido: ya está registrado. Revisado: el abogado lo revisó."
+    },
+    "tasks": {
+      "title": "Tareas",
+      "q1": "¿De dónde salen mis tareas?",
+      "a1": "De dos sitios: los faltantes que detecta la revisión de tu expediente y los documentos que el abogado solicita explícitamente.",
+      "q2": "¿Dónde las veo?",
+      "a2": "La entrada Tareas del menú abre la etapa de revisión del expediente, con la lista de comprobación y lo que queda pendiente antes de enviar.",
+      "q3": "¿Puedo enviar el expediente con tareas pendientes?",
+      "a3": "Sí, pero la revisión indicará lo que falta. Cuanto más completo llegue, más provechosa será la consulta."
+    },
+    "activities": {
+      "title": "Actividad",
+      "q1": "¿Qué muestra la actividad?",
+      "a1": "La línea de tiempo del expediente: cuándo se creó, qué etapas se completaron, cuándo se envió al abogado y qué respondió.",
+      "q2": "¿Hay actividad entre varios casos?",
+      "a2": "Todavía no. La línea de tiempo es por expediente. Para el abogado, la vista de actividad entre casos aún no existe y aparece deshabilitada en el menú en lugar de llevar a una pantalla vacía."
+    },
+    "assistant": {
+      "title": "Asistente de IA",
+      "q1": "¿Qué puede hacer el asistente?",
+      "a1": "Responder sobre tu expediente: qué falta, qué documento respalda una cifra o cómo queda tu balance mensual. Trabaja únicamente con el contexto del caso al que tienes acceso.",
+      "q2": "¿Puede decirme si me conviene el capítulo 7 o el 13?",
+      "a2": "No. La plataforma no determina elegibilidad ni selecciona capítulo: eso es una conclusión jurídica y corresponde a un abogado. El asistente puede ayudarte a preparar la pregunta, no a responderla.",
+      "q3": "¿Qué pasa si el modelo no está disponible?",
+      "a3": "El asistente cambia a una guía determinista basada en reglas y te lo indica. Prefiere responder menos antes que inventar."
+    },
+    "account": {
+      "title": "Cuenta y preferencias",
+      "q1": "¿Cómo cambio el idioma?",
+      "a1": "Con el botón de idioma de la cabecera. Alterna directamente entre español e inglés y traduce toda la interfaz al instante.",
+      "q2": "¿Qué hace 'Recordarme en este dispositivo'?",
+      "a2": "Mantiene la sesión abierta al volver. No lo actives en un equipo compartido.",
+      "q3": "¿Las credenciales de la demo son privadas?",
+      "a3": "No. Son públicas y las comparte cualquier visitante. Nunca introduzcas datos personales o financieros reales."
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "q1": "¿Fresh Start presenta mi caso ante el tribunal?",
+      "a1": "No. Prepara y organiza la información; la presentación corresponde a un abogado.",
+      "q2": "¿Ejecuta el means test oficial?",
+      "a2": "No. Los cálculos que ves son orientativos para la conversación con tu abogado, no una determinación oficial.",
+      "q3": "¿Mis datos son reales?",
+      "a3": "En esta demostración todos los nombres, casos y cifras son sintéticos.",
+      "q4": "¿Qué ocurre cuando envío el expediente?",
+      "a4": "Pasa a revisión del abogado. Podrás seguir el estado en la actividad del expediente y responder a los documentos que te soliciten."
+    }
+  }
+}

@@ -1,6 +1,8 @@
 {
   "chat": {
     "title": "Asistente de preparación",
+    "senderYou": "Tú",
+    "senderAssistant": "Asistente",
     "openAssistant": "Abrir asistente de preparación",
     "openCaseFirst": "Abre un expediente para conversar con el asistente.",
     "writing": "El asistente está escribiendo...",

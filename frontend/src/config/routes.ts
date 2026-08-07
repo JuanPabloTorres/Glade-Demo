@@ -6,20 +6,25 @@
 export const ROUTES = {
   home: "/",
   about: "/about",
+  help: "/help",
   login: "/login",
   case: (caseId: string) => `/case/${caseId}`,
 } as const;
 
 /**
- * Deep-link focus sections understood by CaseWorkspacePage's `?focus=`
- * query param (see FOCUS_PARAM_TO_STAGE in CaseWorkspacePage.tsx). Kept
- * here so the sidebar can link straight to a stage without duplicating the
- * raw string keys.
+ * Case sections a navigation entry can link straight to, as the `?focus=`
+ * query param CaseWorkspacePage reads (see STAGE_QUERY_PARAM there).
+ *
+ * These are the canonical `CaseStage` keys, so a URL reads as the section it
+ * opens — `/case/x?focus=documents` rather than the older `?focus=evidence`.
+ * The page still resolves the legacy backend aliases (`evidence`, `timeline`,
+ * `overview`, …) through FOCUS_PARAM_TO_STAGE, so links the assistant already
+ * produced and any bookmarked URL keep working.
  */
 export const CASE_FOCUS_SECTION = {
-  evidence: "evidence",
+  documents: "documents",
   review: "review",
-  timeline: "timeline",
+  tracking: "tracking",
 } as const;
 
 export function caseFocusUrl(caseId: string, focus: keyof typeof CASE_FOCUS_SECTION): string {

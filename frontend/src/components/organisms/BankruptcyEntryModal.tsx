@@ -103,8 +103,17 @@ export function BankruptcyEntryModal({ open, kind, onClose, onSave }: Props) {
   };
 
   return (
+    // Shell follows Flowbite's modal block: ruled header, body, and a footer
+    // whose primary action fills the width on narrow screens. The *fields* are
+    // deliberately left on this app's governed `.app-input` styling rather than
+    // the block's `bg-neutral-secondary-medium` inputs — `.app-input` is the
+    // app-wide input contract (index.css), so adopting the block there would
+    // restyle every form in the product, which is a larger decision than this
+    // modal.
     <Modal show={open} onClose={onClose} dismissible size="2xl">
-      <ModalHeader>{titles[kind]}</ModalHeader>
+      <ModalHeader className="border-b border-default [&>h3]:text-lg [&>h3]:font-medium [&>h3]:text-heading">
+        {titles[kind]}
+      </ModalHeader>
       <form onSubmit={submit}>
         <ModalBody className="max-h-[72vh] space-y-5 overflow-y-auto">
           {kind === "income" ? (
@@ -148,14 +157,17 @@ export function BankruptcyEntryModal({ open, kind, onClose, onSave }: Props) {
           {kind === "evidence" ? (
             <>
               <div><Label htmlFor="evidence-type">{t("workspace:entryModal.fields.evidenceType")}</Label><Select id="evidence-type" value={primary} onChange={(event) => setPrimary(event.target.value)} required><option value="">{t("workspace:entryModal.fields.select")}</option>{EVIDENCE_TYPES.map((value) => <option key={value} value={value}>{t(`workspace:entryModal.evidenceTypes.${value}`)}</option>)}</Select></div>
-              <div><Label htmlFor="evidence-file">{t("workspace:entryModal.fields.file")}</Label><FileInput id="evidence-file" onChange={(event) => setSecondary(event.target.files?.[0]?.name ?? "")} /><p className="mt-1 text-xs text-[#777]">{t("workspace:entryModal.fields.fileHelper")}</p></div>
+              <div><Label htmlFor="evidence-file">{t("workspace:entryModal.fields.file")}</Label><FileInput id="evidence-file" onChange={(event) => setSecondary(event.target.files?.[0]?.name ?? "")} /><p className="mt-1 text-xs text-body">{t("workspace:entryModal.fields.fileHelper")}</p></div>
               <div><Label htmlFor="evidence-name">{t("workspace:entryModal.fields.documentName")}</Label><TextInput id="evidence-name" value={secondary} onChange={(event) => setSecondary(event.target.value)} required /></div>
               <div><Label htmlFor="evidence-status">{t("workspace:entryModal.fields.status")}</Label><Select id="evidence-status" value={evidenceStatus} onChange={(event) => setEvidenceStatus(event.target.value as EvidenceStatus)}><option value="requested">{t("workspace:entryModal.evidenceStatus.requested")}</option><option value="received">{t("workspace:entryModal.evidenceStatus.received")}</option><option value="reviewed">{t("workspace:entryModal.evidenceStatus.reviewed")}</option></Select></div>
               <div><Label htmlFor="evidence-note">{t("workspace:entryModal.fields.note")}</Label><TextInput id="evidence-note" value={note} onChange={(event) => setNote(event.target.value)} /></div>
             </>
           ) : null}
         </ModalBody>
-        <ModalFooter><AppButton type="submit" className="glade-button">{t("common:actions.save")}</AppButton><AppButton type="button" color="alternative" onClick={onClose}>{t("common:actions.cancel")}</AppButton></ModalFooter>
+        <ModalFooter className="border-t border-default">
+          <AppButton type="submit" className="glade-button w-full sm:w-auto">{t("common:actions.save")}</AppButton>
+          <AppButton type="button" color="alternative" className="w-full sm:w-auto" onClick={onClose}>{t("common:actions.cancel")}</AppButton>
+        </ModalFooter>
       </form>
     </Modal>
   );

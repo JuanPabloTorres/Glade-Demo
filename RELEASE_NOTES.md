@@ -36,6 +36,88 @@ Backend 133 tests, ruff, mypy. Frontend 47 tests (10 new), lint, i18n parity, pr
 - Write actions are not implemented; phase 1 is read-only. `requires_confirmation` is carried in the contract so the signed-confirmation flow is additive rather than another breaking change.
 - Carried over from 3.1.0: no visual/screenshot QA, no committed production CORS origin, SQLite on Vercel's `/tmp` is not durable across cold starts.
 
+# Fresh Start 3.2.0
+
+UI design-system foundation, application shell, mobile navigation, branding and
+section navigation (`feat/ui-responsive-branding-nav`). Frontend only — no API,
+contract, auth or data-model change.
+
+## Design system
+
+- Flowbite v3 semantic token layer in `frontend/src/index.css`: ~20 token names
+  (`bg-neutral-*`, `border-default`, `text-heading`, `text-fg-brand`,
+  `rounded-base`, …) mapped onto the existing `:root` palette. `flowbite-react@0.12.9`
+  does not ship these, so component blocks copied from flowbite.com previously
+  rendered unstyled. It is a naming adapter, not a second palette.
+- Every component now styles itself through those tokens. A sweep of
+  `frontend/src/**/*.tsx` returns no raw Tailwind palette class (`indigo-600`,
+  `emerald-700`, `amber-50`, `slate-*`, `gray-*`) in any JSX.
+- New shared primitives: `AppAccordion` (restores the `aria-expanded` /
+  `aria-controls` that `flowbite-react`'s AccordionTitle omits), `FloatingField`,
+  and typography roles (`SectionTitle`, `BodyText`, `HelperText`, `ErrorText`,
+  `FieldLabel`).
+
+## Application shell and navigation
+
+- Mobile gets a persistent bottom navigation bar plus an overflow drawer. It
+  previously had a single floating menu button as the only route to any
+  destination — two taps per navigation, and no indication of where you were.
+- The desktop sidebar is collapsible (256px / 80px) with the preference
+  persisted, carries the product mark, and no longer renders below 768px.
+- `useRoleNavigation()` is the single resolver of which destinations a role
+  gets, shared by the sidebar, the bottom bar and the drawer.
+- `UserMenu` extracted so the product has one avatar-menu implementation. The
+  build version now appears once, in the footer, instead of in both header and
+  footer.
+
+## Fixed
+
+- **Documents / Tasks / Activities went nowhere useful.** The case page read
+  `?focus=` once, copied it into component state and deleted it from the URL. A
+  refresh reset to the first stage, browser Back/Forward never moved between
+  stages, and no navigation entry could mark itself active because the
+  destination it linked to no longer matched. The active stage is now derived
+  from the URL and written back on navigation.
+- **The attorney queue forced page-wide horizontal scroll at every viewport
+  below 1280px.** `AppShell`'s content column is a flex item, and a flex item
+  defaults to `min-width: auto`, so it refused to shrink below its content's
+  intrinsic width; the queue's table pinned it at ~1280px and dragged the
+  sidebar and header along. Fixed with `min-w-0` at the cause, not with
+  `overflow: hidden`.
+- The EN/ES control was a dropdown with exactly two items; it is now a direct
+  toggle that labels itself with the language it switches to.
+- Browser tab and metadata said `MatterReady`; the visible product name was
+  written `FreshStart` with no space across the header, login, footer and both
+  locale sets. Technical identifiers (`matter-ready-web`, the demo credentials)
+  deliberately unchanged.
+- `AsyncState` and `ProtectedRoute` rendered hardcoded English during a Spanish
+  session; `ConfirmDialog` rendered hardcoded Spanish button labels during an
+  English one, with unreachable `t()` fallbacks beneath them.
+- `LanguageSelector` announced as just "ES" — its `aria-label` sat on an inner
+  `<span>`, which contributes nothing to a button's accessible name.
+- `DataTableToolbar` squeezed its search field to ~22px at 768px; the row
+  actions trigger and several controls were below a reliable touch size.
+
+## Added
+
+- `/help`: a help centre with seven accordion sections (getting started,
+  documents, tasks, activity, AI assistant, account, FAQ) in ES and EN. "Ayuda"
+  previously pointed at `/about`, which mixes product help with privacy and
+  terms; `/about` keeps the legal and reviewer-facing detail.
+
+## Verification
+
+Verified in a browser against the running backend, at 320 / 375 / 390 / 430 /
+768 / 1024 / 1280 / 1440: no horizontal scroll for either role, no duplicate DOM
+ids, no console errors, no `href="#"` placeholders, no unlabeled controls, tap
+targets at or above the touch floor in the bottom bar, and nothing hidden behind
+it. Language switching, accordion ARIA, bottom-nav active state, deep-link
+refresh and browser Back/Forward all confirmed live. Build, lint (0 errors),
+`i18n:check` (14 modules) and 37/37 unit tests pass on this branch in isolation.
+
+Not covered: a screen-by-screen review of visual hierarchy and density, and the
+form/CRUD primitive work being delivered separately.
+
 # FreshStart 3.1.0
 
 Glade interview-demo audit (`fix/glade-demo-audit-i18n-ai-health`) — full bilingual rollout plus the regressions caught while wiring it up. Two later change sets landed on top of this same 3.1.0 line without a version bump (see each subsection).
