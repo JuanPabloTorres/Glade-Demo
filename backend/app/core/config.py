@@ -110,6 +110,14 @@ class Settings(BaseSettings):
     # symptom is "the agent never answers" with nothing in the response saying
     # why. Each provider names its own model.
     openai_model: str = "gpt-4o-mini"
+    # Point `openai` at any provider that speaks OpenAI's Chat Completions API
+    # — Groq, Cerebras, OpenRouter, Together, or Gemini's compatibility
+    # endpoint. Unset means OpenAI itself, over the Responses API.
+    #
+    # This exists because OpenAI has no meaningful free tier and the agent is
+    # the part of this product worth demonstrating. Setting it changes the
+    # protocol as well as the host — see `ModelFactory._create_openai_compatible`.
+    openai_base_url: str | None = None
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen3:4b"
     ollama_embedding_model: str = "nomic-embed-text"

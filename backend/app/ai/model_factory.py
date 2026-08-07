@@ -62,6 +62,11 @@ class ModelFactory:
                 "AI_PROVIDER=openai requires OPENAI_API_KEY. Set it, or switch "
                 "AI_PROVIDER to 'ollama' (local) or 'rule_based' (deterministic)."
             )
+
+        base_url = (self._settings.openai_base_url or "").strip()
+        if base_url:
+            return self._create_openai_compatible(api_key.get_secret_value(), base_url)
+
         module = importlib.import_module("strands.models.openai_responses")
         return module.OpenAIResponsesModel(
             client_args={"api_key": api_key.get_secret_value()},
@@ -76,6 +81,38 @@ class ModelFactory:
             # A server-side thread on the provider would be a second,
             # unreachable copy of client financial data.
             stateful=False,
+        )
+
+    def _create_openai_compatible(self, api_key: str, base_url: str) -> Any:
+        """Any provider that speaks OpenAI's Chat Completions API.
+
+        A different class, not just a different URL. The branch above uses the
+        *Responses* API, which as of today only OpenAI itself implements —
+        pointing it at Groq, Cerebras, OpenRouter or Gemini's compatibility
+        endpoint fails every call, and `AgentRuntime` turns a failed call into
+        a silent degrade. Chat Completions is the interface those providers
+        actually expose, so `OPENAI_BASE_URL` selects both the endpoint and the
+        protocol that matches it.
+
+        This is what makes a free-tier provider usable here: OpenAI has no
+        meaningful free tier, and the agent is the part of this product worth
+        demonstrating.
+
+        `max_tokens` rather than `max_output_tokens`: the two APIs name the
+        same limit differently, and sending the Responses spelling to a Chat
+        Completions endpoint is rejected as an unknown parameter by some
+        providers and silently ignored by others — either way the cap would not
+        be applied.
+        """
+        module = importlib.import_module("strands.models.openai")
+        logger.info("Using the OpenAI-compatible Chat Completions API at %s", base_url)
+        return module.OpenAIModel(
+            client_args={"api_key": api_key, "base_url": base_url},
+            model_id=self._settings.openai_model,
+            params={
+                "temperature": self._settings.ai_temperature,
+                "max_tokens": self._settings.ai_max_output_tokens,
+            },
         )
 
     def _create_ollama(self) -> Any:

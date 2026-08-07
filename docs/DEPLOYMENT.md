@@ -28,7 +28,8 @@ That is acceptable for a synthetic-data demo and unacceptable as an ownership gu
 | `SEED_DEMO_DATA_ON_STARTUP` | Recommended: `true` | Populates the synthetic demo case into an **empty** database at boot. Without it a login lands on an empty workspace after every cold start. It never writes over existing rows, so it degrades to a no-op once there is real data. |
 | `DATABASE_URL` | No | Defaults to `sqlite:////tmp/matter_ready.db`. Set it to a Postgres DSN to make persistence real. |
 | `OPENAI_API_KEY` | For a working agent | `api/index.py` already sets `AI_PROVIDER=openai`. Without a key the model factory raises, the runtime catches it, and every answer comes back from the deterministic draft with `degraded: true` — no error, just no agent. |
-| `OPENAI_MODEL` | No | Defaults to `gpt-4o-mini`. Note this is **not** `AI_MODEL_ID`, which belongs to the transformers provider and defaults to a HuggingFace repo id; handing that to OpenAI fails every call and the runtime turns a failed call into a silent degrade. |
+| `OPENAI_BASE_URL` | Only for a non-OpenAI provider | Points the `openai` provider at any endpoint speaking OpenAI's **Chat Completions** API — see "Running the agent for free" below. Unset means OpenAI itself, over the Responses API. |
+| `OPENAI_MODEL` | No | Defaults to `gpt-4o-mini`. Set it to whatever the provider you chose actually serves. Note this is **not** `AI_MODEL_ID`, which belongs to the transformers provider and defaults to a HuggingFace repo id; handing that to OpenAI fails every call and the runtime turns a failed call into a silent degrade. |
 | `AI_PROVIDER` | No | `api/index.py` sets `openai`. `ollama` cannot work here — it needs a model server on localhost and a serverless function has none. `rule_based` forces the deterministic path. |
 | `CORS_ORIGINS` | No | Same-origin on Vercel. Required on Render. |
 | `DEMO_CLIENT_*` / `DEMO_ATTORNEY_*` | No | Override before any deployment that is not the synthetic demo. |
@@ -51,6 +52,23 @@ Cannot:
 
 - **durable persistence or a real ownership guarantee**, until `DATABASE_URL` points at Postgres.
 
+### Running the agent for free
+
+OpenAI has no meaningful free tier, and the agent is the part of this product worth demonstrating. Several providers expose an OpenAI **Chat Completions**-compatible endpoint with a free tier, and `OPENAI_BASE_URL` switches both the endpoint and the protocol to match — the default path speaks the *Responses* API, which today only OpenAI implements.
+
+Pick one, create an account, generate a key, and set three variables:
+
+| Provider | `OPENAI_BASE_URL` | A model that works | Notes |
+| --- | --- | --- | --- |
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` | Free tier with per-minute limits. Fast enough that a demo turn feels instant. |
+| Cerebras | `https://api.cerebras.ai/v1` | `llama-3.3-70b` | Free tier, very low latency. |
+| Google AI Studio | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-2.0-flash` | Free tier; this is Gemini behind an OpenAI-compatible shim. |
+| OpenRouter | `https://openrouter.ai/api/v1` | a model whose id ends in `:free` | Aggregates several providers; the free pool changes, so check the model list. |
+
+Whichever you choose, `OPENAI_API_KEY` holds that provider's key — the variable is named for the protocol, not the vendor.
+
+Two things to verify on the first turn, because the runtime degrades silently rather than erroring: that the response comes back with `degraded: false`, and that `handled_by` names a specialist. If either is wrong, the model is being rejected and the deterministic draft is answering instead.
+
 ### What enabling the agent means
 
 `AI_PROVIDER=openai` sends reduced case context — income, debts, and for an attorney session the private notes — to a third party. Every case in this deployment is synthetic (AGENTS.md rule 9), so that is a demo decision rather than a disclosure one. It stops being true the moment real information is entered, which is another reason not to enter any.
@@ -59,12 +77,21 @@ Cost and latency both rise per answered turn. `Limits(turns=8)` in `AgentRuntime
 
 The size question was measured rather than assumed: `strands-agents[openai]` takes a clean install of `requirements.txt` from 101 MB to 163 MB, against Vercel's 250 MB unzipped limit.
 
+## Making the data survive: Postgres
+
+The SQLite default is per-instance and ephemeral (see above). Two managed Postgres services have free tiers that are enough for this demo, and both give you a ready-made `postgresql://` DSN:
+
+- **Neon** — serverless Postgres, scales to zero, and Vercel ships a first-party integration that sets `DATABASE_URL` on the project for you.
+- **Supabase** — a free Postgres instance; copy the connection string from Project Settings → Database.
+
+Either way the DSN needs one edit: SQLAlchemy has to be told which driver to use, so change the `postgresql://` prefix to **`postgresql+psycopg://`**. The driver already ships in `requirements.txt`, so this is a variable change and nothing else.
+
 ## Upgrading to Postgres
 
 Every model in `app/repositories/orm_models.py` uses portable SQLAlchemy column types, so no schema changes are needed — only the driver and the connection string.
 
-1. Add `psycopg[binary]` to `requirements.txt` (Vercel) or the `backend/pyproject.toml` dependencies (Render/Docker).
-2. Set `DATABASE_URL=postgresql+psycopg://user:password@host:5432/dbname`.
+1. The `psycopg[binary]` driver already ships in both `requirements.txt` and `backend/pyproject.toml`. Nothing to add.
+2. Set `DATABASE_URL=postgresql+psycopg://user:password@host:5432/dbname`. Note the `+psycopg` — a bare `postgresql://` DSN makes SQLAlchemy look for `psycopg2`, which is not installed.
 3. Run the migrations once against the new database: `cd backend && alembic upgrade head`.
 4. Leave `SEED_DEMO_DATA_ON_STARTUP` set only if you want the synthetic case in it; it seeds once into an empty database and then does nothing.
 

@@ -12,3 +12,9 @@ alembic>=1.13,<2.0
 # deployment target can run the agent at all: Ollama needs a local server, and
 # a serverless function has none. See docs/DEPLOYMENT.md.
 strands-agents[openai]>=1.50,<2.0
+# Postgres driver. Present even though the default DSN is SQLite: Vercel's
+# filesystem is per-instance and ephemeral, so a demo that needs its data to
+# survive a cold start has to point DATABASE_URL at managed Postgres — and
+# shipping the driver means that is a one-variable change rather than a code
+# change plus a redeploy. ~4 MB.
+psycopg[binary]>=3.2,<4.0

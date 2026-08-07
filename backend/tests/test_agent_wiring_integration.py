@@ -179,3 +179,89 @@ class TestOpenAIModelWiring:
 
         with pytest.raises(MissingModelCredentialsError):
             ModelFactory(Settings(ai_provider="openai", openai_api_key=None)).create()
+
+
+class TestOpenAICompatibleProviders:
+    """
+    Pointing the `openai` provider at somebody else's endpoint.
+
+    OpenAI has no meaningful free tier, and the agent is the part of this
+    product worth demonstrating — so the demo has to be able to run against
+    Groq, Cerebras, OpenRouter, Together, or Gemini's compatibility endpoint.
+    """
+
+    def test_a_base_url_switches_to_the_chat_completions_api(self) -> None:
+        """Not merely a different host: a different API.
+
+        The default path uses the *Responses* API, which today only OpenAI
+        implements. Sending that shape to a compatibility endpoint fails every
+        call, and `AgentRuntime` converts a failed call into a silent degrade —
+        so the symptom would be "the agent never answers" with nothing saying
+        why.
+        """
+        from strands.models.openai import OpenAIModel
+
+        from app.ai.model_factory import ModelFactory
+        from app.core.config import Settings
+
+        model = ModelFactory(
+            Settings(
+                ai_provider="openai",
+                openai_api_key="gsk-test-not-a-real-key",
+                openai_base_url="https://api.groq.com/openai/v1",
+                openai_model="llama-3.3-70b-versatile",
+            )
+        ).create()
+
+        assert isinstance(model, OpenAIModel)
+        assert model.get_config()["model_id"] == "llama-3.3-70b-versatile"
+
+    def test_no_base_url_still_means_openai_itself(self) -> None:
+        from strands.models.openai_responses import OpenAIResponsesModel
+
+        from app.ai.model_factory import ModelFactory
+        from app.core.config import Settings
+
+        model = ModelFactory(
+            Settings(ai_provider="openai", openai_api_key="sk-test-not-a-real-key")
+        ).create()
+
+        assert isinstance(model, OpenAIResponsesModel)
+
+    def test_a_blank_base_url_is_not_a_base_url(self) -> None:
+        # An unset Vercel variable arrives as "", not as None.
+        from strands.models.openai_responses import OpenAIResponsesModel
+
+        from app.ai.model_factory import ModelFactory
+        from app.core.config import Settings
+
+        model = ModelFactory(
+            Settings(
+                ai_provider="openai", openai_api_key="sk-test-not-a-real-key", openai_base_url="  "
+            )
+        ).create()
+
+        assert isinstance(model, OpenAIResponsesModel)
+
+    def test_the_token_cap_uses_the_chat_completions_spelling(self) -> None:
+        """`max_tokens`, not `max_output_tokens`.
+
+        The two APIs name the same limit differently. Some compatibility
+        endpoints reject the unknown parameter and others ignore it silently;
+        either way the cap the deployment configured would not be applied.
+        """
+        from app.ai.model_factory import ModelFactory
+        from app.core.config import Settings
+
+        model = ModelFactory(
+            Settings(
+                ai_provider="openai",
+                openai_api_key="gsk-test-not-a-real-key",
+                openai_base_url="https://api.groq.com/openai/v1",
+                ai_max_output_tokens=1234,
+            )
+        ).create()
+
+        params = model.get_config()["params"]
+        assert params["max_tokens"] == 1234
+        assert "max_output_tokens" not in params
