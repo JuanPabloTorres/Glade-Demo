@@ -97,6 +97,10 @@ One icon added to the registry (`refresh`).
   new script.
 
 # Defects the live run exposed (not fixed here — backend, outside this task)
+> **All three fixed in 4.3.0** — see `changes/live-run-defects.md`. Two turned
+> out to be narrower symptoms of wider gaps: the guardrails had no English
+> patterns at all, and every string the analysis service generates was
+> hardcoded Spanish.
 1. **`handled_by` can come back empty.** Turn 6 answered from the agent path
    with `handled_by: ""`. The contract documents that field as the specialist
    name or `"deterministic"`; an empty string is neither. Nothing renders it

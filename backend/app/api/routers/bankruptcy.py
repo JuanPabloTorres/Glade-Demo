@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from app.ai.contracts.assistant_response import AssistantResponse
 from app.core.config import Settings, get_settings
 from app.core.contracts import get_contract_registry
+from app.core.i18n import resolve_language, resolve_locale
 from app.core.security import CurrentUserDep
 from app.domain.value_objects import TimelineEventType
 from app.repositories.ai_conversation_repository import AIConversationRepositoryDep
@@ -35,6 +36,7 @@ def analyze_case(
     current_user: CurrentUserDep,
     case_access: CaseAccessDep,
     cases: CaseRepositoryDep,
+    accept_language: Annotated[str | None, Header()] = None,
 ) -> CaseAnalysisDto:
     # Ownership fix (docs/audits/GLADE-DEMO-GROUNDED-STATE-2026-08-06.md §3/
     # §5): previously any authenticated user could submit any case_id/case
@@ -42,7 +44,13 @@ def analyze_case(
     # looks up the *persisted* owner (not the client-claimed one) and raises
     # 403/404 before anything below runs.
     case = case_access.authorize_for_submission(body.case, current_user)
-    analysis = BankruptcyAnalysisService().analyze(case)
+    # The analysis generates prose (missing items, warnings, next steps), and
+    # that prose is rendered verbatim by the workspace. Language comes from the
+    # header rather than the body so the request contract is unchanged — the
+    # same signal the error handlers already use (app/main.py).
+    analysis = BankruptcyAnalysisService().analyze(
+        case, language=resolve_language(resolve_locale(accept_language))
+    )
     cases.upsert_case_snapshot(case, owner_user_id=case.owner_user_id)
     cases.record_timeline_event(
         case.id, TimelineEventType.ANALYSIS_RUN.value, "Analisis financiero generado."

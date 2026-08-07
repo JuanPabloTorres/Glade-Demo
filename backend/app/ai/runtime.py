@@ -34,6 +34,7 @@ from app.ai.contracts.assistant_response import (
     ALLOWED_ACTION_RESOURCES,
     AgentAnswer,
     AssistantAction,
+    AssistantActionType,
     AssistantResponse,
 )
 from app.ai.guardrails import ResponseGuardrails
@@ -199,7 +200,7 @@ class AgentRuntime:
         actions = [
             AssistantAction(
                 id="focus-section",
-                action_type="open_page",
+                action_type=AssistantActionType.OPEN_PAGE,
                 resource=section,
                 label=_OPEN_SECTION_LABEL.get(language, _OPEN_SECTION_LABEL["es"]),
                 icon="arrow-right",
@@ -208,7 +209,7 @@ class AgentRuntime:
         actions.extend(
             AssistantAction(
                 id=f"suggested-{index}",
-                action_type="ask",
+                action_type=AssistantActionType.ASK,
                 # An `ask` action is a follow-up message the user sends, not a
                 # destination — the frontend never navigates on it. It carries
                 # the section the draft was about purely as context, which is
@@ -229,7 +230,7 @@ class AgentRuntime:
         answer: AgentAnswer,
         degraded: bool,
     ) -> AssistantResponse:
-        guarded = self._guardrails.review(answer.message)
+        guarded = self._guardrails.review(answer.message, language=context.language)
         return AssistantResponse(
             language=context.language,
             message=guarded.message,

@@ -7,7 +7,7 @@ import pandas as pd  # type: ignore[import-untyped]
 from app.ai.contracts.assistant_response import AssistantResponse
 from app.ai.runtime import AgentRuntime
 from app.core.config import Settings
-from app.core.i18n import resolve_locale
+from app.core.i18n import Language, resolve_language, resolve_locale
 from app.domain.value_objects import ConversationRole
 from app.repositories.protocols import AIConversationRepositoryProtocol, CaseRepositoryProtocol
 from app.schemas.bankruptcy import (
@@ -15,6 +15,7 @@ from app.schemas.bankruptcy import (
     CaseAnalysisDto,
     GuidanceRequestDto,
 )
+from app.services.analysis_copy import copy
 from app.services.case_context_builder import CaseContextBuilder
 from app.services.documents.index import CaseDocumentIndex, get_shared_case_document_index
 
@@ -86,7 +87,15 @@ def _contains_any(values: Iterable[str], candidates: set[str]) -> bool:
 
 
 class BankruptcyAnalysisService:
-    def analyze(self, case: BankruptcyCaseDto) -> CaseAnalysisDto:
+    def analyze(self, case: BankruptcyCaseDto, *, language: Language = "es") -> CaseAnalysisDto:
+        """Compute the case's figures and the prose that explains them.
+
+        `language` decides the generated copy only — never the arithmetic.
+        It defaults to Spanish so that existing callers and the demo data keep
+        their current output; `BankruptcyGuidanceService` passes the session's
+        resolved language, which is what stops an English session receiving
+        Spanish suggested-action labels.
+        """
         income_rows = []
         for item in case.incomes:
             gross_monthly = _monthly_amount(item.gross_amount, item.frequency)
@@ -145,7 +154,7 @@ class BankruptcyAnalysisService:
                 debt_frame.loc[debt_frame["type"] == debt_type, "balance"].fillna(0).sum()
             )
 
-        missing_items = self._missing_items(case)
+        missing_items = self._missing_items(case, language)
         required_evidence = self._required_evidence(case)
         evidence_types = [item.evidence_type for item in case.evidence if item.status != "missing"]
         matched_evidence = sum(
@@ -167,9 +176,9 @@ class BankruptcyAnalysisService:
         ]
         completion_score = round((sum(completed_sections) / len(completed_sections)) * 100)
 
-        warnings = self._warnings(case, monthly_cash_flow, total_debt, monthly_gross)
-        discussion_points = self._discussion_points(case, monthly_cash_flow)
-        next_steps = self._next_steps(case, missing_items, warnings)
+        warnings = self._warnings(case, monthly_cash_flow, total_debt, monthly_gross, language)
+        discussion_points = self._discussion_points(case, monthly_cash_flow, language)
+        next_steps = self._next_steps(case, missing_items, warnings, language)
 
         return CaseAnalysisDto(
             monthly_gross_income=_round_money(monthly_gross),
@@ -187,30 +196,30 @@ class BankruptcyAnalysisService:
             missing_items=missing_items,
             warnings=warnings,
             discussion_points=discussion_points,
-            chapter_7_questions=self._chapter_7_questions(case, monthly_cash_flow),
-            chapter_13_questions=self._chapter_13_questions(case, monthly_cash_flow),
+            chapter_7_questions=self._chapter_7_questions(case, monthly_cash_flow, language),
+            chapter_13_questions=self._chapter_13_questions(case, monthly_cash_flow, language),
             required_evidence=required_evidence,
             next_steps=next_steps,
         )
 
-    def _missing_items(self, case: BankruptcyCaseDto) -> list[str]:
+    def _missing_items(self, case: BankruptcyCaseDto, language: Language) -> list[str]:
         missing: list[str] = []
         if not case.household.marital_status:
-            missing.append("Estado civil y composición del hogar")
+            missing.append(copy("missing.marital_status", language))
         if not case.household.housing_status:
-            missing.append("Situación de vivienda")
+            missing.append(copy("missing.housing", language))
         if not case.incomes:
-            missing.append("Fuentes de ingreso")
+            missing.append(copy("missing.income", language))
         if not case.expenses:
-            missing.append("Gastos mensuales")
+            missing.append(copy("missing.expenses", language))
         if not case.debts:
-            missing.append("Lista de acreedores y deudas")
+            missing.append(copy("missing.debts", language))
         if not case.assets:
-            missing.append("Bienes y activos")
+            missing.append(copy("missing.assets", language))
         if not case.evidence:
-            missing.append("Documentos de respaldo")
+            missing.append(copy("missing.evidence", language))
         if not case.client_goal:
-            missing.append("Meta principal y urgencia del cliente")
+            missing.append(copy("missing.goal", language))
         return missing
 
     def _required_evidence(self, case: BankruptcyCaseDto) -> list[str]:
@@ -239,72 +248,76 @@ class BankruptcyAnalysisService:
         monthly_cash_flow: float,
         total_debt: float,
         monthly_gross: float,
+        language: Language,
     ) -> list[str]:
         warnings: list[str] = []
         if monthly_cash_flow < 0:
-            warnings.append("El presupuesto refleja un déficit mensual.")
+            warnings.append(copy("warning.deficit", language))
         if monthly_gross > 0 and total_debt > monthly_gross * 18:
-            warnings.append("La deuda total es alta frente al ingreso bruto anual estimado.")
+            warnings.append(copy("warning.debt_to_income", language))
         if any(item.delinquent_amount > 0 for item in case.debts):
-            warnings.append("Existen cuentas en atraso que deben revisarse con prioridad.")
+            warnings.append(copy("warning.delinquent", language))
         if any(item.collection_lawsuit for item in case.debts):
-            warnings.append("Se reportó una demanda, embargo o acción de cobro activa.")
+            warnings.append(copy("warning.lawsuit", language))
         if any(item.debt_type == "priority" for item in case.debts):
-            warnings.append("Hay deudas prioritarias que pueden recibir tratamiento especial.")
+            warnings.append(copy("warning.priority_debt", language))
         if case.household.urgent_collection_action:
-            warnings.append("El cliente identificó una situación de cobro urgente.")
+            warnings.append(copy("warning.urgent_collection", language))
         if case.household.recent_property_transfer:
-            warnings.append("Las transferencias recientes deben revelarse al abogado.")
+            warnings.append(copy("warning.recent_transfer", language))
         return warnings
 
     def _discussion_points(
         self,
         case: BankruptcyCaseDto,
         monthly_cash_flow: float,
+        language: Language,
     ) -> list[str]:
         points = [
-            "Confirmar si la información del cónyuge debe incluirse aunque no presente conjuntamente.",
-            "Validar la residencia, jurisdicción y fecha potencial de presentación.",
-            "Revisar límites, exenciones y resultados del means test con datos vigentes.",
+            copy("discussion.spouse", language),
+            copy("discussion.jurisdiction", language),
+            copy("discussion.exemptions", language),
         ]
         if monthly_cash_flow > 0:
-            points.append("Existe flujo mensual positivo para discutir capacidad de pago.")
+            points.append(copy("discussion.positive_cash_flow", language))
         else:
-            points.append("El flujo mensual es limitado o negativo y requiere validación documental.")
+            points.append(copy("discussion.tight_cash_flow", language))
         if any(item.debt_type == "secured" for item in case.debts):
-            points.append("Definir la intención respecto a vivienda, vehículos y otras garantías.")
+            points.append(copy("discussion.secured_intent", language))
         return points
 
     def _chapter_7_questions(
         self,
         case: BankruptcyCaseDto,
         monthly_cash_flow: float,
+        language: Language,
     ) -> list[str]:
         questions = [
-            "¿Qué resultado produce el means test vigente para Puerto Rico y el tamaño del hogar?",
-            "¿Qué bienes podrían estar protegidos por exenciones aplicables?",
-            "¿Existen transferencias, pagos preferentes o activos que requieran análisis adicional?",
+            copy("chapter7.means_test", language),
+            copy("chapter7.exemptions", language),
+            copy("chapter7.transfers", language),
         ]
         if monthly_cash_flow > 0:
-            questions.append("¿El flujo disponible cambia el análisis de abuso o capacidad de pago?")
+            questions.append(copy("chapter7.disposable_income", language))
         if any(item.debt_type == "secured" for item in case.debts):
-            questions.append("¿Qué ocurriría con cada deuda garantizada y su propiedad asociada?")
+            questions.append(copy("chapter7.secured_debts", language))
         return questions
 
     def _chapter_13_questions(
         self,
         case: BankruptcyCaseDto,
         monthly_cash_flow: float,
+        language: Language,
     ) -> list[str]:
         questions = [
-            "¿El ingreso es suficientemente regular para sostener un plan de tres a cinco años?",
-            "¿Qué atrasos de hipoteca, vehículo, contribuciones o manutención deben incluirse?",
-            "¿Cuál sería el pago estimado luego de validar ingreso disponible y reclamaciones?",
+            copy("chapter13.regular_income", language),
+            copy("chapter13.arrears", language),
+            copy("chapter13.estimated_payment", language),
         ]
         if monthly_cash_flow <= 0:
-            questions.append("¿Qué ajustes verificables permitirían financiar un plan realista?")
+            questions.append(copy("chapter13.feasibility", language))
         if case.household.filing_jointly:
-            questions.append("¿Cómo cambia el plan al presentar una petición conjunta?")
+            questions.append(copy("chapter13.joint_filing", language))
         return questions
 
     def _next_steps(
@@ -312,29 +325,30 @@ class BankruptcyAnalysisService:
         case: BankruptcyCaseDto,
         missing_items: list[str],
         warnings: list[str],
+        language: Language,
     ) -> list[str]:
         if missing_items:
             return [
-                f"Completar: {missing_items[0]}.",
-                "Vincular cada cifra importante con un documento de respaldo.",
-                "Guardar preguntas para discutir en la consulta con el abogado.",
+                copy("next.complete_item", language).format(item=missing_items[0]),
+                copy("next.link_evidence", language),
+                copy("next.save_questions", language),
             ]
         if case.status in {"draft", "collecting_information"}:
             return [
-                "Revisar el resumen financiero completo.",
-                "Confirmar que no falten acreedores, bienes ni transferencias.",
-                "Enviar la solicitud al abogado para revisión.",
+                copy("next.review_summary", language),
+                copy("next.confirm_completeness", language),
+                copy("next.submit", language),
             ]
         if warnings:
             return [
-                "El abogado debe revisar primero las alertas identificadas.",
-                "Solicitar los documentos faltantes antes de discutir una estrategia.",
-                "Programar una consulta para comparar alternativas disponibles.",
+                copy("next.attorney_reviews_warnings", language),
+                copy("next.request_documents", language),
+                copy("next.schedule_consultation", language),
             ]
         return [
-            "Preparar la consulta con el abogado.",
-            "Validar formularios oficiales y datos de means test vigentes.",
-            "Documentar la decisión profesional y los próximos pasos.",
+            copy("next.prepare_consultation", language),
+            copy("next.validate_forms", language),
+            copy("next.document_decision", language),
         ]
 
 
@@ -374,8 +388,12 @@ class BankruptcyGuidanceService:
         )
 
     def guide(self, request: GuidanceRequestDto) -> AssistantResponse:
-        analysis = self._analysis.analyze(request.case)
+        # Resolved before the analysis, not after: the analysis generates the
+        # prose the assistant hands back as suggested-action labels and
+        # warnings, so it has to be produced in the session's language rather
+        # than translated afterwards.
         locale = resolve_locale(request.locale)
+        analysis = self._analysis.analyze(request.case, language=resolve_language(locale))
 
         # RAG retrieval (docs/audits/GLADE-DEMO-GROUNDED-STATE-2026-08-06.md
         # §4: "CaseDocumentIndex.search() is implemented but never called").

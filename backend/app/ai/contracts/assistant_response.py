@@ -22,7 +22,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.schemas.common import ApiModel
 
@@ -106,6 +106,26 @@ class AgentAnswer(ApiModel):
     handled_by: str = "orchestrator"
     actions: list[AssistantAction] = Field(default_factory=list)
     cards: list[AssistantCard] = Field(default_factory=list)
+
+    @field_validator("handled_by", mode="before")
+    @classmethod
+    def _name_whoever_answered(cls, value: object) -> object:
+        """Never let `handled_by` come back blank.
+
+        A live run against `llama3.1:8b` returned `handled_by: ""` on an
+        otherwise good answer: the field has a default, but a model that emits
+        the key explicitly overrides it, and the empty string is neither a
+        specialist name nor `"deterministic"` — the only two things this field
+        is documented to hold.
+
+        Normalized rather than rejected. The answer itself was fine, and
+        discarding it over an unfilled label would degrade a turn the agent
+        actually handled. `"orchestrator"` is the honest fallback: the
+        orchestrator is what returned the answer when no specialist claimed it.
+        """
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return "orchestrator"
+        return value.strip() if isinstance(value, str) else value
 
 
 class AssistantResponse(ApiModel):

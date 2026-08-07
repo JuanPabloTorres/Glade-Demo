@@ -15,6 +15,15 @@ from pwdlib import PasswordHash
 
 from app.core.config import Settings, get_settings
 from app.schemas.auth import AuthUserDto
+from app.schemas.bankruptcy import UserRole
+
+_AUTHORIZED_ROLES: dict[str, UserRole] = {"client": "client", "attorney": "attorney"}
+"""The roles a session token may claim.
+
+A mapping rather than a set so that reading a value out of it yields the
+narrowed `UserRole`, which is what `AuthUserDto` requires — see
+`_decode_session_token`.
+"""
 
 bearer_scheme = HTTPBearer(auto_error=False)
 password_hash = PasswordHash.recommended()
@@ -95,7 +104,9 @@ def _login_rate_limit_key(client_ip: str, email: str) -> tuple[str, str]:
 
 
 def _prune_expired_attempts(key: tuple[str, str], window_seconds: float, now: float) -> list[float]:
-    attempts = [timestamp for timestamp in _failed_login_attempts[key] if now - timestamp < window_seconds]
+    attempts = [
+        timestamp for timestamp in _failed_login_attempts[key] if now - timestamp < window_seconds
+    ]
     _failed_login_attempts[key] = attempts
     return attempts
 
@@ -107,7 +118,9 @@ def is_login_rate_limited(client_ip: str, email: str, settings: Settings) -> boo
     password — the lockout only clears when the window ages out or a test
     explicitly resets it."""
     key = _login_rate_limit_key(client_ip, email)
-    attempts = _prune_expired_attempts(key, settings.login_rate_limit_window_seconds, time.monotonic())
+    attempts = _prune_expired_attempts(
+        key, settings.login_rate_limit_window_seconds, time.monotonic()
+    )
     return len(attempts) >= settings.login_rate_limit_max_attempts
 
 
@@ -169,19 +182,39 @@ def decode_access_token(token: str, settings: Settings) -> AuthUserDto:
     user_id = payload.get("uid")
     name = payload.get("name")
     role = payload.get("role")
-    if not all(isinstance(value, str) and value for value in (subject, user_id, name, role)):
+    # Checked one claim at a time rather than through `all(...)`: a generator
+    # hides the narrowing from the type checker, so all four stayed `Any | None`
+    # at the constructor below. The runtime check was already correct; this
+    # makes it verifiable statically, on the one path that turns an unverified
+    # token payload into an authenticated identity.
+    if (
+        not isinstance(subject, str)
+        or not subject
+        or not isinstance(user_id, str)
+        or not user_id
+        or not isinstance(name, str)
+        or not name
+        or not isinstance(role, str)
+        or not role
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="The session token is missing required claims.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    if role not in {"client", "attorney"}:
+    # Looked up in the allow-list rather than tested for membership in it: a
+    # `str` that passed an `in` check is still a `str` to the type checker, so
+    # the old form left the role unverified at the constructor. Reading the
+    # value *out of* the mapping is what carries the narrowed type with it, and
+    # it keeps the set of accepted roles in one place.
+    authorized_role = _AUTHORIZED_ROLES.get(role)
+    if authorized_role is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="The session role is invalid.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return AuthUserDto(id=user_id, email=subject, name=name, role=role)
+    return AuthUserDto(id=user_id, email=subject, name=name, role=authorized_role)
 
 
 def get_current_user(

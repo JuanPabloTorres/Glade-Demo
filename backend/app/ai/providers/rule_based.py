@@ -447,17 +447,31 @@ def _first_name(client_name: str) -> str:
 
 
 def _section_for_missing(missing: str) -> str:
+    """Which workspace section a missing item belongs to.
+
+    Matched on the item's own text, in both languages. The English keywords are
+    not decoration: `BankruptcyAnalysisService` produces these items in the
+    session's language since 4.2.0, so a Spanish-only list would have quietly
+    routed every English session to "overview" — a working-looking link that
+    always went to the wrong place.
+    """
     lowered = missing.casefold()
-    if "ingreso" in lowered:
+    if "ingreso" in lowered or "income" in lowered:
         return "income-expenses"
-    if "gasto" in lowered:
+    if "gasto" in lowered or "expense" in lowered:
         return "income-expenses"
-    if "deuda" in lowered or "acreedor" in lowered:
+    if "deuda" in lowered or "acreedor" in lowered or "debt" in lowered or "creditor" in lowered:
         return "debts-assets"
-    if "bien" in lowered or "activo" in lowered:
+    if "bien" in lowered or "activo" in lowered or "asset" in lowered or "property" in lowered:
         return "debts-assets"
-    if "document" in lowered:
+    if "document" in lowered or "evidence" in lowered:
         return "evidence"
-    if "hogar" in lowered or "vivienda" in lowered:
+    if (
+        "hogar" in lowered
+        or "vivienda" in lowered
+        or "household" in lowered
+        or "housing" in lowered
+        or "marital" in lowered
+    ):
         return "household"
     return "overview"

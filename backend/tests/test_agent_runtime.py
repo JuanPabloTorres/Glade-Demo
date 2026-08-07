@@ -250,3 +250,29 @@ class TestSettingsSurface:
 
     def test_settings_still_default_to_the_deterministic_provider(self) -> None:
         assert Settings().ai_provider == "rule_based"
+
+
+class TestHandledByIsNeverBlank:
+    """
+    The defect the live agent run recorded (`changes/chat-modal-centered.md`
+    §3, defect 1): turn 6 answered from the agent path with `handled_by: ""`.
+
+    The field has a default, but a model that emits the key explicitly
+    overrides it, and the empty string is neither a specialist name nor
+    `"deterministic"` — the only two values the contract documents.
+    """
+
+    def test_a_model_emitting_an_empty_string_gets_the_orchestrator(self) -> None:
+        assert AgentAnswer(message="Listo.", handled_by="").handled_by == "orchestrator"
+
+    def test_whitespace_only_counts_as_empty(self) -> None:
+        assert AgentAnswer(message="Listo.", handled_by="   ").handled_by == "orchestrator"
+
+    def test_a_named_specialist_is_kept_and_trimmed(self) -> None:
+        assert AgentAnswer(message="Listo.", handled_by=" case_agent ").handled_by == "case_agent"
+
+    def test_the_answer_itself_survives_a_blank_label(self) -> None:
+        # Normalized rather than rejected: discarding a good answer over an
+        # unfilled label would degrade a turn the agent actually handled.
+        answer = AgentAnswer(message="Tu flujo mensual es $308.33.", handled_by="")
+        assert answer.message == "Tu flujo mensual es $308.33."

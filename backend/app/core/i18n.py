@@ -1,6 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import Literal
+
+Language = Literal["es", "en"]
+"""The two languages the product speaks.
+
+Named here rather than repeated as a bare `Literal` at each use site, because
+several DTOs and every localized catalogue are keyed by it — `CaseContextDto.
+language` among them, which is why `resolve_language` returns this and not
+`str`.
+"""
 
 DEFAULT_LOCALE = "es-PR"
 SUPPORTED_PREFIX_TO_LOCALE = {
@@ -56,14 +66,16 @@ def resolve_locale(accept_language: str | None) -> str:
     return DEFAULT_LOCALE
 
 
-def resolve_language(locale: str) -> str:
+def resolve_language(locale: str) -> Language:
     lowered = locale.lower()
     if lowered.startswith("en"):
         return "en"
     return "es"
 
 
-def localize_message(message_key: str, locale: str, parameters: Mapping[str, object] | None = None) -> str:
+def localize_message(
+    message_key: str, locale: str, parameters: Mapping[str, object] | None = None
+) -> str:
     language = resolve_language(locale)
     template = ERROR_MESSAGES.get(message_key, {}).get(language)
     if not template:
