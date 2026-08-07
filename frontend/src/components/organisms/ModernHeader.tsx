@@ -56,7 +56,7 @@ export function ModernHeader() {
             <button
               type="button"
               onClick={() => void aiHealth.refresh()}
-              className="hidden md:inline-flex"
+              className="hidden min-h-9 items-center md:inline-flex"
               aria-label={t("navigation:header.refreshAiStatus")}
             >
               <Badge color={aiHealth.data?.available ? "success" : "warning"} className="px-2.5 py-1">

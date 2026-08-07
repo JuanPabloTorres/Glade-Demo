@@ -80,7 +80,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
           type="button"
           onClick={copy}
           aria-label={t("chat.copyToClipboard")}
-          className="box-border inline-flex items-center self-center rounded-base border border-transparent bg-neutral-primary p-1.5 text-body hover:bg-neutral-tertiary hover:text-heading focus:outline-none focus:ring-4 focus:ring-neutral-tertiary"
+          className="box-border inline-flex items-center self-center h-9 w-9 justify-center rounded-base border border-transparent bg-neutral-primary text-body hover:bg-neutral-tertiary hover:text-heading focus:outline-none focus:ring-4 focus:ring-neutral-tertiary"
         >
           <AppIcon name={copied ? "check" : "document"} size={16} />
         </button>

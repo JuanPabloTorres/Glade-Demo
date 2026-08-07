@@ -55,7 +55,14 @@ export function AppShell() {
     <ChatPanelProvider>
       <div className="app-shell-background flex min-h-screen text-heading">
         <Sidebar />
-        <div className="flex min-h-screen flex-1 flex-col pb-20 md:pb-0">
+        {/* `min-w-0` is load-bearing, not decoration. A flex item defaults to
+            `min-width: auto`, which refuses to shrink below its content's
+            intrinsic width — so one wide descendant (the attorney queue's
+            table) pinned this column at ~1280px and pushed the whole page into
+            horizontal scroll at every viewport below that, sidebar and header
+            included. Allowing the column to shrink is what lets the inner
+            `overflow-x-auto` containers actually do their job. */}
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-20 md:pb-0">
           <ModernHeader />
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
             <Outlet />

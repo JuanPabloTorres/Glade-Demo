@@ -191,7 +191,7 @@ export function LoginPage() {
                     <button
                       type="button"
                       aria-label={showPassword ? t("auth:login.hidePassword") : t("auth:login.showPassword")}
-                      className="flex items-center px-2 text-body hover:text-fg-brand"
+                      className="flex h-11 w-11 items-center justify-center text-body hover:text-fg-brand"
                       onClick={() => setShowPassword((value) => !value)}
                     >
                       <AppIcon name={showPassword ? "eye-hide" : "eye-show"} size={18} />

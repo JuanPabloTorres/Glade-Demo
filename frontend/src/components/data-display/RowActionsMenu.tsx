@@ -33,7 +33,10 @@ export function RowActionsMenu({ viewLabel, onView, actions }: RowActionsMenuPro
       <Dropdown
         inline
         aria-label={t("actions.moreActions")}
-        label={<span className="inline-flex items-center rounded-lg border border-[var(--color-border)] px-2 py-1 text-xs">{t("actions.moreActions")}</span>}
+        // Was `px-2 py-1 text-xs`, which rendered a 26px-tall trigger — below
+        // the size a finger can hit reliably next to a full-height primary
+        // button. Matched to the row's other control instead.
+        label={<span className="inline-flex min-h-9 items-center rounded-base border border-default px-3 py-1.5 text-sm text-heading">{t("actions.moreActions")}</span>}
       >
         {actions.map((action) => (
           <DropdownItem key={action.label} onClick={action.onClick}>
