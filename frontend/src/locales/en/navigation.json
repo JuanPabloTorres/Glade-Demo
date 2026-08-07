@@ -33,6 +33,9 @@
     "title": "FreshStart Bankruptcy Guide",
     "subtitle": "Financial preparation and attorney collaboration.",
     "disclaimer": "FreshStart is not a law firm and does not provide legal advice. It organizes information and questions for professional consultation; it does not file cases, run the official means test, or provide automated legal advice.",
+    "groupPlatform": "Platform",
+    "groupLegal": "Legal",
+    "groupSupport": "Support",
     "portal": "Portal",
     "about": "About the platform",
     "privacy": "Privacy",
@@ -40,6 +43,10 @@
     "accessibility": "Accessibility",
     "terms": "Terms",
     "help": "Help"
+  },
+  "bottomNav": {
+    "label": "Main navigation",
+    "more": "More"
   },
   "languageSelector": {
     "tooltip": "Change language",
@@ -51,6 +58,8 @@
     "openMenu": "Open navigation menu",
     "closeMenu": "Close navigation menu",
     "menuTitle": "Menu",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
     "groupClient": "Client",
     "groupAttorney": "Attorney workspace",
     "disabledNoCase": "Available once you have an active request",

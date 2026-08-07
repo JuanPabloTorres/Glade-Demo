@@ -16,13 +16,15 @@ export function LanguageSelector({ compact = false }: LanguageSelectorProps) {
 
   return (
     <Tooltip content={t("navigation:languageSelector.tooltip")}>
+      {/* aria-label goes on the Dropdown (which renders the real <button>), not
+          on the inner <span> it used to sit on: an aria-label on a plain span
+          contributes nothing to the button's accessible name, so the control
+          announced as just "ES" — verified in-browser before this change. */}
       <Dropdown
         inline
+        aria-label={t("common:a11y.switchLanguage")}
         label={
-          <span
-            aria-label={t("common:a11y.switchLanguage")}
-            className="inline-flex items-center gap-2 rounded-md border border-(--color-border) px-2.5 py-1 text-xs font-semibold text-(--color-text)"
-          >
+          <span className="inline-flex items-center gap-2 rounded-base border border-default px-2.5 py-1 text-xs font-semibold text-heading">
             <AppIcon name="language" size={16} />
             <span>{currentCode}</span>
             {!compact ? <span className="hidden sm:inline">{currentLabel}</span> : null}

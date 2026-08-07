@@ -58,5 +58,10 @@
     "openLanguageMenu": "Cambiar idioma",
     "switchLanguage": "Seleccionar idioma",
     "closeDialog": "Cerrar diálogo"
+  },
+  "states": {
+    "loading": "Cargando...",
+    "loadError": "No fue posible cargar esta información.",
+    "restoringSession": "Restaurando tu espacio de trabajo seguro"
   }
 }

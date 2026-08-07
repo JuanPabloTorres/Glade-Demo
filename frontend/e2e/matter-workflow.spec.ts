@@ -23,16 +23,20 @@ test("client completes the full 10-step preparation flow (master instruction §2
 
   // 5. Abrir sección recomendada — this also closes the chat panel.
   await page.getByRole("button", { name: "Abrir sección recomendada" }).click();
-  await expect(page.getByRole("tab", { selected: true })).toBeVisible();
+  // CaseStageStepper is the single stage-navigation control (no more
+  // Tabs/TabItem strip — see docs/ux/UX-SHELL-POLISH-AUDIT-2026-08-06.md
+  // §b) — its current step carries aria-current="step", not aria-selected.
+  // Locator({ current: "step" }) didn't narrow against this Playwright
+  // version's role engine (returned every button on the page), so match
+  // the DOM attribute directly instead.
+  await expect(page.locator('[aria-current="step"]')).toBeVisible();
 
   // 6. Añadir ingreso.
-  await page.getByRole("tab", { name: "Ingresos" }).click();
-  // The previously-active tabpanel (Revisión, opened programmatically via
-  // tabsRef.setActiveTab in step 5) can remain unhidden and stacked on top,
-  // intercepting clicks on the freshly-selected panel underneath — wait for
-  // both the target panel to be visible and the stale one to be gone.
-  await expect(page.getByRole("tabpanel", { name: "Revisión" })).toBeHidden();
-  await expect(page.getByRole("tabpanel", { name: "Ingresos" })).toBeVisible();
+  await page.getByRole("button", { name: /Ingresos/ }).click();
+  // Stage content now renders conditionally on `activeStage` state (no
+  // Tabs, so no stale-tabpanel race to guard against) — the next assertion
+  // (the "Añadir ingreso" button only exists on the Ingresos stage) is
+  // itself proof the correct stage rendered.
   await page.getByRole("button", { name: "Añadir ingreso" }).click();
   await page.getByLabel("Categoría").selectOption("wages");
   await page.getByLabel("Fuente o patrono").fill("Empleo nuevo E2E");
@@ -41,7 +45,7 @@ test("client completes the full 10-step preparation flow (master instruction §2
   await expect(page.getByText("Empleo nuevo E2E").first()).toBeVisible();
 
   // 7. Añadir gasto.
-  await page.getByRole("tab", { name: "Gastos" }).click();
+  await page.getByRole("button", { name: /Gastos/ }).click();
   await page.getByRole("button", { name: "Añadir gasto" }).click();
   await page.getByLabel("Categoría").selectOption("food");
   await page.getByLabel("Descripción").fill("Supermercado E2E");
@@ -50,7 +54,7 @@ test("client completes the full 10-step preparation flow (master instruction §2
   await expect(page.getByText("Supermercado E2E").first()).toBeVisible();
 
   // 8. Subir metadata de documento.
-  await page.getByRole("tab", { name: "Documentos" }).click();
+  await page.getByRole("button", { name: /Documentos/ }).click();
   await page.getByRole("button", { name: "Añadir evidencia" }).click();
   await page.getByLabel("Tipo de evidencia").selectOption("Talones de pago");
   await page.getByLabel("Nombre del documento").fill("talon-e2e.pdf");
@@ -58,7 +62,7 @@ test("client completes the full 10-step preparation flow (master instruction §2
   await expect(page.getByText("talon-e2e.pdf").first()).toBeVisible();
 
   // 9. Ver resumen actualizado.
-  await page.getByRole("tab", { name: "Comenzar" }).click();
+  await page.getByRole("button", { name: /Comenzar/ }).click();
   await expect(page.getByText("Ingreso neto mensual")).toBeVisible();
   await expect(page.getByText("Próximos pasos")).toBeVisible();
 
@@ -75,9 +79,15 @@ test("attorney completes the full 9-step review flow (master instruction §20)",
   await expect(page.getByRole("heading", { name: "Revisa solicitudes financieras antes de la consulta." })).toBeVisible();
 
   // 3. Filtrar caso urgente.
+  // Scoped to the results table: ResponsiveDataView (Block 9.5) always
+  // renders both a table (lg+) and a card list (mobile), toggled via CSS
+  // breakpoint, not removed from the DOM — an unscoped getByText() can
+  // resolve to both variants for the same row and hit Playwright's strict
+  // mode. toHaveCount(0), not .not.toBeVisible(), is also the correct
+  // assertion for "genuinely filtered out" vs. "present but hidden".
   await page.getByRole("button", { name: "Urgentes", exact: false }).click();
-  await expect(page.getByText("Miguel Santos").first()).toBeVisible();
-  await expect(page.getByText("Elena Rivera")).not.toBeVisible();
+  await expect(page.getByRole("table").getByText("Miguel Santos")).toBeVisible();
+  await expect(page.getByRole("table").getByText("Elena Rivera")).toHaveCount(0);
 
   // 4. Abrir caso.
   await page.getByRole("button", { name: "Ver", exact: true }).first().click();
@@ -92,12 +102,12 @@ test("attorney completes the full 9-step review flow (master instruction §20)",
   // 6. Solicitar documento.
   await page.getByRole("button", { name: "Solicitar documento" }).click();
   await page.getByRole("button", { name: "Solicitar", exact: true }).click();
-  await page.getByRole("tab", { name: "Documentos" }).click();
+  await page.getByRole("button", { name: /Documentos/ }).click();
   // exact: true — a hidden tooltip elsewhere on the page contains
   // "...documentos solicitados a clientes...", a substring match of
   // "Solicitado" that resolves to a non-visible element first.
   await expect(page.getByText("Solicitado", { exact: true }).first()).toBeVisible();
-  await page.getByRole("tab", { name: "Comenzar" }).click();
+  await page.getByRole("button", { name: /Comenzar/ }).click();
 
   // 7. Añadir nota.
   await page.getByRole("button", { name: "Añadir nota" }).click();
@@ -106,12 +116,12 @@ test("attorney completes the full 9-step review flow (master instruction §20)",
 
   // 8. Cambiar estado.
   await page.getByRole("button", { name: "Cambiar estado" }).click();
-  await expect(page.getByRole("tab", { name: "Revisión del abogado" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Revisión del abogado/ })).toBeVisible();
   await page.getByLabel("Estado del caso").selectOption("consultation_scheduled");
   await expect(page.getByLabel("Notas profesionales")).toHaveValue(/Confirmar atrasos de vivienda/);
 
   // 9. Ver timeline actualizado.
-  await page.getByRole("tab", { name: "Seguimiento" }).click();
+  await page.getByRole("button", { name: /Seguimiento/ }).click();
   await expect(page.getByRole("heading", { name: "Proceso del caso" })).toBeVisible();
 });
 

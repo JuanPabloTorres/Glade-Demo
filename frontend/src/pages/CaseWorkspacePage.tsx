@@ -6,13 +6,10 @@ import {
   Label,
   Progress,
   Select,
-  TabItem,
-  Tabs,
-  type TabsRef,
   Textarea,
   TextInput,
 } from "flowbite-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { bankruptcyApi } from "../api/bankruptcyApi";
@@ -41,11 +38,11 @@ import { formatDate } from "../i18n/format";
 /**
  * Stable, position-independent identifiers for every stage of the workspace.
  * This is the single source of truth for "which stage is active" — nothing
- * else in this file encodes a stage as a positional number. The Flowbite tab
- * index (which Flowbite's uncontrolled `Tabs` component needs) is always
- * *derived* from a stage's position in `BASE_STAGE_ORDER` (see STAGE_ORDER
- * below), never hardcoded, so reordering a `TabItem` can never desync a
- * shortcut or deep-link from the tab it's supposed to open.
+ * else in this file encodes a stage as a positional number. The stepper's
+ * displayed index (see CaseStageStepper) is always *derived* from a stage's
+ * position in `BASE_STAGE_ORDER` (see STAGE_ORDER below), never hardcoded,
+ * so reordering a stage in `BASE_STAGE_ORDER` can never desync a shortcut or
+ * deep-link from the stage it's supposed to open.
  */
 export type CaseStage =
   | "start"
@@ -61,9 +58,10 @@ export type CaseStage =
   | "attorney-review";
 
 /**
- * Order of the always-present `TabItem`s, matching the JSX order below.
- * "attorney-review" is appended conditionally (only attorneys get that tab) —
- * see STAGE_ORDER in the component body, which is the only place that adds it.
+ * Order of the always-present stages, matching the stage-content order
+ * below. "attorney-review" is appended conditionally (only attorneys get
+ * that stage) — see STAGE_ORDER in the component body, which is the only
+ * place that adds it.
  */
 export const BASE_STAGE_ORDER: readonly CaseStage[] = [
   "start",
@@ -82,7 +80,7 @@ export const BASE_STAGE_ORDER: readonly CaseStage[] = [
  * Translates the backend's `GuidanceResponseDto.focus_section` vocabulary
  * (see ChatPanel.tsx, which builds `?focus=<value>`) into a canonical
  * `CaseStage`. This is a vocabulary alias, not a position map — it never
- * encodes an index, so it can't go stale when tabs are reordered.
+ * encodes an index, so it can't go stale when stages are reordered.
  */
 export const FOCUS_PARAM_TO_STAGE: Record<string, CaseStage> = {
   overview: "start",
@@ -94,6 +92,28 @@ export const FOCUS_PARAM_TO_STAGE: Record<string, CaseStage> = {
   timeline: "tracking",
   "attorney-review": "attorney-review",
   "chapter-comparison": "start",
+};
+
+/**
+ * Maps every `CaseStage` to its i18n key — the single, stable place that
+ * associates a stage identity with its display label. Looked up by stage
+ * key (not by array position), so it can never go stale when
+ * `BASE_STAGE_ORDER` is reordered. Reuses the existing `workspace:tabs.*`
+ * keys (see locales/<lang>/workspace.json) rather than introducing new ones for
+ * the same 10 labels.
+ */
+export const STAGE_LABEL_KEYS: Record<CaseStage, string> = {
+  start: "workspace:tabs.start",
+  household: "workspace:tabs.household",
+  income: "workspace:tabs.income",
+  expenses: "workspace:tabs.expenses",
+  debts: "workspace:tabs.debts",
+  assets: "workspace:tabs.assets",
+  documents: "workspace:tabs.documents",
+  review: "workspace:tabs.review",
+  submitted: "workspace:tabs.submitted",
+  tracking: "workspace:tabs.tracking",
+  "attorney-review": "workspace:tabs.attorneyReview",
 };
 
 function statusColor(status: CaseStatus): "gray" | "warning" | "success" | "info" {
@@ -118,12 +138,11 @@ export function CaseWorkspacePage() {
   // Single source of truth for which stage is active — see CaseStage and
   // BASE_STAGE_ORDER above. Replaces the old `activeTab` positional index.
   const [activeStage, setActiveStage] = useState<CaseStage>("start");
-  const tabsRef = useRef<TabsRef>(null);
   const isAttorney = user?.role === "attorney";
 
-  // The attorney-review TabItem only renders for attorneys (JSX below), so it
-  // only belongs in STAGE_ORDER for that role — this is the one place that
-  // appends it, so the Flowbite index Tabs sees always matches what's
+  // The attorney-review stage content only renders for attorneys (JSX
+  // below), so it only belongs in STAGE_ORDER for that role — this is the
+  // one place that appends it, so the stepper's index always matches what's
   // actually rendered.
   const STAGE_ORDER = useMemo<CaseStage[]>(
     () => (isAttorney ? [...BASE_STAGE_ORDER, "attorney-review"] : [...BASE_STAGE_ORDER]),
@@ -167,31 +186,6 @@ export function CaseWorkspacePage() {
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams, navigateToStage]);
 
-  // The ONE place that drives Flowbite's uncontrolled Tabs component from
-  // `activeStage`. Flowbite's Tabs exposes no controlled `activeTab` prop —
-  // only this imperative ref — so this effect is the sole call site for it;
-  // every navigation path (deep-link, stepper, attorney-review shortcut)
-  // goes through navigateToStage()/setActiveStage() above instead of calling
-  // this ref directly.
-  //
-  // Flowbite's ref.setActiveTab() synchronously re-invokes onActiveTabChange
-  // (see flowbite-react's Tabs.tsx: both the click handler and the ref call
-  // route through the same setActiveTabWithCallback). Without the guard
-  // below, that echo calls setActiveStage() with this effect's own *stale*
-  // render-time index — e.g. on first mount, before the deep-link effect's
-  // setActiveStage("tracking") has committed — clobbering the real
-  // navigation with whatever `activeStage` this effect closed over. The
-  // ref flags "this setActiveTab call originated from us", so the echoed
-  // onActiveTabChange is a no-op instead of a second, wrong navigation.
-  const isSyncingTabsRef = useRef(false);
-  useEffect(() => {
-    const index = STAGE_ORDER.indexOf(activeStage);
-    if (index < 0) return;
-    isSyncingTabsRef.current = true;
-    tabsRef.current?.setActiveTab(index);
-    isSyncingTabsRef.current = false;
-  }, [activeStage, STAGE_ORDER]);
-
   if (!caseData || !user) return <Navigate to={ROUTES.home} replace />;
   if (user.role === "client" && caseData.ownerUserId !== user.id) return <Navigate to={ROUTES.home} replace />;
 
@@ -220,18 +214,11 @@ export function CaseWorkspacePage() {
 
   const completion = analysis?.completion_score ?? localCompletion(caseData);
   const isSubmitted = caseData.status !== "draft" && caseData.status !== "collecting_information";
-  const stageStepperTitles = [
-    t("workspace:tabs.start"),
-    t("workspace:tabs.household"),
-    t("workspace:tabs.income"),
-    t("workspace:tabs.expenses"),
-    t("workspace:tabs.debts"),
-    t("workspace:tabs.assets"),
-    t("workspace:tabs.documents"),
-    t("workspace:tabs.review"),
-    t("workspace:tabs.submitted"),
-    t("workspace:tabs.tracking"),
-  ];
+  // Derived from STAGE_ORDER (via the stage-key → i18n-key map STAGE_LABEL_KEYS)
+  // rather than a separately hand-maintained list, so it always has exactly
+  // as many titles as STAGE_ORDER has stages — including "attorney-review"
+  // when present — and can never drift out of sync with it.
+  const stageStepperTitles = STAGE_ORDER.map((stage) => t(STAGE_LABEL_KEYS[stage]));
 
   const householdComplete = Boolean(caseData.household.maritalStatus && caseData.household.housingStatus);
   // required_evidence is free-text Spanish guidance from the backend (e.g.
@@ -290,28 +277,24 @@ export function CaseWorkspacePage() {
         </Card>
       ) : null}
 
-      {!isAttorney ? (
-        <CaseStageStepper
-          stages={stageStepperTitles}
-          currentIndex={Math.max(0, STAGE_ORDER.indexOf(activeStage))}
-          onSelect={(index) => navigateToStage(STAGE_ORDER[index] ?? "start")}
-        />
-      ) : null}
+      {/*
+        Single source of truth for stage navigation — see CaseStageStepper's
+        own docblock. Rendered for both roles: attorneys need to browse every
+        stage during review, not just jump to "attorney-review" via the
+        CaseActionBar shortcut, and this is now the ONLY stage-navigation
+        control in the page (Flowbite's uncontrolled Tabs — and the
+        tabsRef/isSyncingTabsRef imperative-sync workaround it required — has
+        been removed entirely; stage content below renders conditionally on
+        `activeStage` instead of inside `TabItem`s).
+      */}
+      <CaseStageStepper
+        stages={stageStepperTitles}
+        currentIndex={Math.max(0, STAGE_ORDER.indexOf(activeStage))}
+        onSelect={(index) => navigateToStage(STAGE_ORDER[index] ?? "start")}
+      />
 
-      <Tabs
-        ref={tabsRef}
-        variant="underline"
-        className="workspace-tabs"
-        onActiveTabChange={(index) => {
-          // Ignore the echo from our own sync effect (see isSyncingTabsRef
-          // above) — only react to genuine user-driven tab clicks/keyboard
-          // navigation on Flowbite's own tab strip.
-          if (isSyncingTabsRef.current) return;
-          const stage = STAGE_ORDER[index];
-          if (stage) setActiveStage(stage);
-        }}
-      >
-        <TabItem title={t("workspace:tabs.start")} active>
+      <div className="workspace-stage-content">
+        {activeStage === "start" ? (
           <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-5">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -360,9 +343,10 @@ export function CaseWorkspacePage() {
               </Card>
             </div>
           </div>
-        </TabItem>
+        ) : null}
 
-        <TabItem title={t("workspace:tabs.household")}>
+        {activeStage === "household" ? (
+          <>
           <StageOrientation
             title={t("workspace:stages.householdTitle")}
             description={t("workspace:stages.householdDescription")}
@@ -400,9 +384,11 @@ export function CaseWorkspacePage() {
               <div className="flex items-center gap-2"><Checkbox id="recent-transfer" checked={caseData.household.recentPropertyTransfer} onChange={(event) => update((current) => ({ ...current, household: { ...current.household, recentPropertyTransfer: event.target.checked } }))} /><Label htmlFor="recent-transfer">{t("workspace:caseWorkspace.flags.recentTransfer")}</Label></div>
             </div>
           </Card>
-        </TabItem>
+          </>
+        ) : null}
 
-        <TabItem title={t("workspace:tabs.income")}>
+        {activeStage === "income" ? (
+          <>
           <StageOrientation
             title={t("workspace:stages.incomeTitle")}
             description={t("workspace:stages.incomeDescription")}
@@ -426,9 +412,11 @@ export function CaseWorkspacePage() {
               { key: "net", header: t("workspace:caseWorkspace.columns.netMonthly"), render: (item) => currency(monthlyAmount(item.netAmount ?? item.grossAmount, item.frequency)) },
             ]}
           />
-        </TabItem>
+          </>
+        ) : null}
 
-        <TabItem title={t("workspace:tabs.expenses")}>
+        {activeStage === "expenses" ? (
+          <>
           <StageOrientation
             title={t("workspace:stages.expensesTitle")}
             description={t("workspace:stages.expensesDescription")}
@@ -452,9 +440,11 @@ export function CaseWorkspacePage() {
               { key: "essential", header: t("workspace:caseWorkspace.columns.essential"), render: (item) => (item.essential ? t("common:labels.yes") : t("common:labels.no")) },
             ]}
           />
-        </TabItem>
+          </>
+        ) : null}
 
-        <TabItem title={t("workspace:tabs.debts")}>
+        {activeStage === "debts" ? (
+          <>
           <StageOrientation
             title={t("workspace:stages.debtsTitle")}
             description={t("workspace:stages.debtsDescription")}
@@ -482,9 +472,11 @@ export function CaseWorkspacePage() {
             ))}
             {!caseData.debts.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)] lg:col-span-2">{t("workspace:caseWorkspace.empty.debts")}</p> : null}
           </div>
-        </TabItem>
+          </>
+        ) : null}
 
-        <TabItem title={t("workspace:tabs.assets")}>
+        {activeStage === "assets" ? (
+          <>
           <StageOrientation
             title={t("workspace:stages.assetsTitle")}
             description={t("workspace:stages.assetsDescription")}
@@ -506,9 +498,11 @@ export function CaseWorkspacePage() {
             ))}
             {!caseData.assets.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)] lg:col-span-2">{t("workspace:caseWorkspace.empty.assets")}</p> : null}
           </div>
-        </TabItem>
+          </>
+        ) : null}
 
-        <TabItem title={t("workspace:tabs.documents")}>
+        {activeStage === "documents" ? (
+          <>
           <StageOrientation
             title={t("workspace:stages.documentsTitle")}
             description={t("workspace:stages.documentsDescription")}
@@ -554,9 +548,10 @@ export function CaseWorkspacePage() {
               </div>
             </Card>
           </div>
-        </TabItem>
+          </>
+        ) : null}
 
-        <TabItem title={t("workspace:tabs.review")}>
+        {activeStage === "review" ? (
           <Card className="border border-[var(--color-border)] bg-white shadow-sm">
             <h2 className="text-xl font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.review.title")}</h2>
             <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.review.description")}</p>
@@ -583,9 +578,9 @@ export function CaseWorkspacePage() {
             </div>
             {!isAttorney && caseData.status === "draft" ? <p className="mt-4 text-sm text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.review.submitHint")}</p> : null}
           </Card>
-        </TabItem>
+        ) : null}
 
-        <TabItem title={t("workspace:tabs.submitted")}>
+        {activeStage === "submitted" ? (
           <Card className="border border-[var(--color-border)] bg-white shadow-sm">
             {isSubmitted ? (
               <>
@@ -602,18 +597,17 @@ export function CaseWorkspacePage() {
               </>
             )}
           </Card>
-        </TabItem>
+        ) : null}
 
-        <TabItem title={t("workspace:tabs.tracking")}>
+        {activeStage === "tracking" ? (
           <Card className="border border-[var(--color-border)] bg-white shadow-sm">
             <h2 className="mb-5 text-xl font-semibold">{t("workspace:caseWorkspace.trackingTitle")}</h2>
             <CaseTimeline events={caseData.timeline} />
           </Card>
-        </TabItem>
+        ) : null}
 
-        {isAttorney ? (
-          <TabItem title={t("workspace:tabs.attorneyReview")}>
-            <div className="grid gap-5 lg:grid-cols-2">
+        {activeStage === "attorney-review" && isAttorney ? (
+          <div className="grid gap-5 lg:grid-cols-2">
               <Card className="border border-[var(--color-border)] bg-white shadow-sm">
                 <Label htmlFor="attorney-status">{t("workspace:caseWorkspace.attorneyReview.caseStatus")}</Label>
                 <Select
@@ -640,9 +634,8 @@ export function CaseWorkspacePage() {
                 <div className="mt-4 space-y-3">{analysis?.discussion_points.map((item) => <div key={item} className="flex gap-3 rounded-xl bg-[var(--color-surface-muted)] p-3 text-sm"><AppIcon name="check" className="shrink-0" /><span>{item}</span></div>)}</div>
               </Card>
             </div>
-          </TabItem>
         ) : null}
-      </Tabs>
+      </div>
 
       <BankruptcyEntryModal open={Boolean(modalKind)} kind={modalKind} onClose={() => setModalKind(null)} onSave={addEntry} />
     </div>

@@ -58,5 +58,10 @@
     "openLanguageMenu": "Change language",
     "switchLanguage": "Select language",
     "closeDialog": "Close dialog"
+  },
+  "states": {
+    "loading": "Loading...",
+    "loadError": "Unable to load this information.",
+    "restoringSession": "Restoring your secure workspace"
   }
 }

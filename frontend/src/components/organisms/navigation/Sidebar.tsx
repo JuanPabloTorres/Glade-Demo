@@ -1,72 +1,87 @@
-import { Drawer, DrawerHeader, DrawerItems } from "flowbite-react";
-import { useState } from "react";
+import { Tooltip } from "flowbite-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "../../../auth/AuthContext";
-import { buildAttorneyNavItems, buildClientNavItems } from "../../../config/navigation";
-import { useBankruptcyWorkspace } from "../../../workspace/BankruptcyWorkspaceContext";
+import { useRoleNavigation } from "../../../hooks/useRoleNavigation";
 import { AppIcon } from "../../atoms/AppIcon";
 import { SidebarGroup } from "./SidebarGroup";
 import { SidebarItem } from "./SidebarItem";
 
-function SidebarNavContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { t } = useTranslation(["navigation"]);
-  const auth = useAuth();
-  const workspace = useBankruptcyWorkspace();
-  const isAttorney = auth.user?.role === "attorney";
+/** Survives reloads so the rail doesn't silently re-expand on every navigation. */
+const COLLAPSED_STORAGE_KEY = "freshstart.sidebar.collapsed";
 
-  const activeCaseId = workspace.cases.find((item) => item.ownerUserId === auth.user?.id)?.id ?? null;
-  const items = isAttorney ? buildAttorneyNavItems() : buildClientNavItems(activeCaseId);
-  const groupLabel = isAttorney ? t("navigation:sidebar.groupAttorney") : t("navigation:sidebar.groupClient");
-
-  return (
-    <SidebarGroup label={groupLabel}>
-      {items.map((item) => (
-        <SidebarItem
-          key={item.key}
-          labelKey={item.labelKey}
-          icon={item.icon}
-          to={item.to}
-          disabledReasonKey={item.disabledReasonKey}
-          onNavigate={onNavigate}
-        />
-      ))}
-    </SidebarGroup>
-  );
+function readCollapsedPreference(): boolean {
+  try {
+    return window.localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true";
+  } catch {
+    // Private-mode / disabled storage: fall back to expanded rather than crash.
+    return false;
+  }
 }
 
 /**
- * Persistent app-shell navigation, replacing the role-aware tabs that used
- * to live in ModernHeader (see AppShell.tsx). Desktop (>=768px) renders a
- * fixed column; below 768px it collapses into a Flowbite Drawer opened by a
- * floating menu button, matching the existing AI chat drawer pattern in
- * ChatEntryPoint (AppShell.tsx) rather than reusing the header's old
- * Navbar collapse.
+ * Desktop and tablet navigation (>=768px): a collapsible column following
+ * Flowbite's sidebar block. Below that breakpoint this renders nothing at all —
+ * MobileNavigation owns small screens with a bottom bar plus an overflow
+ * Drawer, because re-flowing a desktop sidebar onto a phone (previously: a
+ * lone floating menu button) costs two taps per navigation and shows the user
+ * nothing about where they currently are.
+ *
+ * Collapse is hand-rolled rather than adopting flowbite-react's `Sidebar`
+ * `collapsed` prop: per docs/ux/UX-SHELL-POLISH-AUDIT-2026-08-06.md §a, its
+ * `SidebarItem` is a leaf-only href/icon/label component with no slot for this
+ * app's group label, and swapping it would mean re-deriving the active-state
+ * contrast rule and the disabled+tooltip pattern that already work here. The
+ * surface styling still follows Flowbite's block through the token layer in
+ * index.css.
  */
 export function Sidebar() {
   const { t } = useTranslation(["navigation"]);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const { items, groupLabel } = useRoleNavigation();
+  const [collapsed, setCollapsed] = useState(readCollapsedPreference);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+    } catch {
+      // Preference is a nicety; losing it must never break navigation.
+    }
+  }, [collapsed]);
+
+  const toggleLabel = collapsed ? t("navigation:sidebar.expand") : t("navigation:sidebar.collapse");
 
   return (
-    <>
-      <aside className="hidden w-64 shrink-0 border-r border-(--color-border) bg-white/94 p-4 md:block">
-        <SidebarNavContent />
-      </aside>
+    <aside
+      aria-label={groupLabel}
+      className={`hidden shrink-0 border-e border-default bg-neutral-primary-soft p-4 transition-[width] duration-200 md:block ${
+        collapsed ? "w-20" : "w-64"
+      }`}
+    >
+      <div className={`mb-3 flex ${collapsed ? "justify-center" : "justify-end"}`}>
+        <Tooltip content={toggleLabel} placement="right">
+          <button
+            type="button"
+            onClick={() => setCollapsed((value) => !value)}
+            aria-label={toggleLabel}
+            aria-expanded={!collapsed}
+            className="flex h-9 w-9 items-center justify-center rounded-base text-body outline-none transition-colors hover:bg-neutral-tertiary hover:text-fg-brand focus-visible:ring-4 focus-visible:ring-brand-soft"
+          >
+            <AppIcon name="collapse-left" size={18} className={collapsed ? "rotate-180" : undefined} />
+          </button>
+        </Tooltip>
+      </div>
 
-      <button
-        type="button"
-        aria-label={t("navigation:sidebar.openMenu")}
-        onClick={() => setMobileOpen(true)}
-        className="fixed left-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-lg border border-(--color-border) bg-white/94 text-(--color-text) shadow-md backdrop-blur-xl md:hidden"
-      >
-        <AppIcon name="menu" size={20} />
-      </button>
-
-      <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} position="left" className="w-72 md:hidden">
-        <DrawerHeader title={t("navigation:sidebar.menuTitle")} />
-        <DrawerItems>
-          <SidebarNavContent onNavigate={() => setMobileOpen(false)} />
-        </DrawerItems>
-      </Drawer>
-    </>
+      <SidebarGroup label={groupLabel} collapsed={collapsed}>
+        {items.map((item) => (
+          <SidebarItem
+            key={item.key}
+            labelKey={item.labelKey}
+            icon={item.icon}
+            to={item.to}
+            disabledReasonKey={item.disabledReasonKey}
+            collapsed={collapsed}
+          />
+        ))}
+      </SidebarGroup>
+    </aside>
   );
 }
