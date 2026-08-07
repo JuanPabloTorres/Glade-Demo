@@ -1,3 +1,31 @@
+# FreshStart 4.6.0
+
+The demo runs its agent and keeps its data without a paid account. Two blockers, both one variable away once the code supports them.
+
+## The agent, on a free tier
+
+OpenAI has no meaningful free tier, and the agent is the part of this product worth demonstrating — so the deployed demo could show everything except the thing 4.0.0 was built for.
+
+`OPENAI_BASE_URL` points the `openai` provider at any endpoint speaking OpenAI's Chat Completions API. Groq, Cerebras, OpenRouter and Google AI Studio all expose one with a real free tier; `docs/DEPLOYMENT.md` lists the base URL and a working model for each. `OPENAI_API_KEY` holds whichever provider's key — the variable is named for the protocol, not the vendor.
+
+**It switches the protocol, not just the host.** The existing path uses OpenAI's *Responses* API, which today only OpenAI implements. Sending that shape to a compatibility endpoint fails every call, and the runtime converts a failed call into a silent degrade — the symptom would have been "the agent never answers", with nothing explaining why. The token cap changes spelling with the protocol as well: `max_tokens`, not `max_output_tokens`. Some endpoints reject the unknown parameter and others ignore it silently, and in both cases the configured cap would not have been applied.
+
+## The database, on a free tier
+
+`docs/DEPLOYMENT.md` already promised that moving to Postgres was "a connection string and nothing else" — a promise that could not be kept, because no Postgres driver shipped anywhere.
+
+`psycopg[binary]` now ships in both `requirements.txt` and `backend/pyproject.toml`, so the deployed runtime and the test suite exercise the same set. Neon and Supabase both have free tiers that suit this demo. Their DSN needs exactly one edit, now documented: `postgresql://` has to become `postgresql+psycopg://`, or SQLAlchemy looks for `psycopg2` and fails at the first request.
+
+## Evidence
+
+`test_postgres_readiness.py` holds the upgrade-path claim to account without needing a server: the driver imports, SQLAlchemy resolves the DSN to it, and **every column of every table compiles under the PostgreSQL dialect** — a SQLite-only type would fail there rather than at `alembic upgrade head` against a real database.
+
+The provider tests assert against the real installed SDK classes: a base URL produces a Chat Completions model, no base URL still produces a Responses model, a whitespace-only value counts as unset (which is how an unset Vercel variable arrives), and the cap is emitted under the right name.
+
+Size re-measured after adding the driver: a clean install of `requirements.txt` is **176.8 MB** against Vercel's 250 MB limit. Backend 196 tests, `ruff` and `mypy` clean.
+
+**Not verified: a live call through any of these providers.** No key of any kind exists in this environment. What is proven is that the right class is built with the right parameters. Because the runtime degrades silently rather than erroring, a rejected model looks identical to a working deterministic answer — so on the first real turn, check that the response carries `degraded: false` and that `handled_by` names a specialist rather than `deterministic`.
+
 # FreshStart 4.5.0
 
 The Strands agent runs on the deployed demo. Until now Vercel could only answer from the deterministic fallback, because the SDK was deliberately excluded from the function's dependencies.
