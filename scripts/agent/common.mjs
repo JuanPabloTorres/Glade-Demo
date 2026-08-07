@@ -64,7 +64,8 @@ export function stateDir() {
  *
  * The legacy single-file location is still read (never written) when no
  * per-worktree manifest exists yet, so a task registered before this change
- * keeps working instead of vanishing mid-flight.
+ * keeps working instead of vanishing mid-flight — but only for the checkout
+ * that actually registered it. See loadActiveTask.
  */
 export function activeTaskPath(forPath = root) {
   const worktree = worktreeRootFor(forPath);
@@ -87,7 +88,18 @@ export function writeJson(path, value) {
 }
 
 export function loadActiveTask(forPath = root) {
-  return readJson(activeTaskPath(forPath)) ?? readJson(legacyActiveTaskPath());
+  const own = readJson(activeTaskPath(forPath));
+  if (own) return own;
+  // Fall back to the pre-migration shared manifest only when it actually
+  // describes THIS checkout. Nothing writes that file any more, so an
+  // unscoped fallback turns the last task registered before the migration
+  // into a permanent zombie: once a worktree completes its own manifest, the
+  // stale one reappears and every gate starts reporting someone else's task
+  // on someone else's branch. Matching workingBranch keeps the compatibility
+  // path working for the worktree that owns it and silent everywhere else.
+  const legacy = readJson(legacyActiveTaskPath());
+  if (!legacy) return null;
+  return legacy.workingBranch === currentBranch(worktreeRootFor(forPath)) ? legacy : null;
 }
 
 export function parseArgs(argv = process.argv.slice(2)) {
