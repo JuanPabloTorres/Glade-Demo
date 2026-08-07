@@ -145,36 +145,55 @@ export interface CaseAnalysis {
   next_steps: string[];
 }
 
+/**
+ * Assistant contract, 4.0.0 (ADR 0002).
+ *
+ * Mirrors `backend/app/ai/contracts/assistant_response.py`. Read-only action
+ * vocabulary — write actions are phase 2 and require the signed
+ * server-side confirmation flow, which is why `requires_confirmation` is
+ * already carried but nothing sets it yet.
+ */
 export type AssistantActionType =
-  | "navigate"
-  | "open_modal"
+  | "open_page"
+  | "show_details"
   | "upload_document"
-  | "update_case"
   | "request_document"
-  | "create_note"
-  // See backend/app/schemas/assistant.py for why this exists beyond the
-  // master instruction's six-value example list.
   | "ask";
 
 export interface AssistantAction {
   id: string;
+  action_type: AssistantActionType;
+  /** A case-workspace section. Validated against ASSISTANT_ACTION_RESOURCES
+   * before anything is rendered or navigated to — see assistantActions.ts. */
+  resource: string;
+  resource_id?: string | null;
   label: string;
   icon: string;
-  action_type: AssistantActionType;
-  target?: string | null;
+  payload: Record<string, unknown>;
+  requires_confirmation: boolean;
+}
+
+export interface AssistantCard {
+  card_type: string;
+  title: string;
+  description?: string | null;
+  data: Record<string, unknown>;
 }
 
 export interface AssistantResponse {
+  language: string;
   message: string;
-  intent: string;
-  suggested_actions: AssistantAction[];
-  focus_section: string | null;
-  requested_fields: string[];
-  requested_documents: string[];
+  /** Which specialist produced the answer, or "deterministic" when the agent
+   * layer could not answer. */
+  handled_by: string;
+  actions: AssistantAction[];
+  cards: AssistantCard[];
   warnings: string[];
-  summary_updates: string[];
   requires_attorney_review: boolean;
-  confidence: number | null;
+  /** True when the answer came from the deterministic fallback rather than
+   * the agent layer. Surfaced so the UI can say so instead of presenting a
+   * rule-based draft as a model response. */
+  degraded: boolean;
   disclaimer: string;
 }
 

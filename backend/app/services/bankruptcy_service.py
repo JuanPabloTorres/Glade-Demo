@@ -4,13 +4,12 @@ from collections.abc import Iterable
 
 import pandas as pd  # type: ignore[import-untyped]
 
-from app.ai.guardrails import ResponseGuardrails
-from app.ai.providers import BaseAIProvider, get_provider_for_settings
+from app.ai.contracts.assistant_response import AssistantResponse
+from app.ai.runtime import AgentRuntime
 from app.core.config import Settings
 from app.core.i18n import resolve_locale
 from app.domain.value_objects import ConversationRole
 from app.repositories.protocols import AIConversationRepositoryProtocol, CaseRepositoryProtocol
-from app.schemas.assistant import AssistantAction, AssistantResponse
 from app.schemas.bankruptcy import (
     BankruptcyCaseDto,
     CaseAnalysisDto,
@@ -340,18 +339,27 @@ class BankruptcyAnalysisService:
 
 
 class BankruptcyGuidanceService:
+    """
+    Orchestrates one guidance turn: analyze → reduce to context → answer →
+    persist.
+
+    Since 4.0.0 (ADR 0002) the "answer" step is `AgentRuntime`, not a
+    `BaseAIProvider`. The service no longer applies guardrails itself — the
+    runtime does, on every path including its own fallback, so there is
+    exactly one place where a message can reach the client unguarded and it
+    is covered by `tests/test_agent_runtime.py`.
+    """
+
     def __init__(
         self,
         settings: Settings,
-        provider: BaseAIProvider | None = None,
+        runtime: AgentRuntime | None = None,
         case_repository: CaseRepositoryProtocol | None = None,
         conversation_repository: AIConversationRepositoryProtocol | None = None,
         document_index: CaseDocumentIndex | None = None,
     ) -> None:
         self._analysis = BankruptcyAnalysisService()
         self._context_builder = CaseContextBuilder()
-        self._provider = provider or get_provider_for_settings(settings)
-        self._guardrails = ResponseGuardrails()
         # All three are optional (None-safe below) so this service stays
         # constructible/testable without a database — the router is the one
         # place that wires the real repositories in
@@ -361,6 +369,9 @@ class BankruptcyGuidanceService:
         # Defaults to the same process-wide index DocumentIngestionService
         # writes into — see get_shared_case_document_index's docstring.
         self._document_index = document_index or get_shared_case_document_index()
+        self._runtime = runtime or AgentRuntime(
+            settings=settings, document_index=self._document_index
+        )
 
     def guide(self, request: GuidanceRequestDto) -> AssistantResponse:
         analysis = self._analysis.analyze(request.case)
@@ -394,40 +405,21 @@ class BankruptcyGuidanceService:
             recent_conversation=recent_conversation,
             retrieved_documents=retrieved_documents,
         )
-        draft = self._provider.generate(context=context, message=request.message)
-        # Guardrails run on every provider's output, rule-based or model-
-        # rewritten, before anything reaches the client (master instruction
-        # §7.7) — never skipped, never provider-specific.
-        guarded = self._guardrails.review(draft.message)
+        # Guardrails, action allow-listing, the mandatory disclaimer and the
+        # deterministic fallback all live inside the runtime — see
+        # AgentRuntime.execute's docstring for the order they apply in.
+        response = self._runtime.execute(context=context, message=request.message)
 
         if self._conversations is not None:
             # Persisted as two turns (schema is case_id/role/message/
             # created_at only, no separate "response" column — see
             # AIConversationModel docstring) so `list_recent` can read both
             # sides of the exchange back in chronological order next time.
+            # The guarded message is what gets stored, so a later turn can
+            # never read back a pre-guardrail phrasing as context.
             self._conversations.add_turn(request.case.id, ConversationRole.USER, request.message)
             self._conversations.add_turn(
-                request.case.id, ConversationRole.ASSISTANT, guarded.message
+                request.case.id, ConversationRole.ASSISTANT, response.message
             )
 
-        return AssistantResponse(
-            message=guarded.message,
-            intent=draft.intent,
-            suggested_actions=[
-                AssistantAction(id=f"suggested-{index}", label=text, icon="chat", action_type="ask")
-                for index, text in enumerate(draft.suggested_actions)
-            ],
-            focus_section=draft.focus_section,
-            requested_fields=draft.requested_fields,
-            requested_documents=draft.requested_documents,
-            warnings=draft.warnings,
-            summary_updates=[],
-            requires_attorney_review=draft.requires_attorney_review or guarded.requires_attorney_review,
-            confidence=None,
-            disclaimer=(
-                "This guidance organizes information and questions. It does not determine eligibility, "
-                "does not replace the official means test, and is not legal advice."
-                if context.language == "en"
-                else "Esta orientacion organiza informacion y preguntas. No determina elegibilidad, no sustituye el means test oficial y no es asesoramiento legal."
-            ),
-        )
+        return response

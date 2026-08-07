@@ -3,6 +3,7 @@ import { AppModal, AppModalBody } from "../overlays/AppModal";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
+import { allowedAssistantActions, assistantActionHref } from "../../api/assistantActions";
 import { bankruptcyApi } from "../../api/bankruptcyApi";
 import { useAuth } from "../../auth/AuthContext";
 import { useChatPanel } from "../../chat/ChatPanelContext";
@@ -10,6 +11,7 @@ import { useAiHealth } from "../../hooks/useAiHealth";
 import type { AssistantAction, AssistantResponse } from "../../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../../workspace/BankruptcyWorkspaceContext";
 import { AppIcon } from "../atoms/AppIcon";
+import { AssistantCardView } from "../molecules/AssistantCardView";
 import { AppButton } from "../ui/AppButton";
 import { ChatBubble } from "./ChatBubble";
 import { ChatComposer } from "./ChatComposer";
@@ -84,18 +86,39 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
     if (lastFailedMessage) void send(lastFailedMessage);
   };
 
+  // Actions arrive from a model, so they are filtered before anything is
+  // rendered — the backend drops unknown resources too, and neither side
+  // should be the only guard (see api/assistantActions.ts).
+  const actions = allowedAssistantActions(guidance?.actions ?? []);
+  const navigableAction = actions.find(
+    (action) => action.action_type === "open_page" || action.action_type === "show_details",
+  );
+
   const openFocusSection = () => {
-    if (!guidance?.focus_section) return;
-    navigate(`/case/${caseData.id}?focus=${encodeURIComponent(guidance.focus_section)}`);
+    if (!navigableAction) return;
+    const href = assistantActionHref(caseData.id, navigableAction);
+    if (!href) return;
+    navigate(href);
     onClose();
   };
 
-  // Every suggested_actions entry emitted by the backend today has
-  // action_type "ask" (a follow-up prompt to send verbatim) — see
-  // backend/app/schemas/assistant.py for why that type exists. Other
-  // action_types (request_document, create_note, ...) have no handler yet;
-  // Block 10 wires those up as real case-mutating actions.
-  const selectSuggestedAction = (action: AssistantAction) => setMessage(action.label);
+  /**
+   * `ask` puts the suggested follow-up in the composer for the user to send.
+   * Navigation types route. No action type mutates the case: writes are
+   * phase 2 and require the signed server-side confirmation flow, so there
+   * is deliberately no default branch that "does something" with an
+   * unrecognized type.
+   */
+  const selectSuggestedAction = (action: AssistantAction) => {
+    if (action.action_type === "ask") {
+      setMessage(action.label);
+      return;
+    }
+    const href = assistantActionHref(caseData.id, action);
+    if (!href) return;
+    navigate(href);
+    onClose();
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -153,7 +176,21 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
         </div>
       ) : null}
 
-      {guidance?.focus_section ? (
+      {guidance?.cards.length ? (
+        <div className="space-y-2 px-4 pb-2">
+          {guidance.cards.map((card, index) => (
+            <AssistantCardView key={`${card.card_type}-${index}`} card={card} />
+          ))}
+        </div>
+      ) : null}
+
+      {guidance?.degraded ? (
+        <div className="px-4 pb-2">
+          <Alert color="info">{t("chat.degradedAnswer")}</Alert>
+        </div>
+      ) : null}
+
+      {navigableAction ? (
         <div className="px-4 pb-2">
           <AppButton size="xs" color="light" onClick={openFocusSection}>
             <AppIcon name="arrow-right" size={14} className="mr-1.5" /> {t("chat.openRecommendedSection")}
@@ -167,7 +204,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
           onChange={setMessage}
           onSubmit={submit}
           busy={busy}
-          suggestedActions={guidance?.suggested_actions ?? []}
+          suggestedActions={actions}
           onSelectAction={selectSuggestedAction}
         />
         {guidance ? <p className="mt-2 text-xs text-[#777]">{guidance.disclaimer}</p> : null}

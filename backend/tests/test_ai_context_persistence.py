@@ -10,6 +10,7 @@ at — proving the read-back is real, not just that the write-path compiles.
 
 from __future__ import annotations
 
+from app.ai.runtime import AgentRuntime
 from app.core.config import get_settings
 from app.domain.value_objects import TimelineEventType
 from app.repositories.ai_conversation_repository import SqlAlchemyAIConversationRepository
@@ -25,7 +26,7 @@ from app.services.documents.index import CaseDocumentIndex
 class _CapturingProvider:
     """Delegates to RuleBasedProvider but records every `context` it was
     handed, so the test can assert on what BankruptcyGuidanceService
-    actually built without a live Ollama/transformers model."""
+    actually built without a live model."""
 
     def __init__(self) -> None:
         self.contexts: list[CaseContextDto] = []
@@ -38,6 +39,21 @@ class _CapturingProvider:
 
         self.contexts.append(context)
         return RuleBasedProvider().generate(context=context, message=message)
+
+
+def _runtime(provider: _CapturingProvider) -> AgentRuntime:
+    """Wire the capturing provider in as the runtime's deterministic floor.
+
+    `AgentRuntime` computes that draft on every request, agent path or not
+    (see its docstring), so this still observes the exact `CaseContextDto`
+    the service built — which is what these tests are about. Settings default
+    to `AI_PROVIDER=rule_based`, so no agent, model or network is involved.
+    """
+    return AgentRuntime(
+        settings=get_settings(),
+        document_index=CaseDocumentIndex(),
+        fallback=provider,
+    )
 
 
 def _seed_case(case_id: str) -> None:
@@ -72,7 +88,7 @@ def test_conversation_turns_persist_and_are_read_back_on_the_next_turn() -> None
     with session_factory() as session:
         service = BankruptcyGuidanceService(
             get_settings(),
-            provider=provider,
+            runtime=_runtime(provider),
             case_repository=SqlAlchemyCaseRepository(session),
             conversation_repository=SqlAlchemyAIConversationRepository(session),
             document_index=CaseDocumentIndex(),
@@ -90,7 +106,7 @@ def test_conversation_turns_persist_and_are_read_back_on_the_next_turn() -> None
     with session_factory() as session:
         service = BankruptcyGuidanceService(
             get_settings(),
-            provider=provider,
+            runtime=_runtime(provider),
             case_repository=SqlAlchemyCaseRepository(session),
             conversation_repository=SqlAlchemyAIConversationRepository(session),
             document_index=CaseDocumentIndex(),
@@ -121,7 +137,7 @@ def test_conversation_history_is_isolated_per_case() -> None:
     with session_factory() as session:
         service = BankruptcyGuidanceService(
             get_settings(),
-            provider=provider,
+            runtime=_runtime(provider),
             case_repository=SqlAlchemyCaseRepository(session),
             conversation_repository=SqlAlchemyAIConversationRepository(session),
             document_index=CaseDocumentIndex(),
@@ -136,7 +152,7 @@ def test_conversation_history_is_isolated_per_case() -> None:
     with session_factory() as session:
         service = BankruptcyGuidanceService(
             get_settings(),
-            provider=provider,
+            runtime=_runtime(provider),
             case_repository=SqlAlchemyCaseRepository(session),
             conversation_repository=SqlAlchemyAIConversationRepository(session),
             document_index=CaseDocumentIndex(),
@@ -161,7 +177,7 @@ def test_timeline_events_recorded_between_turns_are_visible_on_the_next_turn() -
     with session_factory() as session:
         cases = SqlAlchemyCaseRepository(session)
         service = BankruptcyGuidanceService(
-            get_settings(), provider=provider, case_repository=cases, document_index=CaseDocumentIndex()
+            get_settings(), runtime=_runtime(provider), case_repository=cases, document_index=CaseDocumentIndex()
         )
         service.guide(
             GuidanceRequestDto(case=_case(case_id), message="hola", role="client", locale="es")
@@ -176,7 +192,7 @@ def test_timeline_events_recorded_between_turns_are_visible_on_the_next_turn() -
     with session_factory() as session:
         cases = SqlAlchemyCaseRepository(session)
         service = BankruptcyGuidanceService(
-            get_settings(), provider=provider, case_repository=cases, document_index=CaseDocumentIndex()
+            get_settings(), runtime=_runtime(provider), case_repository=cases, document_index=CaseDocumentIndex()
         )
         service.guide(
             GuidanceRequestDto(case=_case(case_id), message="otra vez", role="client", locale="es")

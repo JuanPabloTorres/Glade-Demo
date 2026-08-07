@@ -7,57 +7,6 @@ from pydantic import Field
 from app.schemas.bankruptcy import CaseStatus, UserRole
 from app.schemas.common import ApiModel
 
-AssistantActionType = Literal[
-    "navigate",
-    "open_modal",
-    "upload_document",
-    "update_case",
-    "request_document",
-    "create_note",
-    # Deliberate extension beyond master instruction §6.5's example list: the
-    # existing chat already offers follow-up prompts the user can send
-    # verbatim as their next message (chapter-comparison questions, discussion
-    # points, next steps). None of the six spec'd action types describe "send
-    # this suggested message" — forcing it into "navigate" would be
-    # misleading, so it gets its own type instead of silently dropping the
-    # (real, working) quick-reply UX. Still renders as a Flowbite Button+icon
-    # per §6.5's rendering rule; only the semantics of `target` differ (unused).
-    "ask",
-]
-
-
-class AssistantAction(ApiModel):
-    """A single actionable suggestion the frontend renders as a Flowbite Button + icon (§6.5)."""
-
-    id: str
-    label: str
-    icon: str
-    action_type: AssistantActionType
-    target: str | None = None
-
-
-class AssistantResponse(ApiModel):
-    """
-    Structured assistant turn per master instruction §6.5. Replaces the
-    narrower GuidanceResponseDto (reply/suggested_actions: list[str]/
-    focus_section/disclaimer) — this is the 3.0.0 contract-breaking change
-    the refactor plan flagged: `message` replaces `reply`, and
-    `suggested_actions` is now a list of structured AssistantAction objects
-    instead of bare strings.
-    """
-
-    message: str
-    intent: str
-    suggested_actions: list[AssistantAction] = Field(default_factory=list)
-    focus_section: str | None = None
-    requested_fields: list[str] = Field(default_factory=list)
-    requested_documents: list[str] = Field(default_factory=list)
-    warnings: list[str] = Field(default_factory=list)
-    summary_updates: list[str] = Field(default_factory=list)
-    requires_attorney_review: bool = False
-    confidence: float | None = None
-    disclaimer: str
-
 
 class TimelineEventDto(ApiModel):
     """One case-timeline entry, reduced for AI context. Closes the
