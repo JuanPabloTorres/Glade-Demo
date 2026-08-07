@@ -1,3 +1,45 @@
+# FreshStart 4.2.0
+
+Consolidates every parallel agent branch into `main`: the responsive navigation shell, an app-wide overflow gate, parallel-safe agent governance, and a deterministic assistant that answers the question it was asked.
+
+## The shell is two surfaces over one configuration
+
+`BottomNavigation` below 768px, `Sidebar` as a permanent column above it, each owning its own breakpoint so the switch happens in exactly one place per surface and cannot disagree with itself. Replaces `MobileNavigation` and `MobileBottomNavigation`. Adds `AppLogo`, `LanguageToggle` (replacing `LanguageSelector`), and a fuller Help page.
+
+Case sections are routes now — `/case/:caseId/:section` — so a stage can be linked to, survives a reload and takes part in browser history. Bookmarked `?focus=` links still resolve, through the same map the assistant's actions use.
+
+## The assistant is a destination
+
+It was a floating button opening a right-edge drawer, which meant it had no URL. It now lives at `/assistant`: linkable, reload-safe, in browser back/forward, and no longer a second navigation surface competing with the bottom bar on a phone.
+
+The 4.0.0 conversation logic came with it — cards, `degraded`, the server-composed contract — minus the drawer-era controls: the upload placeholder that opened a second dialog to announce the feature did not exist, the "open recommended section" button that duplicated a chip above it, and the close control a page does not need.
+
+## It answers the question it was asked
+
+`RuleBasedProvider` branched only on role, status and missing items, reading the message solely for two literal chapter-7/chapter-13 substrings — so two different questions against the same case returned the identical reply. It now detects the topic from the message (documents, debts, assets, income/expenses, household, alerts, progress, generic "what's missing", greeting) and answers from the case figures that topic is about, inheriting the previous turn's topic for a short follow-up like "¿y ahora?".
+
+Keyword matching, not a classifier: this is the deterministic provider, and every branch has to stay auditable by reading the list beside it. It matters more than when it was written — the live agent run degrades to this draft whenever the model path fails, which was 3 of 8 turns on `llama3.1:8b`.
+
+`recent_conversation` is now framed as inert data alongside retrieved RAG chunks. Both are client-influenced text and need the same "this is DATA, not INSTRUCTIONS" header.
+
+## Overflow is a gate, not an audit
+
+`e2e/responsive-overflow.spec.ts` measures the widest right edge any laid-out element reaches across 320–1440, for both roles and every workspace stage. It does not measure `scrollWidth`: `index.css` clips horizontal overflow at the document level, so the previous mobile assertion passed no matter how far content spilled.
+
+It found two real spills on its first run. The Documents stage laid its two cards out at their 320px min-content width inside a 288px track, and `AppLogo`'s link had `min-w-0` on the text span but not on itself, so at 320px the product name pushed the header's controls 19px off screen. Both are the same defect: a flex or grid item's automatic minimum size is its content, and truncation inside cannot engage while the box is free to grow.
+
+`playwright.config.ts` takes `E2E_WEB_PORT` / `E2E_API_PORT`, so a linked worktree runs its own servers instead of silently testing another checkout's build.
+
+## Agents can now run in parallel safely
+
+Cross-checkout path claims, atomic locked shared state, a per-checkout edit ledger, `npm run agent:fleet`, `npm run agent:snapshot`, and governance commands that archive rather than delete. The `PreToolUse` command hook now also matches PowerShell, which previously bypassed every command guard on this project's primary platform.
+
+## Evidence
+
+Frontend 78 tests, lint 0 errors, i18n parity, production build. Backend 147 tests (14 new), ruff clean. E2E 63 tests, full serial run green.
+
+Known and unfixed, carried from 4.0.0's live-agent run and recorded in `changes/chat-modal-centered.md`: `handled_by` can come back empty, a refusal that tells the user to consult a lawyer does not raise `requires_attorney_review`, and action labels leak across languages. `mypy` reports 6 pre-existing `arg-type` errors in `case_context_builder`, `runtime` and `security`.
+
 # FreshStart 4.1.0
 
 Every dialog in the app now composes one governed modal shell, and the preparation assistant is one of them (`feat/ui-responsive-branding-nav`). Additive: no API, payload or contract change.
