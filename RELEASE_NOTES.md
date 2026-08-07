@@ -1,3 +1,37 @@
+# FreshStart 4.7.0
+
+Three defects a real transcript exposed. Together they made the assistant look like it was answering at random and showing nothing worth reading — and all three sat on the deterministic path, which is what every default deployment actually runs.
+
+## It answered a question nobody asked
+
+A client typed `2+2` and got *"No hay documentos pendientes en este expediente por ahora"* — the reply to the question before it.
+
+`_detect_topic` inherited the previous turn's topic whenever the current message was four words or fewer. That is not what a follow-up is. Reproduced against the same history, `gracias`, `asdfgh` and `cuanto es 5*3` inherited `documents` too, so the assistant confidently answered something nobody had asked.
+
+Inheritance now requires an explicit continuation — `¿y ahora?`, `otra vez`, `sí`, `what about` — with the length limit kept on top, so *"sí, pero ¿qué pasa con mi carro?"* opens a new subject rather than inheriting one.
+
+## The chips made the user talk to themselves
+
+The suggestions under an answer read *"Solicitar los documentos faltantes antes de discutir una estrategia."* and *"Programar una consulta para comparar alternativas disponibles."*
+
+An `ask` action's label is sent verbatim as the user's next message, and those labels came from `next_steps`, `warnings` and `discussion_points` — imperatives aimed at the user and statements about the case. Clicking one made the user issue an instruction to themselves, which the assistant then had to interpret as a question.
+
+Chips are follow-up questions now, three per intent, in the user's voice and the session's language. The information those lists carried is already in the answer's prose.
+
+## The panel had nothing to look at
+
+Every figure was already in the case context, and the deterministic path showed none of them — it emitted prose and no cards, while the agent path could emit cards. That is backwards.
+
+Every deterministic answer now carries a `case_summary` card: monthly cash flow, total debt, assets, completion and evidence scores, plus pending-document and missing-section counts when there are any. Values come straight off the authorized context, so the card cannot disagree with the workspace behind it.
+
+## Evidence
+
+`test_assistant_usefulness.py` (19 new) is written against the reported transcript: junk inherits nothing while real follow-ups still do, the reported turn no longer repeats the previous answer, every chip ends in a question mark and none begins with an imperative lifted from `next_steps`, and the card reports `$18,000.00` of debt and `$9,000.00` of assets — what the case actually holds.
+
+Backend 219 tests, `ruff` and `mypy` clean.
+
+**Still limited:** an unrecognized message now gets the status-derived default rather than a wrong topic. Better, but not an acknowledgement that it was not understood — saying so would need an out-of-scope detector narrow enough not to fire on legitimate questions the keyword lists do not cover.
+
 # FreshStart 4.6.1
 
 Two defects a live run against Groq exposed. Both were invisible until a strict provider was pointed at this layer, and both made the agent look broken for reasons nothing in the response explained.
