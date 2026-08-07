@@ -51,7 +51,7 @@ function ChatEntryPoint() {
 export function AppShell() {
   return (
     <ChatPanelProvider>
-      <div className="app-shell-background flex min-h-screen text-heading">
+      <div className="app-shell-background flex min-h-screen w-full text-heading">
         <Sidebar />
         {/* `min-w-0` is load-bearing, not decoration. A flex item defaults to
             `min-width: auto`, which refuses to shrink below its content's
@@ -60,7 +60,7 @@ export function AppShell() {
             horizontal scroll at every viewport below that, sidebar and header
             included. Allowing the column to shrink is what lets the inner
             `overflow-x-auto` containers actually do their job. */}
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-20 md:pb-0">
+        <div className="flex min-h-screen w-full min-w-0 flex-1 flex-col pb-20 md:pb-0">
           <ModernHeader />
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
             <Outlet />

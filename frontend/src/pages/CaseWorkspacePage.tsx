@@ -539,8 +539,16 @@ export function CaseWorkspacePage() {
             onPrimaryAction={() => setModalKind("evidence")}
             onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.documents"))}
           />
-          <div className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
-            <Card className="border border-[var(--color-border)] bg-white shadow-sm">
+          {/* `min-w-0` on the cards, not just on the rows inside them. A grid
+              item's automatic minimum size is its content, exactly like a flex
+              item's, so these two cards were laid out at their min-content
+              width — 320px — inside a 288px track at a 320px viewport, and
+              overflowed the page by the `main` element's own 16px padding.
+              The truncation already inside the evidence row cannot engage
+              while its card is free to grow. `frontend/e2e/
+              responsive-overflow.spec.ts` is the regression gate. */}
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+            <Card className="min-w-0 border border-[var(--color-border)] bg-white shadow-sm">
               <div className="space-y-3">
                 {caseData.evidence.map((item) => (
                   // min-w-0 on the row and on the name column is what lets
@@ -561,7 +569,7 @@ export function CaseWorkspacePage() {
                 {!caseData.evidence.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.empty.documents")}</p> : null}
               </div>
             </Card>
-            <Card className="border border-[var(--color-border)] bg-white shadow-sm">
+            <Card className="min-w-0 border border-[var(--color-border)] bg-white shadow-sm">
               <h2 className="text-lg font-semibold">{t("workspace:caseWorkspace.evidenceChecklistTitle")}</h2>
               <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.evidenceChecklistDescription")}</p>
               <div className="mt-4 space-y-2">
