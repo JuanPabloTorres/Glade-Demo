@@ -1,10 +1,10 @@
-import { Tooltip } from "flowbite-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { sidebarNavItems } from "../../../config/navigation";
 import { useRoleNavigation } from "../../../hooks/useRoleNavigation";
 import { AppIcon } from "../../atoms/AppIcon";
 import { AppLogo } from "../../atoms/AppLogo";
+import { AppTooltip } from "../../overlays/AppTooltip";
 import { SidebarGroup } from "./SidebarGroup";
 import { SidebarItem } from "./SidebarItem";
 
@@ -57,8 +57,16 @@ export function Sidebar() {
   const toggleLabel = collapsed ? t("navigation:sidebar.expand") : t("navigation:sidebar.collapse");
 
   return (
+    // `h-dvh`, not `h-screen`: `100vh` on a mobile browser is taller than the
+    // visible viewport while the URL bar is showing, which pushed the rail's
+    // foot off screen. `sticky top-0` pins it to the viewport for the whole
+    // length of the document — that only works because `html`/`body` use
+    // `overflow-x: clip` rather than `hidden`; `hidden` makes the body a scroll
+    // container and silently disables every sticky descendant (see index.css).
+    // The height is the viewport's, never the content's, so a long page cannot
+    // stretch it.
     <aside
-      className={`sticky top-0 hidden h-screen shrink-0 flex-col border-e border-default bg-neutral-primary-soft p-4 transition-[width] duration-200 md:flex ${
+      className={`sticky top-0 z-sticky hidden h-dvh shrink-0 flex-col border-e border-default bg-neutral-primary-soft p-4 transition-[width] duration-200 md:flex ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
@@ -68,7 +76,7 @@ export function Sidebar() {
       <AppLogo markOnly={collapsed} size="sm" className={collapsed ? "mb-4" : "mb-4 px-1"} />
 
       <div className={`mb-3 flex ${collapsed ? "justify-center" : "justify-end"}`}>
-        <Tooltip content={toggleLabel} placement="right">
+        <AppTooltip content={toggleLabel} side="right">
           <button
             type="button"
             onClick={() => setCollapsed((value) => !value)}
@@ -78,7 +86,7 @@ export function Sidebar() {
           >
             <AppIcon name="collapse-left" size={18} className={collapsed ? "rotate-180" : undefined} />
           </button>
-        </Tooltip>
+        </AppTooltip>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col justify-between gap-4 overflow-y-auto">

@@ -1,8 +1,9 @@
-import { Badge, Tooltip } from "flowbite-react";
+import { Badge } from "flowbite-react";
 import { useTranslation } from "react-i18next";
 import { useAiHealth } from "../../hooks/useAiHealth";
 import { AppLogo } from "../atoms/AppLogo";
-import { LanguageToggle } from "../molecules/LanguageToggle";
+import { LanguageSwitcher } from "../molecules/LanguageSwitcher";
+import { AppTooltip } from "../overlays/AppTooltip";
 import { UserMenu } from "./navigation/UserMenu";
 
 /**
@@ -29,7 +30,10 @@ export function ModernHeader() {
   const aiHealth = useAiHealth();
 
   return (
-    <header className="sticky top-0 z-20 border-b border-default bg-neutral-primary-soft shadow-[0_4px_18px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+    // `z-sticky` from the layer scale rather than a hand-picked `z-20`. The
+    // sticky itself only started working once `html`/`body` stopped using
+    // `overflow-x: hidden` — see index.css.
+    <header className="sticky top-0 z-sticky border-b border-default bg-neutral-primary-soft shadow-[0_4px_18px_rgba(15,23,42,0.05)] backdrop-blur-xl">
       <div className="glade-gradient h-1" />
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         {/* Below md this is the product's only visible name; at md+ the sidebar
@@ -38,9 +42,10 @@ export function ModernHeader() {
         <div className="hidden min-w-0 md:block" />
 
         <div className="flex shrink-0 items-center gap-2">
-          <LanguageToggle compact />
+          <LanguageSwitcher compact />
 
-          <Tooltip
+          <AppTooltip
+            side="bottom"
             content={
               aiHealth.loading
                 ? t("navigation:header.aiStatusLoading")
@@ -59,7 +64,7 @@ export function ModernHeader() {
                 {aiHealth.data?.available ? t("navigation:header.aiConnected") : t("navigation:header.aiDisconnected")}
               </Badge>
             </button>
-          </Tooltip>
+          </AppTooltip>
 
           <UserMenu />
         </div>

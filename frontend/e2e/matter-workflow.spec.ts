@@ -106,12 +106,16 @@ test("attorney completes the full 9-step review flow (master instruction §20)",
   await expect(page.getByRole("table").getByText("Miguel Santos")).toBeVisible();
   await expect(page.getByRole("table").getByText("Elena Rivera")).toHaveCount(0);
 
-  // 4. Abrir caso.
-  await page.getByRole("button", { name: "Ver", exact: true }).first().click();
+  // 4. Abrir caso. The row's primary action is an ActionGroup link now, so it
+  // is a real `<a>` ("Abrir") rather than the previous "Ver" button.
+  await page.getByRole("link", { name: "Abrir", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Miguel Santos" })).toBeVisible();
 
-  // 5. Consultar resumen AI.
-  await page.getByRole("button", { name: "Generar resumen" }).click();
+  // 5. Consultar resumen AI. The attorney's nine flat buttons are one
+  // ActionGroup now: "Solicitar documento" is the primary segment and the rest
+  // are menu items.
+  await page.getByRole("button", { name: "Más acciones" }).first().click();
+  await page.getByRole("menuitem", { name: "Generar resumen" }).click();
   await expect(page.getByRole("heading", { name: "Resumen del caso (borrador)" })).toBeVisible();
   await expect(page.getByText("Borrador generado a partir del expediente", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Cerrar" }).click();
@@ -127,12 +131,14 @@ test("attorney completes the full 9-step review flow (master instruction §20)",
   await page.getByRole("button", { name: /Comenzar/ }).click();
 
   // 7. Añadir nota.
-  await page.getByRole("button", { name: "Añadir nota" }).click();
+  await page.getByRole("button", { name: "Más acciones" }).first().click();
+  await page.getByRole("menuitem", { name: "Añadir nota" }).click();
   await page.getByLabel("Nota profesional").fill("Confirmar atrasos de vivienda en la próxima consulta.");
   await page.getByRole("button", { name: "Guardar", exact: true }).click();
 
   // 8. Cambiar estado.
-  await page.getByRole("button", { name: "Cambiar estado" }).click();
+  await page.getByRole("button", { name: "Más acciones" }).first().click();
+  await page.getByRole("menuitem", { name: "Cambiar estado" }).click();
   await expect(page.getByRole("button", { name: /Revisión del abogado/ })).toBeVisible();
   await page.getByLabel("Estado del caso").selectOption("consultation_scheduled");
   await expect(page.getByLabel("Notas profesionales")).toHaveValue(/Confirmar atrasos de vivienda/);

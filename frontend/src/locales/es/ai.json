@@ -1,5 +1,11 @@
 {
+  "launcher": {
+    "open": "Abrir asistente",
+    "resume": "Retomar conversación",
+    "minimize": "Minimizar asistente"
+  },
   "chat": {
+    "scopedToSection": "{{client}} · sección {{section}}",
     "title": "Asistente de preparación",
     "senderYou": "Tú",
     "senderAssistant": "Asistente",

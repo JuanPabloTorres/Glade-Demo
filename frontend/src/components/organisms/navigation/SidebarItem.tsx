@@ -1,8 +1,8 @@
-import { Tooltip } from "flowbite-react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
 import { type AppNavItem, isNavItemActive } from "../../../config/navigation";
 import { AppIcon } from "../../atoms/AppIcon";
+import { AppTooltip } from "../../overlays/AppTooltip";
 
 interface SidebarItemProps {
   item: AppNavItem;
@@ -62,9 +62,9 @@ export function SidebarItem({ item, onNavigate, collapsed = false }: SidebarItem
         : null;
 
     return disabledTooltip ? (
-      <Tooltip content={disabledTooltip} placement="right">
+      <AppTooltip content={disabledTooltip} side="right" fullWidth>
         {disabledButton}
-      </Tooltip>
+      </AppTooltip>
     ) : (
       disabledButton
     );
@@ -99,9 +99,9 @@ export function SidebarItem({ item, onNavigate, collapsed = false }: SidebarItem
   );
 
   return collapsed ? (
-    <Tooltip content={label} placement="right">
+    <AppTooltip content={label} side="right" fullWidth>
       {link}
-    </Tooltip>
+    </AppTooltip>
   ) : (
     link
   );

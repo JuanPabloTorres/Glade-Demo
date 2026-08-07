@@ -9,12 +9,10 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../auth/AuthContext";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { DataTableToolbar } from "../components/data-display/DataTableToolbar";
-import { RowActionsMenu } from "../components/data-display/RowActionsMenu";
-import { ConfirmDialog } from "../components/feedback/ConfirmDialog";
 import { ResponsiveDataView } from "../components/molecules/ResponsiveDataView";
+import { ActionGroup } from "../components/ui/ActionGroup";
 import { AppButton } from "../components/ui/AppButton";
 import type { BankruptcyCase, CaseStatus } from "../types/bankruptcy";
-import { useConfirmation } from "../hooks/useConfirmation";
 import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
 import { localCompletion } from "../workspace/caseMetrics";
 
@@ -70,7 +68,6 @@ export function AttorneyDashboardPage() {
   const [sort, setSort] = useState<SortKey>("urgent-first");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(8);
-  const deleteConfirmation = useConfirmation<string>();
   const query = searchParams.get("q") ?? "";
 
   const submitted = cases.filter((item) => item.status !== "draft" && item.status !== "collecting_information");
@@ -142,14 +139,6 @@ export function AttorneyDashboardPage() {
   const startNewCase = () => {
     if (!auth.user) return;
     navigate(`/case/${createCase(auth.user)}`);
-  };
-
-  const askDelete = (caseId: string) => deleteConfirmation.request(caseId);
-
-  const confirmDelete = async () => {
-    await deleteConfirmation.run(async (caseId) => {
-      deleteCase(caseId);
-    });
   };
 
   return (
@@ -232,13 +221,28 @@ export function AttorneyDashboardPage() {
           emptyMessage={t("workspace:attorneyDashboard.emptyMessage")}
           rows={pageItems}
           rowKey={(item) => item.id}
+          // One ActionGroup per row: "Open case" is the action worth a click of
+          // its own, everything else lives behind the menu. The menu is
+          // portaled, so it is no longer clipped by the table wrapper's
+          // `overflow-x-auto` and no longer renders behind the following row.
+          // Delete declares its confirmation here and ActionGroup enforces it —
+          // the dialog that used to be wired up separately below is gone.
           renderActions={(item) => (
-            <RowActionsMenu
-              onView={() => navigate(`/case/${item.id}`)}
+            <ActionGroup
+              align="end"
+              primary={{
+                id: "open",
+                label: t("common:actions.open"),
+                icon: "search",
+                href: `/case/${item.id}`,
+              }}
               actions={[
-                { label: t("common:actions.view"), onClick: () => navigate(`/case/${item.id}`) },
                 {
-                  label: item.household.urgentCollectionAction ? t("workspace:attorneyDashboard.actions.deactivateUrgent") : t("workspace:attorneyDashboard.actions.activateUrgent"),
+                  id: "urgent",
+                  label: item.household.urgentCollectionAction
+                    ? t("workspace:attorneyDashboard.actions.deactivateUrgent")
+                    : t("workspace:attorneyDashboard.actions.activateUrgent"),
+                  icon: "alert",
                   onClick: () => {
                     updateCase(item.id, (current) => ({
                       ...current,
@@ -249,7 +253,21 @@ export function AttorneyDashboardPage() {
                     }));
                   },
                 },
-                { label: t("common:actions.delete"), onClick: () => askDelete(item.id) },
+                {
+                  id: "delete",
+                  label: t("common:actions.delete"),
+                  destructive: true,
+                  // Only an attorney reaches this page, but the rule is stated
+                  // rather than assumed — ActionGroup removes the item when the
+                  // caller says the role may not perform it.
+                  allowed: auth.user?.role === "attorney",
+                  confirm: {
+                    title: t("workspace:attorneyDashboard.confirmDelete.title"),
+                    message: t("workspace:attorneyDashboard.confirmDelete.message"),
+                    confirmLabel: t("workspace:attorneyDashboard.confirmDelete.confirm"),
+                  },
+                  onClick: () => deleteCase(item.id),
+                },
               ]}
             />
           )}
@@ -267,17 +285,6 @@ export function AttorneyDashboardPage() {
           </div>
         ) : null}
       </Card>
-
-      <ConfirmDialog
-        open={deleteConfirmation.isOpen}
-        title={t("workspace:attorneyDashboard.confirmDelete.title")}
-        message={t("workspace:attorneyDashboard.confirmDelete.message")}
-        confirmLabel={t("workspace:attorneyDashboard.confirmDelete.confirm")}
-        destructive
-        busy={deleteConfirmation.busy}
-        onCancel={deleteConfirmation.cancel}
-        onConfirm={() => void confirmDelete()}
-      />
     </div>
   );
 }

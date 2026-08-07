@@ -190,7 +190,10 @@ test.describe("no horizontal overflow across the responsive range", () => {
       ).toBeVisible();
       await expectNoHorizontalOverflow(page, "attorney inbox", width);
 
-      await page.getByRole("button", { name: "Ver", exact: true }).first().click();
+      // The row's primary action is a real link now ("Abrir"), not a button:
+      // ActionGroup renders navigation as `<Link>` so middle-click and
+      // open-in-new-tab keep working.
+      await page.getByRole("link", { name: "Abrir", exact: true }).first().click();
       await expect(page.getByTestId("completion-score")).toBeVisible();
       await expectNoHorizontalOverflow(page, "attorney case workspace", width);
 
@@ -200,12 +203,20 @@ test.describe("no horizontal overflow across the responsive range", () => {
       // These modals are not `dismissible`, so they close through their own
       // footer control rather than Escape — leaving one open would hide the
       // next trigger behind the backdrop.
-      for (const [trigger, confirm, dismiss] of [
-        ["Solicitar documento", "Solicitar", "Cancelar"],
-        ["Añadir nota", "Guardar", "Cancelar"],
-        ["Generar resumen", "Guardar en notas", "Cerrar"],
+      //
+      // "Solicitar documento" is the bar's primary segment; the other two moved
+      // into its menu when the flat nine-button row became one ActionGroup.
+      for (const [trigger, confirm, dismiss, inMenu] of [
+        ["Solicitar documento", "Solicitar", "Cancelar", false],
+        ["Añadir nota", "Guardar", "Cancelar", true],
+        ["Generar resumen", "Guardar en notas", "Cerrar", true],
       ] as const) {
-        await page.getByRole("button", { name: trigger }).first().click();
+        if (inMenu) {
+          await page.getByRole("button", { name: "Más acciones" }).first().click();
+          await page.getByRole("menuitem", { name: trigger }).click();
+        } else {
+          await page.getByRole("button", { name: trigger }).first().click();
+        }
         await expect(page.getByRole("button", { name: confirm, exact: true })).toBeVisible();
         await expectNoHorizontalOverflow(page, `attorney modal "${trigger}"`, width);
         await page.getByRole("button", { name: dismiss, exact: true }).click();

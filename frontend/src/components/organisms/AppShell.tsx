@@ -1,5 +1,7 @@
 import { Outlet } from "react-router";
 import { ChatPanelProvider } from "../../chat/ChatPanelContext";
+import { AiLauncher } from "../ai/AiLauncher";
+import { AiPanel } from "../ai/AiPanel";
 import { ModernFooter } from "./ModernFooter";
 import { ModernHeader } from "./ModernHeader";
 import { BottomNavigation } from "./navigation/BottomNavigation";
@@ -45,6 +47,13 @@ export function AppShell() {
           <ModernFooter variant="compact" />
         </div>
         <BottomNavigation />
+
+        {/* The assistant, mounted once for the whole authenticated app rather
+            than per page. Both live here so every route gets the same entry
+            point and the same panel instance — a page cannot opt out, and
+            navigating between pages cannot restart the conversation. */}
+        <AiLauncher />
+        <AiPanel />
       </div>
     </ChatPanelProvider>
   );

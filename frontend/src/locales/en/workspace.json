@@ -443,7 +443,26 @@
     "summary": {
       "title": "Case summary (draft)",
       "disclaimer": "Draft generated from the case file — subject to professional review. It does not constitute legal advice.",
-      "saveInNotes": "Save in notes"
+      "saveInNotes": "Save in notes",
+      "pendingAnalysis": "pending analysis",
+      "notSpecified": "Not specified",
+      "urgencyReported": "Yes — urgent collection activity reported.",
+      "urgencyNone": "None reported.",
+      "lines": {
+        "heading": "Case summary — {{client}}",
+        "goal": "Stated goal: {{goal}}",
+        "household": "Household: {{size}} person(s), {{dependents}} dependent(s), housing: {{housing}}.",
+        "netIncome": "Monthly net income: {{amount}}.",
+        "expenses": "Monthly expenses: {{amount}}.",
+        "cashFlow": "Available cash flow: {{amount}}.",
+        "totalDebt": "Total debt: {{amount}}.",
+        "assets": "Assets: {{count}} on record.",
+        "urgency": "Urgent matters: {{detail}}",
+        "documents": "Documents received: {{received}} of {{total}} on record.",
+        "warnings": "Alerts: {{warnings}}",
+        "warningsNone": "Alerts: none detected.",
+        "questionsHeading": "Questions for the consultation:"
+      }
     },
     "messageClient": {
       "description": "The message will appear in the Smart guidance chat seen by the client.",
