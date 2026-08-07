@@ -82,6 +82,13 @@ export const BASE_STAGE_ORDER: readonly CaseStage[] = [
  * `CaseStage`. This is a vocabulary alias, not a position map — it never
  * encodes an index, so it can't go stale when stages are reordered.
  */
+/**
+ * The query parameter that carries the active stage. Named `focus` for
+ * backward compatibility with links the assistant already builds
+ * (ChatPanel.tsx) and with any bookmarked URL.
+ */
+export const STAGE_QUERY_PARAM = "focus";
+
 export const FOCUS_PARAM_TO_STAGE: Record<string, CaseStage> = {
   overview: "start",
   household: "household",
@@ -135,9 +142,6 @@ export function CaseWorkspacePage() {
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [modalKind, setModalKind] = useState<EntryKind | null>(null);
-  // Single source of truth for which stage is active — see CaseStage and
-  // BASE_STAGE_ORDER above. Replaces the old `activeTab` positional index.
-  const [activeStage, setActiveStage] = useState<CaseStage>("start");
   const isAttorney = user?.role === "attorney";
 
   // The attorney-review stage content only renders for attorneys (JSX
@@ -149,14 +153,40 @@ export function CaseWorkspacePage() {
     [isAttorney],
   );
 
+  /**
+   * The active stage is read from the URL, never stored beside it. That is
+   * what lets a refresh, a shared link and the browser Back button all resolve
+   * to the same stage, and it is what allows the sidebar / bottom-nav entries
+   * that point at a stage to recognise themselves as active.
+   *
+   * Two vocabularies resolve here: the canonical `CaseStage` keys this app
+   * writes, and the backend's `focus_section` aliases (see
+   * FOCUS_PARAM_TO_STAGE) that arrive on links built by the assistant. An
+   * unknown or missing value falls back to the first stage.
+   */
+  const activeStage = useMemo<CaseStage>(() => {
+    const raw = searchParams.get(STAGE_QUERY_PARAM);
+    if (!raw) return "start";
+    const candidate = (STAGE_ORDER as string[]).includes(raw)
+      ? (raw as CaseStage)
+      : FOCUS_PARAM_TO_STAGE[raw];
+    return candidate && STAGE_ORDER.includes(candidate) ? candidate : "start";
+  }, [searchParams, STAGE_ORDER]);
+
   // Every navigation — user clicks and URL deep-links alike — goes through
-  // this single function. It only ever sets `activeStage`; nothing here (or
-  // anywhere else) computes a Flowbite tab index directly.
+  // this single function. It writes the stage to the URL and nothing else;
+  // `activeStage` is *derived* from that URL above, so there is one source of
+  // truth rather than a state variable racing the address bar.
   const navigateToStage = useCallback(
     (stage: CaseStage) => {
-      setActiveStage(STAGE_ORDER.includes(stage) ? stage : "start");
+      const target = STAGE_ORDER.includes(stage) ? stage : "start";
+      const next = new URLSearchParams(searchParams);
+      next.set(STAGE_QUERY_PARAM, target);
+      // push, not replace: moving between stages is navigation the user
+      // expects the browser Back button to undo.
+      setSearchParams(next);
     },
-    [STAGE_ORDER],
+    [STAGE_ORDER, searchParams, setSearchParams],
   );
 
   useEffect(() => {
@@ -172,19 +202,14 @@ export function CaseWorkspacePage() {
     };
   }, [caseData, t]);
 
-  // Deep-link support for the chat's "Abrir sección recomendada" action —
-  // see ChatPanel.tsx, which navigates here with ?focus=<section>. Resolves
-  // through the same navigateToStage() every click uses, so a deep-link and
-  // a stepper click for the same stage always land in the same place.
-  useEffect(() => {
-    const focus = searchParams.get("focus");
-    if (!focus) return;
-    const stage = FOCUS_PARAM_TO_STAGE[focus];
-    if (stage) navigateToStage(stage);
-    const next = new URLSearchParams(searchParams);
-    next.delete("focus");
-    setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams, navigateToStage]);
+  // No effect syncs the URL into state any more: `activeStage` is computed
+  // from `searchParams` on every render (see above), which is what makes a
+  // direct refresh and the browser Back/Forward buttons land on the right
+  // stage. The previous version read `?focus=` once, copied it into component
+  // state and then deleted it from the URL — so the address bar forgot the
+  // section, a refresh always reset to "start", Back never moved between
+  // stages, and no navigation control could mark itself active because the
+  // destination it linked to no longer matched the URL.
 
   if (!caseData || !user) return <Navigate to={ROUTES.home} replace />;
   if (user.role === "client" && caseData.ownerUserId !== user.id) return <Navigate to={ROUTES.home} replace />;

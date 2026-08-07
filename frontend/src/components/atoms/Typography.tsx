@@ -15,11 +15,17 @@ import { AppIcon } from "./AppIcon";
 interface WithChildren {
   children: ReactNode;
   className?: string;
+  /** Lets a heading be referenced by `aria-labelledby` or a fragment link. */
+  id?: string;
 }
 
 /** Section heading inside a page — one level below PageTitle. */
-export function SectionTitle({ children, className = "" }: WithChildren) {
-  return <h2 className={`text-lg font-semibold tracking-tight text-heading ${className}`}>{children}</h2>;
+export function SectionTitle({ children, className = "", id }: WithChildren) {
+  return (
+    <h2 id={id} className={`text-lg font-semibold tracking-tight text-heading ${className}`}>
+      {children}
+    </h2>
+  );
 }
 
 /** Heading for a card or panel — one level below SectionTitle. */

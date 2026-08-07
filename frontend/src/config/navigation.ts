@@ -12,6 +12,41 @@ export interface SidebarNavItem {
 }
 
 /**
+ * Whether a navigation entry is the one currently open. Shared by every
+ * navigation surface (desktop sidebar, mobile bottom bar, mobile drawer) so
+ * they can never disagree about which entry is highlighted.
+ *
+ * Several entries point at the same path and differ only by query — the case
+ * sections (`/case/:id?focus=documents`) and the attorney filters
+ * (`/?view=urgent`). The rule that keeps exactly one of them active:
+ *
+ * - an entry whose `to` carries a query is active when the path matches *and*
+ *   every one of its parameters matches the current URL;
+ * - an entry with a bare `to` is active only when the path matches and the URL
+ *   carries no parameters at all, so "Mi caso" stops being highlighted once a
+ *   section of that case is open.
+ *
+ * This previously returned `false` for any `to` containing a `?`, because the
+ * destination page consumed the query and deleted it — so those entries could
+ * never match. The page now keeps the stage in the URL, which is what makes
+ * this comparison meaningful.
+ */
+export function isNavItemActive(to: string, pathname: string, search: string): boolean {
+  const [toPath, toQuery] = to.split("?");
+
+  const pathMatches = toPath === "/" ? pathname === "/" : pathname === toPath || pathname.startsWith(`${toPath}/`);
+  if (!pathMatches) return false;
+
+  const current = new URLSearchParams(search);
+  if (!toQuery) return [...current.keys()].length === 0;
+
+  for (const [key, value] of new URLSearchParams(toQuery)) {
+    if (current.get(key) !== value) return false;
+  }
+  return true;
+}
+
+/**
  * Role-aware nav per the architecture guide §8.2. Client items that depend
  * on an active case (Mi caso/Documentos/Tareas/Actividad) render disabled
  * until the client has created their first request — ClientDashboardPage's
@@ -32,7 +67,7 @@ export function buildClientNavItems(activeCaseId: string | null): SidebarNavItem
       key: "documents",
       labelKey: "navigation:sidebar.client.documents",
       icon: "document",
-      to: activeCaseId ? caseFocusUrl(activeCaseId, "evidence") : null,
+      to: activeCaseId ? caseFocusUrl(activeCaseId, "documents") : null,
       disabledReasonKey: noCaseYet ? "navigation:sidebar.disabledNoCase" : undefined,
     },
     {
@@ -46,10 +81,10 @@ export function buildClientNavItems(activeCaseId: string | null): SidebarNavItem
       key: "activity",
       labelKey: "navigation:sidebar.client.activity",
       icon: "activity",
-      to: activeCaseId ? caseFocusUrl(activeCaseId, "timeline") : null,
+      to: activeCaseId ? caseFocusUrl(activeCaseId, "tracking") : null,
       disabledReasonKey: noCaseYet ? "navigation:sidebar.disabledNoCase" : undefined,
     },
-    { key: "help", labelKey: "navigation:sidebar.client.help", icon: "help", to: ROUTES.about },
+    { key: "help", labelKey: "navigation:sidebar.client.help", icon: "help", to: ROUTES.help },
   ];
 }
 
@@ -76,6 +111,6 @@ export function buildAttorneyNavItems(): SidebarNavItem[] {
       to: null,
       disabledReasonKey: "navigation:sidebar.disabledNoActivityFeed",
     },
-    { key: "help", labelKey: "navigation:sidebar.attorney.help", icon: "help", to: ROUTES.about },
+    { key: "help", labelKey: "navigation:sidebar.attorney.help", icon: "help", to: ROUTES.help },
   ];
 }

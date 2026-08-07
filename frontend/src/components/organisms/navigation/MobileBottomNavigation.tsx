@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "flowbite-react";
 import { AppIcon } from "../../atoms/AppIcon";
-import type { SidebarNavItem } from "../../../config/navigation";
+import { isNavItemActive, type SidebarNavItem } from "../../../config/navigation";
 
 /**
  * How many destinations get a permanent slot. The rest move behind "Más",
@@ -16,13 +16,6 @@ interface MobileBottomNavigationProps {
   items: SidebarNavItem[];
   /** Opens the navigation Drawer holding every destination, primary ones included. */
   onOpenOverflow: () => void;
-}
-
-function isActive(to: string, pathname: string): boolean {
-  const [toPath, toQuery] = to.split("?");
-  if (toQuery) return false;
-  if (toPath === "/") return pathname === "/";
-  return pathname === toPath || pathname.startsWith(`${toPath}/`);
 }
 
 /**
@@ -54,7 +47,7 @@ export function MobileBottomNavigation({ items, onOpenOverflow }: MobileBottomNa
       <ul className="flex items-stretch">
         {primary.map((item) => {
           const label = t(item.labelKey);
-          const active = item.to ? isActive(item.to, location.pathname) : false;
+          const active = item.to ? isNavItemActive(item.to, location.pathname, location.search) : false;
 
           if (!item.to) {
             const disabled = (

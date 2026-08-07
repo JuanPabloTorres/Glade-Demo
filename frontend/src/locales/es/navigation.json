@@ -52,7 +52,8 @@
     "tooltip": "Cambiar idioma",
     "label": "Idioma",
     "es": "Español",
-    "en": "English"
+    "en": "English",
+    "switchTo": "Cambiar a {{language}}"
   },
   "sidebar": {
     "openMenu": "Abrir menú de navegación",

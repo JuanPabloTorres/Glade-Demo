@@ -1,6 +1,8 @@
 import { Tooltip } from "flowbite-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
+import { ROUTES } from "../../../config/routes";
 import { useRoleNavigation } from "../../../hooks/useRoleNavigation";
 import { AppIcon } from "../../atoms/AppIcon";
 import { SidebarGroup } from "./SidebarGroup";
@@ -35,7 +37,7 @@ function readCollapsedPreference(): boolean {
  * index.css.
  */
 export function Sidebar() {
-  const { t } = useTranslation(["navigation"]);
+  const { t } = useTranslation(["navigation", "common"]);
   const { items, groupLabel } = useRoleNavigation();
   const [collapsed, setCollapsed] = useState(readCollapsedPreference);
 
@@ -56,6 +58,25 @@ export function Sidebar() {
         collapsed ? "w-20" : "w-64"
       }`}
     >
+      {/* Product mark. The sidebar is the persistent chrome on desktop, so this
+          is where the name belongs. It is two words — "Fresh Start" — and it
+          collapses to the glyph alone in the icon rail, where the accessible
+          name still carries the full product name. */}
+      <Link
+        to={ROUTES.home}
+        aria-label={t("common:app.name")}
+        className={`mb-4 flex items-center rounded-base outline-none focus-visible:ring-4 focus-visible:ring-brand-soft ${
+          collapsed ? "justify-center" : "gap-3 px-1"
+        }`}
+      >
+        <span className="brand-mark flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-md shadow-indigo-950/15">
+          <AppIcon name="brand" size={20} />
+        </span>
+        {collapsed ? null : (
+          <span className="truncate text-base font-semibold tracking-tight text-heading">{t("common:app.name")}</span>
+        )}
+      </Link>
+
       <div className={`mb-3 flex ${collapsed ? "justify-center" : "justify-end"}`}>
         <Tooltip content={toggleLabel} placement="right">
           <button

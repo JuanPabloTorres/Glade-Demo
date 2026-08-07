@@ -1,6 +1,7 @@
 import { Tooltip } from "flowbite-react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
+import { isNavItemActive } from "../../../config/navigation";
 import { AppIcon, type AppIconName } from "../../atoms/AppIcon";
 
 interface SidebarItemProps {
@@ -11,19 +12,6 @@ interface SidebarItemProps {
   onNavigate?: () => void;
   /** Icon-only rail mode. Set by the desktop Sidebar; the mobile Drawer never collapses. */
   collapsed?: boolean;
-}
-
-/**
- * A deep-link shortcut (`to` carries a `?` query) never retains the active
- * highlight — only its parent destination does. See buildClientNavItems /
- * buildAttorneyNavItems in config/navigation.ts for why (the query param is
- * consumed and stripped by the destination page).
- */
-function isActive(to: string, pathname: string): boolean {
-  const [toPath, toQuery] = to.split("?");
-  if (toQuery) return false;
-  if (toPath === "/") return pathname === "/";
-  return pathname === toPath || pathname.startsWith(`${toPath}/`);
 }
 
 /**
@@ -85,7 +73,7 @@ export function SidebarItem({ labelKey, icon, to, disabledReasonKey, onNavigate,
     );
   }
 
-  const active = isActive(to, location.pathname);
+  const active = isNavItemActive(to, location.pathname, location.search);
 
   const link = (
     <Link
