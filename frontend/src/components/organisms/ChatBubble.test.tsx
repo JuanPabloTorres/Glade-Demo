@@ -66,4 +66,27 @@ describe("ChatBubble", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copiar texto al portapapeles" }));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith("La plantilla financiera está completa.");
   });
+
+  // The copy confirmation reverts on a 1.5s timer. Left uncancelled, that
+  // callback runs against an unmounted component — and once the suite stopped
+  // building a fresh environment per file, it ran after the environment was
+  // torn down, which Vitest reports as an unhandled `ReferenceError: window is
+  // not defined` and exits non-zero on. Asserting the pending-timer count
+  // rather than the absence of a warning because React 19 no longer warns about
+  // setState after unmount, so the leak is otherwise silent until it breaks CI.
+  it("leaves no pending timer behind when it unmounts mid-confirmation", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { unmount } = renderBubble(<ChatBubble message={message()} />);
+      fireEvent.click(screen.getByRole("button", { name: "Copiar texto al portapapeles" }));
+      // The timer is scheduled in the promise continuation after
+      // clipboard.writeText resolves, so let the microtask queue drain first.
+      await vi.waitFor(() => expect(vi.getTimerCount()).toBeGreaterThan(0));
+
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

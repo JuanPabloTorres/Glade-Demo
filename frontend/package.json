@@ -9,7 +9,7 @@
     "dev": "vite",
     "prebuild": "npm run contracts:generate",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "lint": "eslint . --cache --cache-location .eslintcache",
     "i18n:check": "node scripts/validate-locales.mjs",
     "format": "prettier --write .",
     "test": "vitest",

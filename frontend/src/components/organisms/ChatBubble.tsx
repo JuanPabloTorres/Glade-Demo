@@ -1,5 +1,5 @@
 import { Avatar } from "flowbite-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatTime } from "../../i18n/format";
@@ -39,12 +39,27 @@ export function ChatBubble({ message }: ChatBubbleProps) {
   const { locale } = useLanguage();
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  // The "copied" confirmation reverts on a timer. Held in a ref and cancelled
+  // on unmount because otherwise the callback runs against a component that no
+  // longer exists: React warns in the browser, and under test the timer fires
+  // after the environment is torn down, which Vitest reports as an unhandled
+  // `ReferenceError: window is not defined` and exits non-zero. Cancelling
+  // before re-scheduling also keeps rapid repeat clicks from stacking timers
+  // that each clear the flag at a different moment.
+  const revertTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (revertTimer.current) clearTimeout(revertTimer.current);
+    };
+  }, []);
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      if (revertTimer.current) clearTimeout(revertTimer.current);
+      revertTimer.current = setTimeout(() => setCopied(false), 1500);
     } catch {
       // Clipboard access can be denied by the browser; failing silently is
       // acceptable here — the message text remains visible and selectable.
