@@ -174,10 +174,11 @@ test.describe("no horizontal overflow across the responsive range", () => {
       await expectNoHorizontalOverflow(page, "entry modal", width);
       await page.getByRole("button", { name: "Cancelar" }).click();
 
-      // The assistant drawer covers the viewport on a phone.
-      await page.getByRole("button", { name: "Abrir asistente de preparación" }).click();
+      // The assistant is a route now, not a floating button and a drawer, so
+      // it is measured as a page like any other.
+      await page.goto("/assistant");
       await expect(page.getByLabel("Mensaje")).toBeVisible();
-      await expectNoHorizontalOverflow(page, "assistant drawer", width);
+      await expectNoHorizontalOverflow(page, "assistant page", width);
     });
 
     test(`attorney journey @ ${width}px`, async ({ page }) => {

@@ -34,7 +34,12 @@ export function AppLogo({ markOnly = false, showTagline = false, size = "md", cl
     <Link
       to={ROUTES.home}
       aria-label={name}
-      className={`flex items-center rounded-base outline-none focus-visible:ring-4 focus-visible:ring-brand-soft ${
+      // `min-w-0` on the link itself, not only on the text span inside it.
+      // This is a flex item of the header row, and a flex item's automatic
+      // minimum size is its content — so without it the link refuses to shrink,
+      // the `truncate` below can never engage, and at 320px the name and
+      // tagline push the header's right-hand controls off the screen.
+      className={`flex min-w-0 items-center rounded-base outline-none focus-visible:ring-4 focus-visible:ring-brand-soft ${
         markOnly ? "justify-center" : "gap-3"
       } ${className}`}
     >

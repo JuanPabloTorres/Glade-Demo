@@ -1,4 +1,3 @@
-import { Card } from "flowbite-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { AppIcon, type AppIconName } from "../components/atoms/AppIcon";
@@ -47,7 +46,7 @@ export function HelpPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      <Card className="app-card">
+      <section className="app-card p-6">
         <h1 className="text-page-title text-heading">{t("help:title")}</h1>
         <p className="mt-3 text-sm leading-6 text-body">{t("help:description")}</p>
         <p className="mt-4 text-sm leading-6 text-body">
@@ -60,7 +59,7 @@ export function HelpPage() {
           </Link>
           .
         </p>
-      </Card>
+      </section>
 
       {SECTIONS.map((section) => {
         const items: AppAccordionItem[] = Array.from({ length: section.questions }, (_, index) => ({

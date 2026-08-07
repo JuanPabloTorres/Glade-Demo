@@ -66,8 +66,6 @@ test.describe("Assistant route", () => {
     await loginAsClient(page);
     await page.goto("/assistant");
 
-    const composerBefore = (await page.getByLabel("Mensaje").boundingBox())!;
-
     await page.getByLabel("Mensaje").fill("¿Qué documentos me faltan?");
     await page.getByRole("button", { name: "Enviar", exact: true }).click();
     await expect(page.getByText("La plantilla financiera está completa.", { exact: false })).toBeVisible();
