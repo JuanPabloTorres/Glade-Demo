@@ -1,3 +1,39 @@
+# FreshStart 4.5.0
+
+The Strands agent runs on the deployed demo. Until now Vercel could only answer from the deterministic fallback, because the SDK was deliberately excluded from the function's dependencies.
+
+## Why the original decision failed
+
+ADR 0002 kept `strands-agents` out of `requirements.txt`, reasoning that the function ran `AI_PROVIDER=rule_based` anyway, so the SDK would be "dead weight in a size-constrained runtime". Both halves failed.
+
+The first was circular: the function ran `rule_based` *because* the SDK was absent. Asked to demonstrate the agent, the deployment could not, and no amount of configuration would have changed it.
+
+The second was never measured. A clean install of `requirements.txt` is **101 MB**; with `strands-agents[openai]` it is **163 MB**, against Vercel's 250 MB unzipped limit — nowhere near the constraint it was rejected for. The ML stack it was grouped with (torch, transformers, docling) genuinely is, and stays excluded. The dependency test now enforces both directions instead of one.
+
+## How it is wired
+
+`api/index.py` sets `AI_PROVIDER=openai` unconditionally. That is safe because of a property ADR 0002 already established: with no `OPENAI_API_KEY` the model factory raises, `AgentRuntime` catches it, and the answer is the deterministic draft marked `degraded: true`. A deployment without the key behaves exactly as it did before; one with the key gains the agent.
+
+OpenAI rather than Ollama because Ollama needs a model server on localhost and a serverless function has none.
+
+## The defect this surfaced
+
+`ModelFactory._create_openai` passed `settings.ai_model_id` as the model id. That setting belongs to the *transformers* provider and defaults to `Qwen/Qwen3-0.6B`, a HuggingFace repo id. OpenAI rejects it on every call, and the runtime converts a failed call into a silent degrade — so the observable symptom would have been "the agent is configured and never answers", with nothing in the response or the logs explaining why.
+
+OpenAI now has its own `openai_model`, defaulting to `gpt-4o-mini`, mirroring the `ollama_model` setting that already existed.
+
+## Enabling it
+
+Set `OPENAI_API_KEY` in the Vercel project. Optionally `OPENAI_MODEL` — note that is **not** `AI_MODEL_ID`, for the reason above.
+
+`AI_PROVIDER=openai` sends reduced case context — income, debts, and for an attorney session the private notes — to a third party. Every case in this deployment is synthetic (AGENTS.md rule 9), which is what makes this a demo decision rather than a disclosure one. It stops being true the moment real information is entered.
+
+## Evidence
+
+Backend 177 tests, `ruff` and `mypy` clean. The factory builds a real `OpenAIResponsesModel` against the installed SDK, asserted with `ai_model_id` simultaneously set to the HuggingFace default so a regression cannot pass by coincidence. The deployed function reports `openai` as its provider and still serves a login and `/ai/health` with no key present. Size measured with two clean `uv` environments, not estimated.
+
+**Not verified: a live OpenAI call.** No key exists in this environment, so what is proven is the wiring up to the SDK's model object — the same limitation ADR 0002 recorded, now narrowed to one unverified hop. The Ollama path is exercised end to end in `docs/evidence/live-agent-turns.json` and shares every layer above `ModelFactory`. Confirm one real turn after setting the key.
+
 # FreshStart 4.4.0
 
 The Vercel deployment works. Three things stood between the repository and a usable deploy, and none of them was visible from the code you would read first.
