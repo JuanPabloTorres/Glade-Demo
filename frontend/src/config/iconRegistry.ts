@@ -1,5 +1,6 @@
 import {
   HiArrowLeftOnRectangle,
+  HiArrowPath,
   HiArrowRight,
   HiArrowUpTray,
   HiBars3,
@@ -88,6 +89,7 @@ export const iconRegistry = {
   // Governed form layer (documents-add-evidence-modal):
   close: HiXMark, // clear/detach an attachment in FileField — distinct from "check"
   upload: HiArrowUpTray, // FileField empty-state drop target
+  refresh: HiArrowPath, // retry a failed connection check (chat AI health)
 } as const satisfies Record<string, IconType>;
 
 export type IconRegistryName = keyof typeof iconRegistry;

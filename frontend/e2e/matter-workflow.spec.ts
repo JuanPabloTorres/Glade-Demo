@@ -21,8 +21,15 @@ test("client completes the full 10-step preparation flow (master instruction §2
   await page.getByRole("button", { name: "Enviar", exact: true }).click();
   await expect(page.getByText("La plantilla financiera está completa.", { exact: false })).toBeVisible();
 
-  // 5. Abrir sección recomendada — this also closes the chat panel.
-  await page.getByRole("button", { name: "Abrir sección recomendada" }).click();
+  // 5. Abrir sección recomendada — this also closes the chat dialog.
+  //
+  // The chat no longer carries a separate "open recommended section" button
+  // beside the composer; it was a second control for a destination one of the
+  // suggested-action chips already went to. The chip is the real affordance,
+  // and its label comes from the backend (AgentRuntime._draft_as_answer emits
+  // an `open_page` action labelled "Abrir la sección recomendada" whenever the
+  // deterministic draft answers), not from the frontend's locale files.
+  await page.getByRole("button", { name: "Abrir la sección recomendada" }).click();
   // CaseStageStepper is the single stage-navigation control (no more
   // Tabs/TabItem strip — see docs/ux/UX-SHELL-POLISH-AUDIT-2026-08-06.md
   // §b) — its current step carries aria-current="step", not aria-selected.

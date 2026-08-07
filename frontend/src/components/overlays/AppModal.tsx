@@ -1,5 +1,5 @@
 import { Modal, ModalHeader } from "flowbite-react";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent, ReactNode, Ref } from "react";
 import { FormActions } from "../forms/FormActions";
 
 export type AppModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl";
@@ -26,6 +26,25 @@ export type AppModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl";
  * `header.title` is set here too, so callers stop reaching for
  * `[&>h3]:text-lg`-style arbitrary variants to restyle the title.
  */
+const CONTENT_INNER_BASE =
+  "relative flex max-h-[calc(100dvh-3rem)] min-h-0 w-full flex-col overflow-hidden rounded-2xl bg-neutral-primary shadow-xl";
+
+/**
+ * `fillHeight` height contract, for dialogs whose content grows during use.
+ *
+ * A content-hugging panel is right for a form, whose height is known before it
+ * opens. It is wrong for a transcript: the panel would be short when the
+ * conversation is empty and grow with every turn, so the composer the user is
+ * typing into keeps moving down the screen. These dialogs claim a stable
+ * working height instead and let the body scroll inside it.
+ *
+ * Below `sm` that height is the whole dynamic viewport minus the modal's own
+ * margin — a phone has no room to spend on a peek of the page behind. From
+ * `sm` up it is `min(42rem, …)`, so the dialog stops growing on a tall desktop
+ * display rather than becoming a full-height column of mostly empty space.
+ */
+const CONTENT_INNER_FILL = `${CONTENT_INNER_BASE} h-[calc(100dvh-3rem)] sm:h-[min(42rem,calc(100dvh-3rem))]`;
+
 const APP_MODAL_THEME = {
   root: {
     base: "fixed inset-x-0 top-0 z-50 h-dvh overflow-y-auto overflow-x-hidden md:inset-0 md:h-full",
@@ -37,8 +56,7 @@ const APP_MODAL_THEME = {
     // `h-*`, the default `h-full` survives and stretches the panel to the full
     // height of the overlay — the very behaviour this override exists to undo.
     base: "relative my-4 flex h-auto w-[calc(100%-2rem)] flex-col p-0",
-    inner:
-      "relative flex max-h-[calc(100dvh-3rem)] min-h-0 w-full flex-col overflow-hidden rounded-2xl bg-neutral-primary shadow-xl",
+    inner: CONTENT_INNER_BASE,
   },
   header: {
     base: "flex shrink-0 items-start justify-between gap-4 rounded-t border-b border-default px-5 py-4 sm:px-6",
@@ -54,9 +72,19 @@ interface AppModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  /** Optional supporting sentence, announced via `aria-describedby`. */
-  description?: string;
+  /**
+   * Optional supporting content pinned under the title and announced via
+   * `aria-describedby`. Usually a sentence; it accepts nodes so a dialog can
+   * pin a status row (subject plus state) that must not scroll away with the
+   * body.
+   */
+  description?: ReactNode;
   size?: AppModalSize;
+  /**
+   * Claim a stable working height instead of hugging the content. See
+   * `CONTENT_INNER_FILL` — for dialogs whose body grows while they are open.
+   */
+  fillHeight?: boolean;
   children: ReactNode;
 }
 
@@ -70,8 +98,11 @@ interface AppModalProps {
  * Escape / outside-click dismissal and background scroll lock — so none of
  * that is reimplemented here.
  */
-export function AppModal({ open, onClose, title, description, size = "2xl", children }: AppModalProps) {
+export function AppModal({ open, onClose, title, description, size = "2xl", fillHeight = false, children }: AppModalProps) {
   const descriptionId = description ? "app-modal-description" : undefined;
+  const theme = fillHeight
+    ? { ...APP_MODAL_THEME, content: { ...APP_MODAL_THEME.content, inner: CONTENT_INNER_FILL } }
+    : APP_MODAL_THEME;
 
   return (
     <Modal
@@ -79,7 +110,7 @@ export function AppModal({ open, onClose, title, description, size = "2xl", chil
       onClose={onClose}
       dismissible
       size={size}
-      theme={APP_MODAL_THEME}
+      theme={theme}
       // Flowbite wires `role="dialog"` and `aria-labelledby` but stops short of
       // `aria-modal`, so a screen reader is not told the rest of the page is
       // inert even though the focus trap and scroll lock make it so. Unknown
@@ -125,22 +156,37 @@ export function AppModalForm({ onSubmit, children }: { onSubmit: (event: FormEve
  * The only scrolling region of a modal. `overscroll-contain` stops a scroll
  * gesture that reaches the end of this box from chaining to whatever is behind
  * the dialog.
+ *
+ * `ref` reaches the scroll container itself, for bodies that must control their
+ * own scroll position — the chat pins itself to the newest message. React 19
+ * passes `ref` as an ordinary prop, so no `forwardRef` wrapper is needed.
  */
-export function AppModalBody({ children }: { children: ReactNode }) {
+export function AppModalBody({ children, ref }: { children: ReactNode; ref?: Ref<HTMLDivElement> }) {
   return (
-    <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">{children}</div>
+    <div ref={ref} className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">{children}</div>
   );
 }
 
 /**
- * Action row for a modal, pinned below the scrolling body. `shrink-0` keeps it
- * on screen no matter how tall the body's content is; the button layout itself
+ * The region pinned below the scrolling body. `shrink-0` keeps it on screen no
+ * matter how tall the body's content is.
+ *
+ * Use this directly only when the footer is *not* a row of actions — the chat's
+ * message composer is the case it exists for. Anything that ends in buttons
+ * should use AppModalFooter, which adds the shared action-row layout.
+ */
+export function AppModalFooterBar({ children }: { children: ReactNode }) {
+  return <div className="shrink-0 border-t border-default px-5 py-4 sm:px-6">{children}</div>;
+}
+
+/**
+ * Action row for a modal, pinned below the scrolling body. The button layout
  * is delegated to FormActions so modal and inline forms stay identical.
  */
 export function AppModalFooter({ children }: { children: ReactNode }) {
   return (
-    <div className="shrink-0 border-t border-default px-5 py-4 sm:px-6">
+    <AppModalFooterBar>
       <FormActions>{children}</FormActions>
-    </div>
+    </AppModalFooterBar>
   );
 }

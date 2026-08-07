@@ -16,3 +16,13 @@ import "../i18n/i18n";
 afterEach(() => {
   cleanup();
 });
+
+// jsdom implements no layout, so it ships no scrolling either: `scrollTo` is
+// simply absent from Element.prototype and calling it throws. Components that
+// keep a scroll container pinned (the chat pins itself to the newest message)
+// would fail on that call alone, in a test about something else entirely.
+// Stubbing it here — rather than mocking the component's effect — keeps the
+// effect under test and only replaces the platform behaviour jsdom lacks.
+if (!Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = () => {};
+}
