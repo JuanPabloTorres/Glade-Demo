@@ -2,7 +2,7 @@
 
 ## Topology, as actually configured
 
-- **Frontend + trimmed backend: Vercel.** `vercel.json` builds the Vite frontend and rewrites `/api/*` to `api/index.py`, an ASGI entrypoint restricted to the base `requirements.txt` — no torch, transformers, docling, or the Strands agent SDK. `backend/tests/test_production_dependencies.py` fails the build if any of those leak in.
+- **Frontend + backend: Vercel.** `vercel.json` builds the Vite frontend and rewrites `/api/*` to `api/index.py`, an ASGI entrypoint running `requirements.txt`: the app, plus the Strands SDK with its OpenAI client, and none of the ML stack (no torch, transformers or docling). `backend/tests/test_production_dependencies.py` fails if the ML packages leak in, and equally if the agent SDK goes missing.
 - **Full backend + Postgres: Render** (`render.yaml`, via `backend/Dockerfile`). Also runs the base dependency set today; the `ai`/`documents`/`rag`/`agents` optional groups are not installed there either.
 - **Local dev:** `docker-compose.yml` (Postgres + API + web).
 
@@ -27,7 +27,9 @@ That is acceptable for a synthetic-data demo and unacceptable as an ownership gu
 | `JWT_SECRET` | **Yes — the API will not boot without it** | `api/index.py` sets `ENVIRONMENT=production`, and `Settings` refuses to construct while the signing key is still the public demo default. Since that happens at import time, every `/api/*` route returns a function error until this is set. Use a long random value. |
 | `SEED_DEMO_DATA_ON_STARTUP` | Recommended: `true` | Populates the synthetic demo case into an **empty** database at boot. Without it a login lands on an empty workspace after every cold start. It never writes over existing rows, so it degrades to a no-op once there is real data. |
 | `DATABASE_URL` | No | Defaults to `sqlite:////tmp/matter_ready.db`. Set it to a Postgres DSN to make persistence real. |
-| `AI_PROVIDER` | No | Defaults to `rule_based`, which is the only value the Vercel function can serve — the agent SDK is deliberately not in `requirements.txt`. Setting `openai` or `ollama` here does not fail; it degrades every answer to the deterministic draft and reports `degraded: true`. |
+| `OPENAI_API_KEY` | For a working agent | `api/index.py` already sets `AI_PROVIDER=openai`. Without a key the model factory raises, the runtime catches it, and every answer comes back from the deterministic draft with `degraded: true` — no error, just no agent. |
+| `OPENAI_MODEL` | No | Defaults to `gpt-4o-mini`. Note this is **not** `AI_MODEL_ID`, which belongs to the transformers provider and defaults to a HuggingFace repo id; handing that to OpenAI fails every call and the runtime turns a failed call into a silent degrade. |
+| `AI_PROVIDER` | No | `api/index.py` sets `openai`. `ollama` cannot work here — it needs a model server on localhost and a serverless function has none. `rule_based` forces the deterministic path. |
 | `CORS_ORIGINS` | No | Same-origin on Vercel. Required on Render. |
 | `DEMO_CLIENT_*` / `DEMO_ATTORNEY_*` | No | Override before any deployment that is not the synthetic demo. |
 | `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_EXPIRATION_MINUTES` | No | Demo defaults are fine for a demo. |
@@ -42,12 +44,20 @@ Can:
 
 - the full frontend — navigation shell, section routing, the assistant route, responsive behaviour from 320px up, EN/ES;
 - authentication, role separation, and server-side ownership checks *within a single warm instance*;
-- the assistant answering deterministically, grounded in the question asked and in the case's real figures.
+- the assistant answering deterministically, grounded in the question asked and in the case's real figures;
+- **the Strands agent layer**, once `OPENAI_API_KEY` is set — an orchestrator delegating to role-gated specialists that read case data through tools before answering.
 
 Cannot:
 
-- **the Strands agent layer.** The SDK is excluded from the function on purpose, so every answer comes from the deterministic fallback with `degraded: true`. Exercising the agents needs a host with Ollama reachable, or `OPENAI_API_KEY` plus the `agents` extra installed.
 - **durable persistence or a real ownership guarantee**, until `DATABASE_URL` points at Postgres.
+
+### What enabling the agent means
+
+`AI_PROVIDER=openai` sends reduced case context — income, debts, and for an attorney session the private notes — to a third party. Every case in this deployment is synthetic (AGENTS.md rule 9), so that is a demo decision rather than a disclosure one. It stops being true the moment real information is entered, which is another reason not to enter any.
+
+Cost and latency both rise per answered turn. `Limits(turns=8)` in `AgentRuntime` bounds the orchestrator↔specialist round trips, which bounds both.
+
+The size question was measured rather than assumed: `strands-agents[openai]` takes a clean install of `requirements.txt` from 101 MB to 163 MB, against Vercel's 250 MB unzipped limit.
 
 ## Upgrading to Postgres
 

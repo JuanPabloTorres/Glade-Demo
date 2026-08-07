@@ -141,3 +141,41 @@ class TestToolsExecuteAgainstTheBoundCase:
         excerpts = " ".join(result["excerpts"])
         assert "Miguel" not in excerpts
         assert "150,000" not in excerpts
+
+
+class TestOpenAIModelWiring:
+    """
+    The OpenAI path, built for real against the installed SDK.
+
+    A live call needs a key and a network, so what is verifiable here is the
+    part that was actually wrong: which model id the factory hands over. The
+    call itself is covered by `docs/evidence/live-agent-turns.json` on the
+    Ollama path.
+    """
+
+    def test_it_uses_the_openai_model_setting_not_the_transformers_one(self) -> None:
+        from app.ai.model_factory import ModelFactory
+        from app.core.config import Settings
+
+        settings = Settings(
+            ai_provider="openai",
+            openai_api_key="sk-test-not-a-real-key",
+            openai_model="gpt-4o-mini",
+            # The transformers provider's setting, left at a HuggingFace repo
+            # id. Handing this to OpenAI fails every call, and AgentRuntime
+            # turns a failed call into a silent degrade — so the whole agent
+            # would look "configured but never answering".
+            ai_model_id="Qwen/Qwen3-0.6B",
+        )
+
+        model = ModelFactory(settings).create()
+
+        config = model.get_config()
+        assert config["model_id"] == "gpt-4o-mini"
+
+    def test_a_missing_key_is_a_degrade_signal_not_a_crash(self) -> None:
+        from app.ai.model_factory import MissingModelCredentialsError, ModelFactory
+        from app.core.config import Settings
+
+        with pytest.raises(MissingModelCredentialsError):
+            ModelFactory(Settings(ai_provider="openai", openai_api_key=None)).create()

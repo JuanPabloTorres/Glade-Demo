@@ -7,3 +7,8 @@ pandas>=3.0,<4.0
 rapidfuzz>=3.14,<4.0
 sqlalchemy>=2.0,<3.0
 alembic>=1.13,<2.0
+# Strands orchestration against OpenAI (ADR 0002). Present here, unlike the
+# ML stack, because it is 61 MB on a 250 MB budget and it is the only way this
+# deployment target can run the agent at all: Ollama needs a local server, and
+# a serverless function has none. See docs/DEPLOYMENT.md.
+strands-agents[openai]>=1.50,<2.0

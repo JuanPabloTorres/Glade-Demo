@@ -16,7 +16,7 @@ The adopted direction is an agent layer that can decide *what to fetch* before i
 - **Product boundary is non-negotiable.** FreshStart organizes information and prepares questions. It must never determine eligibility, select a chapter, or issue legal advice (AGENTS.md).
 - **Case isolation is server-verified.** `CaseAccessService` established that a client-claimed `owner_user_id` is never trusted. An agent layer must not reintroduce a model-authored string on the authorization path.
 - **The assistant must always answer.** A model outage cannot become a 5xx.
-- **Deployment is heterogeneous.** The Vercel function runs a trimmed dependency set; local/VPS deployments can run a model. Both must boot.
+- **Deployment is heterogeneous.** The Vercel function runs a trimmed dependency set; local/VPS deployments can run a model. Both must boot. *(Amended in 4.5.0 — see "Amendment: the agent on Vercel" below.)*
 
 ## Options considered
 
@@ -52,7 +52,7 @@ Adopt `strands-agents` with the Agents-as-Tools pattern, under four constraints 
 - `focus_section` no longer exists as a field; it becomes an `open_page` action so the "open the recommended section" affordance survives on the deterministic path.
 - The action allow-list is enforced twice — `AgentRuntime._allowed_actions` and `frontend/src/api/assistantActions.ts` — so neither side is the only guard between a model-authored string and a navigation target.
 - Latency and cost rise when an agent provider is configured; `Limits(turns=8)` bounds both, and the loop.
-- `strands` is an optional extra. An install without it is a supported configuration that answers deterministically, not a broken one.
+- `strands` is an optional extra in `pyproject`. An install without it is a supported configuration that answers deterministically, not a broken one — that remains true, and is what makes the amendment below safe.
 
 ## Validation
 
@@ -66,3 +66,17 @@ Adopt `strands-agents` with the Agents-as-Tools pattern, under four constraints 
 ## Rollback
 
 Set `AI_PROVIDER=rule_based`. The agent layer is skipped entirely and every response is the deterministic draft — the 3.1.0 behavior minus the model rephrase. No data migration, no schema change. To roll back the wire contract as well, revert this delivery's commit; nothing persisted depends on the new shape.
+
+## Amendment: the agent on Vercel (4.5.0)
+
+This ADR originally kept `strands-agents` out of the Vercel function's `requirements.txt`, reasoning that the function ran `AI_PROVIDER=rule_based` anyway and the SDK would be "dead weight in a size-constrained runtime". Both halves failed.
+
+The first half was circular: the function ran `rule_based` *because* the SDK was absent. Asked to demonstrate the agent, the deployment could not, and no amount of configuration would change that.
+
+The second half was never measured. Installing `strands-agents[openai]` on top of the rest of `requirements.txt` takes a clean environment from **101 MB to 163 MB**, against Vercel's 250 MB unzipped limit. It was not close to the constraint it was rejected for. The ML stack — torch, transformers, docling — genuinely is, and stays excluded.
+
+So the SDK ships in the function, with OpenAI as the provider: Ollama needs a model server on localhost and a serverless function has none. `api/index.py` sets `AI_PROVIDER=openai` unconditionally, which is safe precisely because of the consequence recorded above — with no `OPENAI_API_KEY` the factory raises, `AgentRuntime` catches it, and the answer is the deterministic draft marked `degraded`. A deployment without the key loses nothing; one with it gains the agent.
+
+One defect surfaced while wiring this. `ModelFactory._create_openai` passed `settings.ai_model_id`, which is the *transformers* provider's HuggingFace repo id and defaults to `Qwen/Qwen3-0.6B`. OpenAI would have rejected every call, and the runtime converts a failed call into a silent degrade — so the observable symptom would have been "the agent is configured and never answers", with nothing in the response explaining why. OpenAI now has its own `openai_model` setting, mirroring `ollama_model`.
+
+The data-egress consequence is unchanged and worth restating: `AI_PROVIDER=openai` sends reduced case context to a third party. Every case in this deployment is synthetic (AGENTS.md rule 9), which is what makes it a demo decision rather than a disclosure one.

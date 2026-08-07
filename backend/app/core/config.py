@@ -102,6 +102,14 @@ class Settings(BaseSettings):
     ai_temperature: float = 0.2
     ai_max_output_tokens: int = 1500
     openai_api_key: SecretStr | None = None
+    # OpenAI's own model id, mirroring `ollama_model` below.
+    #
+    # It is not `ai_model_id`: that one defaults to a HuggingFace repo id for
+    # the transformers provider, and handing `Qwen/Qwen3-0.6B` to OpenAI makes
+    # every call fail — which the runtime turns into a silent degrade, so the
+    # symptom is "the agent never answers" with nothing in the response saying
+    # why. Each provider names its own model.
+    openai_model: str = "gpt-4o-mini"
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen3:4b"
     ollama_embedding_model: str = "nomic-embed-text"

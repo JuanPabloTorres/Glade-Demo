@@ -17,15 +17,19 @@ HEAVY_AI_DEPENDENCIES = (
     "openpyxl",
     "pytesseract",
     "unstructured",
-    # Strands orchestration layer (ADR 0002) and its model-provider extras.
-    # Same reasoning as the ML packages above: the Vercel function runs with
-    # AI_PROVIDER=rule_based and answers deterministically, so shipping the
-    # agent SDK (plus the openai/ollama clients it pulls) there would be dead
-    # weight in a size-constrained runtime.
-    "strands-agents",
-    "openai",
-    "ollama",
 )
+
+# Deliberately NOT in the list above, though it was until 4.5.0: the Strands
+# SDK and its OpenAI client. The original reasoning was that the function ran
+# `rule_based` anyway, so the SDK was dead weight in a size-constrained
+# runtime. The first half stopped being true when this deployment was asked to
+# run the agent, and the second half was never measured: installing
+# `strands-agents[openai]` on top of the rest of this file takes a clean
+# environment from 101 MB to 163 MB, against Vercel's 250 MB unzipped limit.
+#
+# The heavy ML packages above stay banned — those are hundreds of megabytes and
+# nothing in this deployment path imports them.
+AGENT_SDK = "strands-agents"
 
 
 def _requirements_text() -> str:
@@ -50,3 +54,24 @@ def test_vercel_runtime_excludes_heavy_ai_dependencies() -> None:
         f"Vercel function): {leaked}. Move them to backend/requirements-ai.txt "
         f"or a pyproject optional-dependency group instead."
     )
+
+
+def test_vercel_runtime_includes_the_agent_sdk() -> None:
+    """The agent has to be able to run on the deployed demo, not only locally.
+
+    Ollama needs a local model server and a serverless function has none, so
+    the OpenAI extra is the only route to a working agent on this target. With
+    it absent, `AgentRuntime` catches the ImportError and every answer comes
+    back from the deterministic fallback marked `degraded` — which is a fine
+    fallback and a poor demo of the thing 4.0.0 was built for.
+    """
+    assert AGENT_SDK in _requirements_text()
+
+
+def test_the_agent_sdk_is_pinned_to_a_major_version() -> None:
+    """An unpinned SDK is a deployment that changes behaviour on a redeploy
+    nobody made. The runtime degrades rather than 500s on an incompatibility,
+    so the failure mode is silent."""
+    requirements = _requirements_text()
+    agent_line = next(line for line in requirements.splitlines() if line.startswith(AGENT_SDK))
+    assert "<" in agent_line, f"{agent_line!r} has no upper bound"

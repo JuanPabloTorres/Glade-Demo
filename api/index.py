@@ -27,6 +27,16 @@ os.environ.setdefault("DATABASE_URL", "sqlite:////tmp/matter_ready.db")
 # DATABASE_URL points somewhere durable that already holds rows. `setdefault`,
 # so a deployment can turn it off without editing this file.
 os.environ.setdefault("SEED_DEMO_DATA_ON_STARTUP", "true")
+
+# The agent, not the deterministic fallback. OpenAI rather than Ollama because
+# Ollama needs a model server on localhost and a serverless function has none.
+#
+# Safe to set unconditionally: with no OPENAI_API_KEY the factory raises
+# MissingModelCredentialsError, AgentRuntime catches it and answers from the
+# deterministic draft with `degraded: true` — exactly the behaviour this
+# deployment had before the SDK was added. So a deployment without the key
+# loses nothing; one with it gains the agent.
+os.environ.setdefault("AI_PROVIDER", "openai")
 os.environ.setdefault("DOCUMENT_INTELLIGENCE_PROVIDER", "rules")
 
 # NOT defaulted here, deliberately: JWT_SECRET. `Settings` refuses to construct

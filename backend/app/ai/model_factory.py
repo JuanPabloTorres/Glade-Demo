@@ -65,7 +65,7 @@ class ModelFactory:
         module = importlib.import_module("strands.models.openai_responses")
         return module.OpenAIResponsesModel(
             client_args={"api_key": api_key.get_secret_value()},
-            model_id=self._settings.ai_model_id,
+            model_id=self._settings.openai_model,
             params={
                 "temperature": self._settings.ai_temperature,
                 "max_output_tokens": self._settings.ai_max_output_tokens,
