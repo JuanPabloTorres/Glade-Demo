@@ -29,6 +29,21 @@ interface ChatPanelProps {
    * it is and is not looking at.
    */
   routeContext?: AssistantRouteContext | null;
+  /**
+   * Whether this instance owns the surface's title.
+   *
+   * `"page"` (the default, used by `/assistant`) renders the full header: brand
+   * tile, `h1`, case line, status badge.
+   *
+   * `"embedded"` is for a container that already has a titled header — today
+   * `AiPanel`, whose sheet header carries the same "Asistente" title plus the
+   * minimize and close controls. Rendering the full header inside it stacked
+   * two headers on a phone, repeated the title twice in the accessibility tree,
+   * and spent roughly 120px of a ~700px viewport on chrome before the first
+   * message. The embedded form keeps what the sheet header does *not* say —
+   * which case, which section, whether the model is reachable — on one line.
+   */
+  variant?: "page" | "embedded";
 }
 
 /**
@@ -47,7 +62,7 @@ interface ChatPanelProps {
  * rather than the page is what keeps the composer where the user left it
  * instead of walking it down the screen as the conversation grows.
  */
-export function ChatPanel({ prefill = "", routeContext = null }: ChatPanelProps) {
+export function ChatPanel({ prefill = "", routeContext = null, variant = "page" }: ChatPanelProps) {
   const { t } = useTranslation("ai");
   const { user } = useAuth();
   const workspace = useBankruptcyWorkspace();
@@ -148,29 +163,46 @@ export function ChatPanel({ prefill = "", routeContext = null }: ChatPanelProps)
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-default px-5 py-4 sm:px-6">
-        <span className="glade-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white">
-          <AppIcon name="chat" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-semibold text-heading">{t("chat.title")}</h1>
-          {/* Case first, then the section the user is on when there is one —
-              opened from the global launcher, the assistant otherwise gives no
-              indication of what it is scoped to. */}
-          <p className="truncate text-xs text-body">
+      {/* Case first, then the section the user is on when there is one — opened
+          from the global launcher, the assistant otherwise gives no indication
+          of what it is scoped to. Both variants say this; only the page variant
+          also names the surface, because only it owns the title. */}
+      {variant === "page" ? (
+        <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-default px-5 py-4 sm:px-6">
+          <span className="glade-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white">
+            <AppIcon name="chat" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-base font-semibold text-heading">{t("chat.title")}</h1>
+            <p className="truncate text-xs text-body">
+              {routeContext?.section
+                ? t("chat.scopedToSection", { client: caseData.clientName, section: routeContext.section })
+                : caseData.clientName}
+            </p>
+          </div>
+          <Badge color={aiReady ? "success" : "warning"}>
+            {aiReady ? `${t("chat.ready")} (${aiHealth.data?.model})` : t("chat.offline")}
+          </Badge>
+        </header>
+      ) : (
+        <div className="flex shrink-0 items-center gap-2 border-b border-default px-4 py-2">
+          <p className="min-w-0 flex-1 truncate text-xs text-body">
             {routeContext?.section
               ? t("chat.scopedToSection", { client: caseData.clientName, section: routeContext.section })
               : caseData.clientName}
           </p>
+          <Badge color={aiReady ? "success" : "warning"}>
+            {aiReady ? t("chat.ready") : t("chat.offline")}
+          </Badge>
         </div>
-        <Badge color={aiReady ? "success" : "warning"}>
-          {aiReady ? `${t("chat.ready")} (${aiHealth.data?.model})` : t("chat.offline")}
-        </Badge>
-      </header>
+      )}
 
       <div
         ref={transcriptRef}
-        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
+        // px-4 below `sm`: on a 320–390px phone the sheet is full-bleed, so
+        // every horizontal pixel spent on panel padding comes out of the
+        // bubble, which already gives up room to an avatar and a copy control.
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5"
       >
         {messages.length ? (
           messages.map((item) => <ChatBubble key={item.id} message={item} />)
@@ -209,7 +241,7 @@ export function ChatPanel({ prefill = "", routeContext = null }: ChatPanelProps)
         ) : null}
       </div>
 
-      <div className="shrink-0 border-t border-default px-5 py-4 sm:px-6">
+      <div className="shrink-0 border-t border-default px-4 py-3 sm:px-6 sm:py-4">
         {/* The offline state is a standing condition with a recovery action,
             not a property of the last answer, so it stays pinned with the
             composer instead of scrolling away inside the transcript. */}

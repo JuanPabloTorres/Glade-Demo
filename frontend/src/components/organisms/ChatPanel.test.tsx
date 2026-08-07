@@ -58,6 +58,10 @@ function renderChat(prefill?: string) {
   return render(<ChatPanel prefill={prefill} />);
 }
 
+function renderEmbeddedChat() {
+  return render(<ChatPanel variant="embedded" />);
+}
+
 /** Type the question and send it, the way a person does. */
 async function ask(question: string) {
   fireEvent.change(screen.getByLabelText("Mensaje"), { target: { value: question } });
@@ -101,6 +105,31 @@ describe("ChatPanel", () => {
 
       expect(screen.getByText("Elena Rivera")).toBeInTheDocument();
       expect(screen.getByText("IA lista (llama3.1:8b)")).toBeInTheDocument();
+    });
+  });
+
+  describe("embedded in a container that already has a header", () => {
+    // AiPanel's sheet header already carries this title and the window
+    // controls. Rendering the page header inside it stacked two headers on a
+    // phone and announced the same title twice.
+    it("does not repeat the surface title the container already provides", () => {
+      renderEmbeddedChat();
+
+      expect(screen.queryByRole("heading", { name: "Asistente de preparación" })).toBeNull();
+    });
+
+    it("still says which case it is scoped to and whether the model is reachable", () => {
+      renderEmbeddedChat();
+
+      expect(screen.getByText("Elena Rivera")).toBeInTheDocument();
+      expect(screen.getByText("IA lista")).toBeInTheDocument();
+    });
+
+    it("keeps the composer, so the sheet is a working conversation and not a preview", () => {
+      renderEmbeddedChat();
+
+      expect(screen.getByLabelText("Mensaje")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Enviar" })).toBeInTheDocument();
     });
 
     it("invites a first question instead of opening on an empty box", () => {
