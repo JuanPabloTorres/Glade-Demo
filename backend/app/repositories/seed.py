@@ -142,11 +142,48 @@ def reset_demo_data(settings: Settings) -> None:
             )
         )
         session.add(
-            CaseTaskModel(case_id=case.id, title="Adjuntar talones de pago recientes", status="open")
+            CaseTaskModel(
+                case_id=case.id, title="Adjuntar talones de pago recientes", status="open"
+            )
         )
         session.add(
             CaseTimelineModel(
-                case_id=case.id, event_type="case_created", message="Caso de demostracion inicializado."
+                case_id=case.id,
+                event_type="case_created",
+                message="Caso de demostracion inicializado.",
             )
         )
         session.commit()
+
+
+def seed_demo_data_if_absent(settings: Settings) -> bool:
+    """Seed the demo case only into a database that has none, and report it.
+
+    `reset_demo_data` above wipes before it writes, which is what a "reset"
+    button and a dev CLI want and exactly what a startup hook must never do.
+    This is the non-destructive counterpart: it writes only when there is
+    nothing to lose, so enabling it on a deployment that later gains real
+    rows becomes a silent no-op rather than a data-loss event.
+
+    It exists for one deployment shape — a serverless target whose storage is
+    per-instance and ephemeral. There, every cold start begins with an empty
+    database, and without this the demo answers a login with an empty
+    workspace until somebody remembers to call the admin reset endpoint. Opt
+    in with `SEED_DEMO_DATA_ON_STARTUP=true`; it is off by default precisely
+    because "populate the database on boot" is the wrong default everywhere
+    else.
+
+    Returns True when it seeded, so the caller can log which happened rather
+    than leaving an operator guessing why a workspace is or is not populated.
+    """
+    init_db(settings)
+    session_factory = get_sessionmaker()
+    with session_factory() as session:
+        already_populated = (
+            session.query(CaseModel).first() is not None
+            or session.query(UserModel).first() is not None
+        )
+    if already_populated:
+        return False
+    reset_demo_data(settings)
+    return True

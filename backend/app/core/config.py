@@ -71,6 +71,18 @@ class Settings(BaseSettings):
     # required, only the connection string and driver.
     database_url: str = "sqlite:///./data/freshstart.db"
 
+    # Populate an *empty* database with the synthetic demo case at boot.
+    #
+    # Off by default, and deliberately not inferred from `environment`: the
+    # one deployment that needs it (a serverless function whose SQLite file
+    # lives in a per-instance `/tmp`) also runs with ENVIRONMENT=production,
+    # so an environment-based rule would either miss it or arm itself on a
+    # real production database. An explicit opt-in is the only honest signal.
+    #
+    # `seed_demo_data_if_absent` still refuses to write over existing rows, so
+    # the worst case of leaving this on is a no-op, never data loss.
+    seed_demo_data_on_startup: bool = False
+
     # AI provider selection (ADR 0002). Four values:
     #   rule_based   — default. Deterministic, no network, no model. Always
     #                  available and always the fallback for the others.

@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from uuid import uuid4
@@ -13,7 +14,9 @@ from app.core.errors import DomainError, NotFoundError, ValidationError
 from app.core.i18n import localize_message, resolve_locale
 from app.core.version import APP_VERSION
 from app.repositories.database import init_db
+from app.repositories.seed import seed_demo_data_if_absent
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
@@ -22,6 +25,18 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # Demo-convenience schema bootstrap — see app.repositories.database.init_db
     # docstring for why this coexists with Alembic instead of replacing it.
     init_db(settings)
+
+    # Off by default: populating a database on boot is the wrong behaviour
+    # everywhere except a target whose storage is per-instance and ephemeral,
+    # where every cold start otherwise answers a login with an empty
+    # workspace. `seed_demo_data_if_absent` writes only into a database that
+    # has none, so leaving this on after the deployment gains real rows
+    # degrades to a no-op instead of wiping them.
+    if settings.seed_demo_data_on_startup:
+        if seed_demo_data_if_absent(settings):
+            logger.info("Seeded synthetic demo data into an empty database.")
+        else:
+            logger.info("SEED_DEMO_DATA_ON_STARTUP is set but the database already has rows.")
     yield
 
 
@@ -78,7 +93,9 @@ def handle_http_exception(request: Request, exc: HTTPException) -> JSONResponse:
         # other error response.
         429: ("RATE_LIMITED", "errors.codes.RATE_LIMITED"),
     }
-    code, message_key = status_to_error.get(exc.status_code, ("INTERNAL_ERROR", "errors.codes.INTERNAL_ERROR"))
+    code, message_key = status_to_error.get(
+        exc.status_code, ("INTERNAL_ERROR", "errors.codes.INTERNAL_ERROR")
+    )
     message = localize_message(message_key, locale)
     return JSONResponse(
         status_code=exc.status_code,
