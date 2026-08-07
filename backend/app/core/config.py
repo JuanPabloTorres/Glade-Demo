@@ -2,7 +2,7 @@ import logging
 from functools import lru_cache
 from typing import ClassVar
 
-from pydantic import SecretStr, model_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -14,6 +14,29 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _trim_environment_whitespace(cls, value: object) -> object:
+        """Strip surrounding whitespace from every string setting.
+
+        Not defensiveness for its own sake — this exact defect reached
+        production. Piping a value into `vercel env add` stored the pipeline's
+        trailing newline as part of it, so the deployment ran with
+        `OPENAI_MODEL="llama-3.3-70b-versatile\\r\\n"` and an API key carrying
+        the same tail. Every model call was rejected, `AgentRuntime` caught the
+        failure and answered from the deterministic draft, and the only visible
+        symptom was an assistant that never reached the agent.
+
+        A stray newline in a dashboard-entered variable is invisible, easy to
+        produce, and here it failed silently. One place to absorb it beats every
+        call site remembering to.
+
+        Runs `before` validation, so it sees the raw environment value, and
+        touches only `str` — a `SecretStr` is then built from the trimmed
+        string, and non-strings pass through untouched.
+        """
+        return value.strip() if isinstance(value, str) else value
 
     # Security audit finding #3 (docs/audits/GLADE-DEMO-GROUNDED-STATE-
     # 2026-08-06.md §5): this literal must stay a named constant, not just an
