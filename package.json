@@ -21,6 +21,8 @@
     "agent:architecture": "node scripts/agent/architecture-check.mjs",
     "agent:flowbite": "node scripts/agent/flowbite-check.mjs",
     "agent:ownership": "node scripts/agent/ownership.mjs",
+    "agent:fleet": "node scripts/agent/fleet.mjs",
+    "agent:snapshot": "node scripts/agent/snapshot.mjs",
     "agent:worktree": "node scripts/agent/worktree.mjs",
     "agent:changeset": "node scripts/agent/changeset.mjs",
     "agent:validate": "node scripts/agent/verify.mjs governance",

@@ -9,6 +9,9 @@ function step(command, args, cwd = root) {
   const result = spawnSync(command, args, { cwd, stdio: "inherit", shell: process.platform === "win32" });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
+// Runs first: a fleet conflict means another checkout is diverging on the same
+// files, which invalidates whatever the rest of this verification concludes.
+step("node", ["scripts/agent/fleet.mjs", "--strict"]);
 step("node", ["scripts/agent/architecture-check.mjs"]);
 step("node", ["scripts/agent/flowbite-check.mjs"]);
 if (mode === "governance") process.exit(0);
