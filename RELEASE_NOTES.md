@@ -1,3 +1,39 @@
+# FreshStart 4.3.0
+
+Closes the three defects the 4.0.0 live agent run recorded and 4.2.0 shipped with, and clears the six `mypy` errors that came with them. Two of the three turned out to be narrower symptoms of wider gaps; both wider gaps are fixed rather than patched at the reported spot.
+
+## The assistant flags the answers that need a lawyer
+
+A live turn answered *"No podemos determinar si debes declararte en bancarrota o no. Por favor, habla con tu abogado"* and returned `requires_attorney_review: false` — exactly backwards. An answer that declines to advise and routes to a professional is the clearest possible signal a professional has to look.
+
+`ResponseGuardrails` gains a second family of trigger. The existing three rewrite an overreaching claim in place; the new one changes nothing about the message — it is already correct — and only raises the flag. It is deliberately narrow: matching the bare word "abogado" would fire on nearly every answer this product gives, since routing questions to the attorney is its whole purpose.
+
+**The wider gap:** every guardrail pattern and every replacement clause was Spanish-only. An English session had no eligibility guard and no legal-advice guard *at all* — the product boundary held for `es` and was simply absent for `en`. All three now match both languages, and every user-visible string follows the session's.
+
+## The assistant speaks one language at a time
+
+Two Spanish turns came back with English action labels, and an English turn with Spanish ones. The model-authored half is addressed in the shared agent prompts, which now state that labels and card titles follow the answer's language instead of leaving it implied.
+
+The deterministic half was structural. `BankruptcyAnalysisService` generated all of its prose — missing items, warnings, discussion points, chapter questions, next steps — as hardcoded Spanish, and the degraded path turns `next_steps` into the assistant's suggested-action labels. An English session received Spanish controls no matter what. That copy now lives in `app/services/analysis_copy.py` as a two-language catalogue; `guide()` passes the session's language and the `analyze` endpoint reads `Accept-Language`, so the request contract is unchanged.
+
+**The trap that came with it:** `_section_for_missing` routes a missing item to a workspace section by matching Spanish words in its text. Translating the items alone would have sent every English session to "overview" — a link that still renders and always goes to the wrong place. Both languages are in the keyword lists now, with a test pinning that each English item routes where its Spanish counterpart does.
+
+`required_evidence` is deliberately still Spanish-only: those strings are matched word-by-word against `EVIDENCE_TYPE_LABELS` to compute `evidence_score`, and translating one side without the other would silently zero it. A separate defect, recorded rather than half-fixed.
+
+## `handled_by` is never blank
+
+A turn answered from the agent path with `handled_by: ""`. The field has a default, but a model that emits the key explicitly overrides it, and the empty string is neither a specialist name nor `"deterministic"`. Normalized to `"orchestrator"` rather than rejected — discarding a good answer over an unfilled label would degrade a turn the agent actually handled.
+
+## `mypy` is clean
+
+All six errors were the same shape: a runtime check that was correct but invisible to the type checker. `decode_access_token` validated four JWT claims through `all(...)` over a generator, which narrows nothing, and tested the role with `in` against a set, which does not narrow `str` to a literal — so the one function that turns an unverified token payload into an authenticated identity reached its constructor with four unverified arguments. Roles now resolve through an allow-list mapping whose values carry the narrowed type.
+
+## Evidence
+
+Backend 165 tests (19 new), `ruff` and `mypy` clean across 68 files. Frontend 78 tests, lint 0 errors, i18n parity, production build. E2E 63 tests.
+
+One note for anyone running the suite locally: an orphaned API server from another checkout was holding port 8000 and answering as 4.1.0, and `reuseExistingServer` adopted it — so runs were exercising stale backend code, taking 10+ minutes on timeouts and reporting failures that did not reproduce. With the port freed the same suite is 63 passed in 1.2 minutes. `E2E_WEB_PORT` / `E2E_API_PORT` exist for this; a linked worktree should set them.
+
 # FreshStart 4.2.0
 
 Consolidates every parallel agent branch into `main`: the responsive navigation shell, an app-wide overflow gate, parallel-safe agent governance, and a deterministic assistant that answers the question it was asked.
