@@ -1,3 +1,39 @@
+# FreshStart 4.4.0
+
+The Vercel deployment works. Three things stood between the repository and a usable deploy, and none of them was visible from the code you would read first.
+
+## The API could not boot
+
+`api/index.py` forces `ENVIRONMENT=production`, and `Settings` refuses to construct in production while `JWT_SECRET` is still the public demo key. That refusal happens at import time, so without the variable set in Vercel every `/api/*` route returns a function error — a completely dead backend, not a degraded one.
+
+The guard is correct and stays. What was missing was anywhere that said so: `docs/DEPLOYMENT.md` now marks `JWT_SECRET` as boot-blocking, and `api/index.py` records why it is the one variable that must never be defaulted there — a default would silently sign real sessions with a key published in this repository.
+
+## Every cold start served an empty workspace
+
+The lifespan called `init_db()`, which creates tables and nothing else. `reset_demo_data()` was reachable only from a CLI script and an admin endpoint, so a visitor logged in and found nothing until somebody remembered to POST the reset — and lost it again at the next cold start, because the SQLite file lives in a per-instance `/tmp`.
+
+`seed_demo_data_if_absent` is the non-destructive counterpart to `reset_demo_data`: it writes only into a database with no cases and no users, so it can safely sit on a boot path. The lifespan calls it behind `SEED_DEMO_DATA_ON_STARTUP`, off by default and on in the Vercel function.
+
+The flag is deliberately not inferred from `environment`. The one deployment that needs it also runs with `ENVIRONMENT=production`, so any environment-derived rule would either miss it or arm itself against a real production database. Because the helper refuses to overwrite, the worst case of leaving it on is a no-op rather than a wipe.
+
+## The deployment guide was wrong
+
+`docs/DEPLOYMENT.md` stated the backend is stateless, that no code path reads Postgres, and that `DATABASE_URL` is "dead config… don't rely on it doing anything yet". All three were true before 4.0.0 and false since — anyone provisioning from that document would conclude no database was needed.
+
+Rewritten with the real persistence story, a table of Vercel variables, an explicit account of what this target can and cannot demonstrate, and the concrete Alembic steps for moving to Postgres.
+
+## What Vercel still cannot show
+
+**Durable persistence.** Seeding makes the demo present, not permanent: two concurrent instances do not share rows, and a case owned in one invocation reads back ownerless after a cold start. Server-side ownership is enforced — it simply cannot be *demonstrated* on ephemeral storage. Point `DATABASE_URL` at managed Postgres to change that.
+
+**The Strands agent layer.** The SDK is excluded from `requirements.txt` on purpose and a test keeps it out, so every answer comes from the deterministic fallback with `degraded: true`. Since 4.3.0 that path answers the question actually asked, so the demo reads well — but it is not the agent.
+
+## Evidence
+
+`test_vercel_entrypoint.py` boots `api/index.py` the way Vercel boots it — in a subprocess, from a scratch directory, because `Settings` is read and cached at import and this repository has an untracked `.env` that would otherwise supply the very secret the first test is trying to prove is missing. Without `JWT_SECRET` the process exits non-zero with the guard's message; with it, a cold start against a database that did not exist a moment earlier answers `/health`, logs the demo client in, and reports a populated case table; with the flag off, zero cases.
+
+Backend 172 tests (7 new), `ruff` and `mypy` clean across 68 files.
+
 # FreshStart 4.3.0
 
 Closes the three defects the 4.0.0 live agent run recorded and 4.2.0 shipped with, and clears the six `mypy` errors that came with them. Two of the three turned out to be narrower symptoms of wider gaps; both wider gaps are fixed rather than patched at the reported spot.
