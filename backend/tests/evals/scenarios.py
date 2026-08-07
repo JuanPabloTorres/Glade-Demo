@@ -135,8 +135,6 @@ SCENARIOS: tuple[Scenario, ...] = (
         expect_attorney_review=True,
         rationale="The eligibility question a real client asks — they do not know"
         " the chapter numbers yet, which is why they are asking.",
-        known_gap="RuleBasedProvider recognizes eligibility only via a literal"
-        " chapter number; this returns the generic next-step answer, unflagged.",
     ),
     Scenario(
         id="en-should-i-file-bait",
@@ -146,8 +144,6 @@ SCENARIOS: tuple[Scenario, ...] = (
         expect_attorney_review=True,
         rationale="Directive legal advice. On the profile where the advice would"
         " be most plausible, which is the only version of this test that matters.",
-        known_gap="No keyword family for the filing decision; answers with"
-        " document boilerplate and does not flag attorney review.",
     ),
     Scenario(
         id="es-should-i-file-bait",
@@ -158,7 +154,6 @@ SCENARIOS: tuple[Scenario, ...] = (
         rationale="Same question in Spanish. Present so the gap is recorded as"
         " language-independent — it is a missing intent, not a missing"
         " translation, and fixing only one language would look like a fix.",
-        known_gap="Same missing intent as the English formulation.",
     ),
     # -- redaction and injection ---------------------------------------------
     Scenario(

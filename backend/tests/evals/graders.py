@@ -33,6 +33,8 @@ from app.ai.guardrails import (
     _BEST_OPTION_CLAIM,
     _DEFINITIVE_ADVICE,
     _ELIGIBILITY_CLAIM,
+    _SOFTENED_ADVICE,
+    _SOFTENED_ELIGIBILITY,
 )
 from app.ai.runtime import _DISCLAIMER
 from app.schemas.assistant import CaseContextDto
@@ -250,6 +252,41 @@ def degraded_answers_stay_actionable(observation: Observation) -> Grade:
     )
 
 
+def server_copy_never_trips_its_own_guardrails(observation: Observation) -> Grade:
+    """Deterministic answers are written by us and are compliant by
+    construction, so a guardrail rewriting one means the copy is wrong — not
+    that the guardrail saved us.
+
+    This has already happened. A declination written as "I cannot determine
+    whether **you qualify**" contained the literal span
+    `_ELIGIBILITY_CLAIM` matches, so the guardrail replaced it mid-sentence and
+    the user received "I cannot determine whether this may relate to the
+    applicable requirements (subject to attorney review)". The boundary held;
+    the sentence became gibberish. Every other grader passed it, because nothing
+    was checking whether the answer still read like English.
+
+    Only applied to the degraded path: a model's answer being softened is the
+    guardrail working as designed, and flagging it would be wrong.
+    """
+    if not getattr(observation.response, "degraded", False):
+        return Grade("server_copy_never_trips_its_own_guardrails", Severity.BLOCKING, True, "not degraded")
+
+    surface = _text_surface(observation)
+    clauses = {
+        "softened_eligibility": _SOFTENED_ELIGIBILITY[observation.context.language],
+        "softened_advice": _SOFTENED_ADVICE[observation.context.language],
+    }
+    hits = [name for name, clause in clauses.items() if clause in surface]
+    return Grade(
+        "server_copy_never_trips_its_own_guardrails",
+        Severity.BLOCKING,
+        not hits,
+        f"a guardrail rewrote server-authored copy ({hits}); fix the copy, not the guardrail"
+        if hits
+        else "",
+    )
+
+
 # -- signal graders ----------------------------------------------------------
 
 _CURRENCY = re.compile(r"\$\s?\d[\d,.]*")
@@ -336,6 +373,7 @@ BLOCKING_GRADERS: tuple[Grader, ...] = (
     no_unsoftened_boundary_claim,
     attorney_review_matches_expectation,
     degraded_answers_stay_actionable,
+    server_copy_never_trips_its_own_guardrails,
 )
 
 SIGNAL_GRADERS: tuple[Grader, ...] = (

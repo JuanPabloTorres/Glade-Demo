@@ -18,6 +18,74 @@ if TYPE_CHECKING:
 _CHAPTER_7_KEYWORDS = ("capítulo 7", "capitulo 7", "chapter 7")
 _CHAPTER_13_KEYWORDS = ("capítulo 13", "capitulo 13", "chapter 13")
 
+# The two questions this product exists to route to a lawyer — "do I qualify?"
+# and "should I file?" — were recognized only when the message happened to name
+# a chapter number. Every other phrasing fell through to `_detect_topic` and,
+# finding no content keyword, to the generic status default: a client in
+# distress asking "¿Debo declararme en bancarrota?" was answered "El próximo
+# paso es completar documentos de respaldo", with `requires_attorney_review`
+# left false. Found by `tests/evals`, which recorded it as three known gaps
+# before this fix; see changes/ai-eval-harness.md for the measurements.
+#
+# The guardrails could not have caught it. They inspect the *answer*, and that
+# answer made no prohibited claim — it was merely about something else. This is
+# intent recognition, and it belongs here.
+_ELIGIBILITY_KEYWORDS = (
+    "califico",
+    "calificaría",
+    "calificaria",
+    "calificar para",
+    "soy elegible",
+    "seré elegible",
+    "sere elegible",
+    "elegibilidad",
+    "cumplo con los requisitos",
+    "do i qualify",
+    "would i qualify",
+    "am i eligible",
+    "qualify for bankruptcy",
+    "eligible for bankruptcy",
+    "eligibility",
+)
+
+# Phrased as multi-word spans rather than single verbs on purpose. "debo
+# presentar" alone would fire on "¿debo presentar los documentos esta semana?",
+# which is a documents question and already answered well by that topic.
+_FILING_DECISION_KEYWORDS = (
+    "debo declararme",
+    "debería declararme",
+    "deberia declararme",
+    "me conviene declararme",
+    "vale la pena declararme",
+    "debo radicar",
+    "debo presentar la petición",
+    "debo presentar la peticion",
+    "debo presentar quiebra",
+    "debo presentar la quiebra",
+    "debo presentar bancarrota",
+    "me conviene presentar",
+    "should i file",
+    "should i declare bankruptcy",
+    "should i go bankrupt",
+    "is it worth filing",
+    "do i need to file",
+)
+
+# "Which chapter is best?" without naming a number. The numbered variants are
+# handled by the two chapter branches above, which are more specific and stay
+# ahead of this one.
+_CHAPTER_UNSPECIFIED_KEYWORDS = (
+    "cuál capítulo",
+    "cual capitulo",
+    "qué capítulo",
+    "que capitulo",
+    "mejor capítulo",
+    "mejor capitulo",
+    "which chapter",
+    "what chapter",
+    "best chapter",
+)
+
 _TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
     # Generic "what's missing" catch-all — see `_TOPIC_PRIORITY` for why
     # this is checked *after* the more specific content topics.
@@ -251,6 +319,21 @@ class RuleBasedProvider:
                 requires_attorney_review=True,
             )
 
+        # Checked before `_detect_topic` because these questions frequently
+        # carry a content keyword too — "¿Califico para declararme en quiebra
+        # con estas deudas?" contains "deuda" and would otherwise be answered
+        # with a debt total, which is not what was asked.
+        if any(
+            keyword in folded
+            for group in (
+                _ELIGIBILITY_KEYWORDS,
+                _FILING_DECISION_KEYWORDS,
+                _CHAPTER_UNSPECIFIED_KEYWORDS,
+            )
+            for keyword in group
+        ):
+            return self._eligibility_question_draft(context, en)
+
         topic = _detect_topic(folded, context.recent_conversation)
         if topic is not None:
             draft = self._topic_draft(topic, context, en, is_attorney)
@@ -283,6 +366,77 @@ class RuleBasedProvider:
             suggested_actions=context.next_steps,
             focus_section="timeline",
             requested_documents=context.pending_documents,
+        )
+
+    def _eligibility_question_draft(self, context: CaseContextDto, en: bool) -> GuidanceDraft:
+        """Answer "do I qualify / should I file / which chapter" without answering it.
+
+        Three things this deliberately does, none of which the generic default did:
+
+        1. **Declines explicitly, and names what the determination actually
+           depends on.** "The next step is to complete supporting documents" is
+           not a refusal, it is a non-sequitur — the client cannot tell they
+           asked something the product will not answer, so they ask again.
+        2. **Grounds the reply in this case's own figures**, read straight off
+           `CaseContextDto`. Nothing is computed or inferred here; a generic
+           reply is what made the assistant feel like it was not reasoning about
+           the case in front of it.
+        3. **Raises `requires_attorney_review` at the source.** The guardrails
+           will also raise it, because the wording matches their declination
+           pattern, and that redundancy is deliberate: the flag must not depend
+           on a regex over prose that a future copy edit could break.
+
+        The suggested actions are the case's own chapter questions, so the turn
+        ends with something to take to the consultation rather than a closed
+        door.
+        """
+        questions = (context.chapter_7_questions + context.chapter_13_questions)[:3]
+        figures = (
+            f"registered debt ${context.total_debt:,.2f}, "
+            f"assets ${context.total_asset_value:,.2f}, "
+            f"monthly cash flow ${context.monthly_cash_flow:,.2f}, "
+            f"case completeness {context.completion_score}%"
+            if en
+            else f"deuda registrada ${context.total_debt:,.2f}, "
+            f"bienes ${context.total_asset_value:,.2f}, "
+            f"flujo mensual ${context.monthly_cash_flow:,.2f}, "
+            f"completitud del expediente {context.completion_score}%"
+        )
+        message = (
+            (
+                # Phrased as "your eligibility", never "whether you qualify":
+                # `ResponseGuardrails._ELIGIBILITY_CLAIM` matches the literal
+                # span "you qualify" and rewrote this sentence into "I cannot
+                # determine whether this may relate to the applicable
+                # requirements (subject to attorney review)" — a guardrail
+                # firing on a declination and turning it into gibberish. The
+                # pattern requires whitespace after "you", so the possessive
+                # form is both clearer and outside it.
+                "I cannot determine your eligibility, and I cannot recommend a "
+                "chapter. That determination depends on the official means test, "
+                "your income over the last six months, how your debts are "
+                "classified, and which exemptions apply — and a licensed attorney "
+                f"makes it. What your case records so far: {figures}. The most "
+                "useful thing now is to take those figures, complete, into the "
+                "consultation along with the questions below."
+            )
+            if en
+            else (
+                "No puedo determinar si calificas ni recomendarte un capítulo. Esa "
+                "determinación depende del means test oficial, de tus ingresos de "
+                "los últimos seis meses, de cómo se clasifican tus deudas y de las "
+                "exenciones que apliquen — y la hace un abogado autorizado. Lo que "
+                f"tu expediente registra hasta ahora: {figures}. Lo más útil ahora "
+                "es llevar esas cifras completas a la consulta, junto con las "
+                "preguntas de abajo."
+            )
+        )
+        return GuidanceDraft(
+            message=message,
+            intent="eligibility_question",
+            suggested_actions=questions or context.next_steps[:3],
+            focus_section="chapter-comparison",
+            requires_attorney_review=True,
         )
 
     def _topic_draft(

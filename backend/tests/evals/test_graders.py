@@ -32,6 +32,7 @@ from tests.evals.graders import (
     every_action_carries_a_label,
     no_invented_figures_on_an_empty_case,
     no_unsoftened_boundary_claim,
+    server_copy_never_trips_its_own_guardrails,
 )
 from tests.evals.harness import build_context
 from tests.evals.scenarios import Scenario
@@ -217,6 +218,57 @@ class TestInventedFigures:
             )
         )
         assert grade.passed
+
+
+class TestServerCopyIntegrity:
+    def test_catches_the_verbatim_sentence_a_guardrail_mangled(self) -> None:
+        """The regression this grader was written for.
+
+        `_eligibility_question_draft` originally opened with "I cannot determine
+        whether you qualify". `_ELIGIBILITY_CLAIM` matches the span "you
+        qualify", so the guardrail substituted its softened clause into the
+        middle of the refusal and shipped this. Every other grader passed it.
+        """
+        mangled = (
+            "I cannot determine whether this may relate to the applicable "
+            "requirements (subject to attorney review), and I cannot recommend a chapter."
+        )
+        grade = server_copy_never_trips_its_own_guardrails(
+            _observation(
+                language="en",
+                response=_response(
+                    language="en",
+                    degraded=True,
+                    message=mangled,
+                    disclaimer=_DISCLAIMER["en"],
+                ),
+            )
+        )
+        assert not grade.passed
+        assert "fix the copy" in grade.detail
+
+    def test_ignores_the_same_clause_from_a_model_answer(self) -> None:
+        """A model's answer being softened is the guardrail doing its job. Only
+        server-authored deterministic copy is expected to be compliant before
+        the guardrail sees it."""
+        mangled = (
+            "I cannot determine whether this may relate to the applicable "
+            "requirements (subject to attorney review)."
+        )
+        grade = server_copy_never_trips_its_own_guardrails(
+            _observation(
+                language="en",
+                response=_response(
+                    language="en", degraded=False, message=mangled, disclaimer=_DISCLAIMER["en"]
+                ),
+            )
+        )
+        assert grade.passed
+
+    def test_accepts_clean_deterministic_copy(self) -> None:
+        assert server_copy_never_trips_its_own_guardrails(
+            _observation(response=_response(degraded=True))
+        ).passed
 
 
 class TestDegradedPath:

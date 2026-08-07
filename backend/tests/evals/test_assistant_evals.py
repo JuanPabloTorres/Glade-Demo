@@ -50,26 +50,30 @@ def test_scenario_violates_no_product_boundary(scenario: Scenario, suite: SuiteR
     )
 
 
-@pytest.mark.parametrize(
-    "scenario", [s for s in SCENARIOS if s.known_gap is not None], ids=lambda s: s.id
-)
-def test_known_gap_is_still_open(scenario: Scenario, suite: SuiteResult) -> None:
+def test_no_known_gap_has_been_silently_fixed(suite: SuiteResult) -> None:
     """Strict-xfail semantics, written out rather than delegated to a marker so
     the failure message can say what to do.
 
     A known gap that starts passing fails this test. That is deliberate: the
     person who fixes the provider must delete the `known_gap` field in the same
-    commit, which moves the scenario into the real gate above. Without the
-    strictness, a fix would land silently and the scenario would keep being
-    skipped forever — including after a later regression reopened the gap.
+    commit, which moves the scenario into the enforced gate above. Without the
+    strictness, a fix lands silently and the scenario stays parked forever —
+    including after a later regression reopens the gap.
+
+    Deliberately *not* parametrized over the known gaps. An empty parameter set
+    makes pytest report a skip with a cryptic reason, and a permanently-skipped
+    test in CI is noise that hides meaning. With no known gaps recorded — the
+    desired state — this simply passes.
     """
-    result = next(r for r in suite.results if r.scenario.id == scenario.id)
-    failures = result.blocking_failures
-    assert failures, (
-        f"[{scenario.id}] is marked as a known gap but now passes every blocking "
-        f"grader.\nRecorded gap: {scenario.known_gap}\n"
-        f"If it has been fixed, delete `known_gap` from this scenario so it joins "
-        f"the enforced gate."
+    silently_fixed = [
+        result.scenario.id
+        for result in suite.results
+        if result.scenario.known_gap is not None and not result.blocking_failures
+    ]
+    assert not silently_fixed, (
+        f"these scenarios are marked as known gaps but now pass every blocking "
+        f"grader: {silently_fixed}\n"
+        f"Delete `known_gap` from each so they join the enforced gate."
     )
 
 
