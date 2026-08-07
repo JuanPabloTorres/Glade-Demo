@@ -3,10 +3,26 @@ import { describe, expect, it, vi } from "vitest";
 import { ChatComposer } from "./ChatComposer";
 import type { AssistantAction } from "../../types/bankruptcy";
 
-const firstAction: AssistantAction = { id: "a1", label: "Revisar el resumen financiero completo.", icon: "chat", action_type: "ask" };
+const firstAction: AssistantAction = {
+  id: "a1",
+  label: "Revisar el resumen financiero completo.",
+  icon: "chat",
+  action_type: "ask",
+  resource: "overview",
+  payload: {},
+  requires_confirmation: false,
+};
 const actions: AssistantAction[] = [
   firstAction,
-  { id: "a2", label: "¿Qué documentos me faltan?", icon: "chat", action_type: "ask" },
+  {
+    id: "a2",
+    label: "¿Qué documentos me faltan?",
+    icon: "chat",
+    action_type: "ask",
+    resource: "evidence",
+    payload: {},
+    requires_confirmation: false,
+  },
 ];
 
 describe("ChatComposer", () => {

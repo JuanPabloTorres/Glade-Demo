@@ -1,0 +1,143 @@
+"""
+Real Strands integration (ADR 0002).
+
+`test_agent_runtime.py` stubs `AgentRuntime._run_agents` so it can assert on
+composition logic without a model. That leaves a gap this module closes: it
+builds the **actual** orchestrator through `AgentFactory`, so real
+`strands.Agent` objects are constructed, real `@tool` specs are generated
+from our docstrings and type hints, and real `Agent.as_tool()` delegation is
+registered. A mistake in a docstring, a type hint, or a tool name fails here
+rather than at the first live request.
+
+No LLM is involved: nothing below calls `stream`. These are assertions about
+the tool surface the model would be handed — which is exactly where the
+security properties live.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+import pytest
+
+from app.ai.agents.factory import ATTORNEY_AGENT, SPECIALISTS, AgentFactory
+from app.ai.tools.case_tools import CaseTools
+from app.schemas.assistant import CaseContextDto
+from app.schemas.bankruptcy import BankruptcyCaseDto, UserRole
+from app.services.bankruptcy_service import BankruptcyAnalysisService
+from app.services.case_context_builder import CaseContextBuilder
+from app.services.documents.index import CaseDocumentIndex
+
+_AUTHORIZATION_PARAMETERS = {"case_id", "role", "owner_user_id", "user_id", "tenant_id"}
+
+
+def _context(role: UserRole = "client") -> CaseContextDto:
+    case = BankruptcyCaseDto(
+        id="case-wiring",
+        owner_user_id="client-demo",
+        client_name="Elena Rivera",
+        client_email="client@freshstart.demo",
+        status="collecting_information",
+        attorney_notes="Nota privada.",
+    )
+    analysis = BankruptcyAnalysisService().analyze(case)
+    return CaseContextBuilder().build(case, analysis, role, "es-PR")
+
+
+def _factory(role: UserRole, index: CaseDocumentIndex | None = None) -> AgentFactory:
+    context = _context(role)
+    return AgentFactory(
+        # model=None is accepted by strands at construction; nothing here ever
+        # streams, so no model is needed to inspect the tool surface.
+        model=None,
+        tools=CaseTools(context=context, document_index=index or CaseDocumentIndex()),
+        language=context.language,
+        role=role,
+    )
+
+
+def _input_schema(agent: Any, tool_name: str) -> dict[str, Any]:
+    return agent.tool_registry.registry[tool_name].tool_spec["inputSchema"]["json"]
+
+
+class TestOrchestratorConstruction:
+    def test_client_orchestrator_builds_with_only_non_attorney_specialists(self) -> None:
+        orchestrator = _factory("client").create_orchestrator()
+        assert ATTORNEY_AGENT not in orchestrator.tool_names
+        assert set(orchestrator.tool_names) == {
+            spec.name for spec in SPECIALISTS if not spec.attorney_only
+        }
+
+    def test_attorney_orchestrator_gains_the_attorney_specialist(self) -> None:
+        orchestrator = _factory("attorney").create_orchestrator()
+        assert ATTORNEY_AGENT in orchestrator.tool_names
+        assert set(orchestrator.tool_names) == {spec.name for spec in SPECIALISTS}
+
+    def test_orchestrator_holds_no_case_data_tool_of_its_own(self) -> None:
+        """Every fact must arrive through a specialist. If a data tool ever
+        leaks onto the orchestrator, the delegation boundary stops meaning
+        anything."""
+        orchestrator = _factory("attorney").create_orchestrator()
+        case_tool_names = {name for spec in SPECIALISTS for name in spec.tool_names}
+        assert not case_tool_names & set(orchestrator.tool_names)
+
+
+class TestSpecialistToolSurface:
+    @pytest.mark.parametrize("spec", SPECIALISTS, ids=lambda spec: spec.name)
+    def test_each_specialist_registers_exactly_its_declared_tools(self, spec: Any) -> None:
+        _, agent = _factory("attorney")._create_specialist(spec)
+        assert set(agent.tool_names) == set(spec.tool_names)
+
+    @pytest.mark.parametrize("spec", SPECIALISTS, ids=lambda spec: spec.name)
+    def test_no_tool_exposes_an_authorization_parameter_to_the_model(self, spec: Any) -> None:
+        """The case-binding guarantee, asserted against the schema the model
+        is actually handed rather than the Python signature.
+
+        This is the version that would catch a regression introduced through
+        the SDK layer — e.g. a `@tool` whose docstring documents a `case_id`
+        argument that a model then tries to supply.
+        """
+        _, agent = _factory("attorney")._create_specialist(spec)
+        for tool_name in spec.tool_names:
+            properties = set(_input_schema(agent, tool_name).get("properties", {}))
+            leaked = properties & _AUTHORIZATION_PARAMETERS
+            assert not leaked, f"{spec.name}.{tool_name} exposes {leaked} to the model"
+
+    def test_search_tool_takes_only_a_query(self) -> None:
+        """`search_case_documents` is the one tool that reaches outside the
+        pre-reduced context, so its parameter list is worth pinning."""
+        _, agent = _factory("client")._create_specialist(
+            next(spec for spec in SPECIALISTS if spec.name == "documents_agent")
+        )
+        schema = _input_schema(agent, "search_case_documents")
+        assert set(schema["properties"]) == {"query"}
+        assert schema["required"] == ["query"]
+
+    def test_tool_descriptions_reach_the_model(self) -> None:
+        """Strands builds the description from the docstring. An empty one
+        would leave a model guessing what a tool does."""
+        _, agent = _factory("attorney")._create_specialist(
+            next(spec for spec in SPECIALISTS if spec.name == ATTORNEY_AGENT)
+        )
+        for tool_name in agent.tool_names:
+            description = agent.tool_registry.registry[tool_name].tool_spec["description"]
+            assert description and description.strip()
+
+
+class TestToolsExecuteAgainstTheBoundCase:
+    def test_a_registered_tool_returns_this_case_and_isolates_others(self) -> None:
+        index = CaseDocumentIndex()
+        index.add_document("case-wiring", ["Elena reporta ingreso de $2,000 mensuales."])
+        index.add_document("case-other", ["Miguel debe $150,000 de hipoteca."])
+
+        _, agent = _factory("client", index)._create_specialist(
+            next(spec for spec in SPECIALISTS if spec.name == "documents_agent")
+        )
+        # Invoke through the object the registry holds, i.e. the same bound
+        # callable Strands would dispatch a tool call to.
+        result = agent.tool_registry.registry["search_case_documents"]._tool_func(
+            query="hipoteca"
+        )
+        excerpts = " ".join(result["excerpts"])
+        assert "Miguel" not in excerpts
+        assert "150,000" not in excerpts

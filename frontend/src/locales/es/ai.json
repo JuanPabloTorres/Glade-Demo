@@ -16,6 +16,7 @@
     "copyToClipboard": "Copiar texto al portapapeles",
     "uploadDocument": "Subir documento",
     "close": "Cerrar",
+    "degradedAnswer": "Esta respuesta viene de la guía determinística: el asistente con modelo no estaba disponible.",
     "openRecommendedSection": "Abrir sección recomendada",
     "serviceUnavailable": "El servicio de IA local no está disponible. Puedes seguir usando el modo de guía determinística y reintentar la conexión.",
     "retryConnection": "Reintentar conexión IA",

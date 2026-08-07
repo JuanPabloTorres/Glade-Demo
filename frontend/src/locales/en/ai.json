@@ -16,6 +16,7 @@
     "copyToClipboard": "Copy text to clipboard",
     "uploadDocument": "Upload document",
     "close": "Close",
+    "degradedAnswer": "This answer comes from deterministic guidance: the model-backed assistant was unavailable.",
     "openRecommendedSection": "Open recommended section",
     "serviceUnavailable": "The local AI service is unavailable. You can continue using deterministic guidance mode and retry the connection.",
     "retryConnection": "Retry AI connection",

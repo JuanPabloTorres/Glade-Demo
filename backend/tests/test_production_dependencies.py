@@ -17,6 +17,14 @@ HEAVY_AI_DEPENDENCIES = (
     "openpyxl",
     "pytesseract",
     "unstructured",
+    # Strands orchestration layer (ADR 0002) and its model-provider extras.
+    # Same reasoning as the ML packages above: the Vercel function runs with
+    # AI_PROVIDER=rule_based and answers deterministically, so shipping the
+    # agent SDK (plus the openai/ollama clients it pulls) there would be dead
+    # weight in a size-constrained runtime.
+    "strands-agents",
+    "openai",
+    "ollama",
 )
 
 
