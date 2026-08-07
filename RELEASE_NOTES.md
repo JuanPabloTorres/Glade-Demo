@@ -1,3 +1,30 @@
+# FreshStart 4.7.2
+
+Production was running the agent against a model called `llama-3.3-70b-versatile
+`.
+
+## What happened
+
+The Vercel variables were set by piping values into `vercel env add` from PowerShell. The pipeline appends a line ending, and Vercel stored it as part of the value. Pulling the production environment back showed it plainly, and the API key carried the same tail.
+
+Groq rejected every call: an unknown model, and an authorization header with a newline in it. `AgentRuntime` caught each failure and answered from the deterministic draft, exactly as designed, and nothing in the response said why. The only symptom was an assistant that never reached the agent — precisely what the reported transcript showed.
+
+`ModelFactory` already stripped `openai_base_url`, which is why that one alone would have survived. `openai_model` and the key did not.
+
+## The fix
+
+A `field_validator("*", mode="before")` on `Settings` strips surrounding whitespace from every string setting. One place to absorb it beats every call site remembering to, and an invisible character in a dashboard-entered variable is common enough that the guard belongs at the boundary.
+
+The test that matters most: a padded `DEFAULT_JWT_SECRET` is **still rejected** in production. That guard compares against an exact literal, so trimming has to happen first — otherwise a trailing newline would have smuggled the public demo signing key past it.
+
+Backend 231 tests (12 new), `ruff` and `mypy` clean.
+
+## What the audit also found
+
+**Groq's free tier is 100,000 tokens per day.** Each agent turn costs roughly 12k, because the orchestrator delegates to specialists and the case context is re-sent at each hop — about eight turns a day. The corrected configuration reached `analysis_agent` before the daily limit stopped it, which is the delegation working.
+
+The deployment now runs `llama-3.1-8b-instant`, which costs a fraction per turn, so a demo is not one conversation away from exhausting the day's budget. A demo that degrades halfway through looks exactly like the defect this release fixed.
+
 # FreshStart 4.7.1
 
 The skills agents load before touching this repository now describe the repository that exists.
