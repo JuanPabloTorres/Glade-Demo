@@ -23,7 +23,13 @@ import { CaseTimeline } from "../components/organisms/CaseTimeline";
 import { CaseStageStepper } from "../components/molecules/CaseStageStepper";
 import { ResponsiveDataView } from "../components/molecules/ResponsiveDataView";
 import { StageOrientation } from "../components/molecules/StageOrientation";
-import { ROUTES } from "../config/routes";
+import {
+  CASE_SECTION,
+  type CaseSectionSlug,
+  FOCUS_PARAM_TO_SECTION,
+  isCaseSectionSlug,
+  ROUTES,
+} from "../config/routes";
 import type {
   BankruptcyCase,
   CaseAnalysis,
@@ -77,29 +83,32 @@ export const BASE_STAGE_ORDER: readonly CaseStage[] = [
 ];
 
 /**
- * Translates the backend's `GuidanceResponseDto.focus_section` vocabulary
- * (see ChatPanel.tsx, which builds `?focus=<value>`) into a canonical
- * `CaseStage`. This is a vocabulary alias, not a position map — it never
- * encodes an index, so it can't go stale when stages are reordered.
+ * Maps the URL's section slug (see CASE_SECTION in config/routes.ts) to the
+ * internal stage it opens, and back. These are two vocabularies on purpose:
+ * the URL is user-facing and stable, while `CaseStage` is an implementation
+ * detail free to be renamed. "tasks" and "activity" read better in a URL than
+ * the "review" and "tracking" stages they resolve to.
+ *
+ * This is a name alias, never a position map — nothing here encodes an index,
+ * so it cannot go stale when `BASE_STAGE_ORDER` is reordered.
  */
-/**
- * The query parameter that carries the active stage. Named `focus` for
- * backward compatibility with links the assistant already builds
- * (ChatPanel.tsx) and with any bookmarked URL.
- */
-export const STAGE_QUERY_PARAM = "focus";
-
-export const FOCUS_PARAM_TO_STAGE: Record<string, CaseStage> = {
-  overview: "start",
-  household: "household",
-  "income-expenses": "income",
-  "debts-assets": "debts",
-  evidence: "documents",
-  review: "review",
-  timeline: "tracking",
-  "attorney-review": "attorney-review",
-  "chapter-comparison": "start",
+export const SECTION_TO_STAGE: Record<CaseSectionSlug, CaseStage> = {
+  [CASE_SECTION.overview]: "start",
+  [CASE_SECTION.household]: "household",
+  [CASE_SECTION.income]: "income",
+  [CASE_SECTION.expenses]: "expenses",
+  [CASE_SECTION.debts]: "debts",
+  [CASE_SECTION.assets]: "assets",
+  [CASE_SECTION.documents]: "documents",
+  [CASE_SECTION.tasks]: "review",
+  [CASE_SECTION.submitted]: "submitted",
+  [CASE_SECTION.activity]: "tracking",
+  [CASE_SECTION.attorneyReview]: "attorney-review",
 };
+
+export const STAGE_TO_SECTION = Object.fromEntries(
+  Object.entries(SECTION_TO_STAGE).map(([section, stage]) => [stage, section as CaseSectionSlug]),
+) as Record<CaseStage, CaseSectionSlug>;
 
 /**
  * Maps every `CaseStage` to its i18n key — the single, stable place that
@@ -132,12 +141,12 @@ function statusColor(status: CaseStatus): "gray" | "warning" | "success" | "info
 
 export function CaseWorkspacePage() {
   const { t } = useTranslation(["workspace", "common"]);
-  const { caseId } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { caseId, section } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const workspace = useBankruptcyWorkspace();
-  const { openChat } = useChatPanel();
+  const { openAssistant } = useChatPanel();
   const caseData = workspace.cases.find((item) => item.id === caseId);
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -153,40 +162,25 @@ export function CaseWorkspacePage() {
     [isAttorney],
   );
 
-  /**
-   * The active stage is read from the URL, never stored beside it. That is
-   * what lets a refresh, a shared link and the browser Back button all resolve
-   * to the same stage, and it is what allows the sidebar / bottom-nav entries
-   * that point at a stage to recognise themselves as active.
-   *
-   * Two vocabularies resolve here: the canonical `CaseStage` keys this app
-   * writes, and the backend's `focus_section` aliases (see
-   * FOCUS_PARAM_TO_STAGE) that arrive on links built by the assistant. An
-   * unknown or missing value falls back to the first stage.
-   */
-  const activeStage = useMemo<CaseStage>(() => {
-    const raw = searchParams.get(STAGE_QUERY_PARAM);
-    if (!raw) return "start";
-    const candidate = (STAGE_ORDER as string[]).includes(raw)
-      ? (raw as CaseStage)
-      : FOCUS_PARAM_TO_STAGE[raw];
-    return candidate && STAGE_ORDER.includes(candidate) ? candidate : "start";
-  }, [searchParams, STAGE_ORDER]);
+  // The URL is the single source of truth for which stage is open — there is
+  // no `activeStage` state to drift from it. An unknown or role-inappropriate
+  // slug falls back to the overview rather than rendering nothing.
+  const activeStage: CaseStage = useMemo(() => {
+    if (!isCaseSectionSlug(section)) return "start";
+    const stage = SECTION_TO_STAGE[section];
+    return STAGE_ORDER.includes(stage) ? stage : "start";
+  }, [section, STAGE_ORDER]);
 
-  // Every navigation — user clicks and URL deep-links alike — goes through
-  // this single function. It writes the stage to the URL and nothing else;
-  // `activeStage` is *derived* from that URL above, so there is one source of
-  // truth rather than a state variable racing the address bar.
+  // Every navigation — stepper clicks, shortcuts and deep-links alike — goes
+  // through this single function, and every one of them changes the URL. That
+  // is what makes reload, back and forward work identically to a click.
   const navigateToStage = useCallback(
     (stage: CaseStage) => {
+      if (!caseId) return;
       const target = STAGE_ORDER.includes(stage) ? stage : "start";
-      const next = new URLSearchParams(searchParams);
-      next.set(STAGE_QUERY_PARAM, target);
-      // push, not replace: moving between stages is navigation the user
-      // expects the browser Back button to undo.
-      setSearchParams(next);
+      navigate(ROUTES.caseSection(caseId, STAGE_TO_SECTION[target]));
     },
-    [STAGE_ORDER, searchParams, setSearchParams],
+    [STAGE_ORDER, caseId, navigate],
   );
 
   useEffect(() => {
@@ -202,17 +196,22 @@ export function CaseWorkspacePage() {
     };
   }, [caseData, t]);
 
-  // No effect syncs the URL into state any more: `activeStage` is computed
-  // from `searchParams` on every render (see above), which is what makes a
-  // direct refresh and the browser Back/Forward buttons land on the right
-  // stage. The previous version read `?focus=` once, copied it into component
-  // state and then deleted it from the URL — so the address bar forgot the
-  // section, a refresh always reset to "start", Back never moved between
-  // stages, and no navigation control could mark itself active because the
-  // destination it linked to no longer matched the URL.
+  // Backwards compatibility for `?focus=<section>` links — the vocabulary the
+  // backend's `focus_section` still speaks, plus any URL a user bookmarked
+  // before sections became path segments. It resolves to the canonical path
+  // and replaces the history entry, so back doesn't bounce through the old
+  // form. This is the only place the legacy parameter is understood.
+  const legacyFocus = searchParams.get("focus");
+  const legacySection = legacyFocus ? FOCUS_PARAM_TO_SECTION[legacyFocus] : undefined;
 
   if (!caseData || !user) return <Navigate to={ROUTES.home} replace />;
   if (user.role === "client" && caseData.ownerUserId !== user.id) return <Navigate to={ROUTES.home} replace />;
+  if (legacySection) return <Navigate to={ROUTES.caseSection(caseData.id, legacySection)} replace />;
+  // `/case/:id` with no section is the overview; give it its canonical URL so
+  // the sidebar's "My case" entry and a section entry can't both look active.
+  if (!isCaseSectionSlug(section)) {
+    return <Navigate to={ROUTES.caseSection(caseData.id, CASE_SECTION.overview)} replace />;
+  }
 
   const update = (updater: (value: BankruptcyCase) => BankruptcyCase) => workspace.updateCase(caseData.id, updater);
   const addEntry = (submission: EntrySubmission) => {
@@ -291,7 +290,7 @@ export function CaseWorkspacePage() {
 
       {isAttorney ? (
         <Card className="app-card">
-          <p className="text-label mb-3 text-fg-brand">{t("workspace:actions.caseActions")}</p>
+          <p className="text-label mb-3 text-indigo-700">{t("workspace:actions.caseActions")}</p>
           <CaseActionBar
             caseData={caseData}
             analysis={analysis}
@@ -379,7 +378,7 @@ export function CaseWorkspacePage() {
             percentComplete={householdComplete ? 100 : 0}
             missingItems={householdComplete ? [] : [t("workspace:caseWorkspace.householdMissing.maritalStatus"), t("workspace:caseWorkspace.householdMissing.housingStatus")]}
             example={t("workspace:caseWorkspace.householdExample")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.household"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.household"))}
           />
           <Card className="border border-[var(--color-border)] bg-white shadow-sm">
             <div className="grid gap-5 lg:grid-cols-2">
@@ -423,7 +422,7 @@ export function CaseWorkspacePage() {
             example={t("workspace:caseWorkspace.incomeExample")}
             primaryActionLabel={t("workspace:entryModal.titles.income")}
             onPrimaryAction={() => setModalKind("income")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.income"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.income"))}
           />
           <ResponsiveDataView
             emptyMessage={t("workspace:caseWorkspace.empty.incomes")}
@@ -451,7 +450,7 @@ export function CaseWorkspacePage() {
             example={t("workspace:caseWorkspace.expenseExample")}
             primaryActionLabel={t("workspace:entryModal.titles.expense")}
             onPrimaryAction={() => setModalKind("expense")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.expenses"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.expenses"))}
           />
           <ResponsiveDataView
             emptyMessage={t("workspace:caseWorkspace.empty.expenses")}
@@ -479,7 +478,7 @@ export function CaseWorkspacePage() {
             example={t("workspace:caseWorkspace.debtExample")}
             primaryActionLabel={t("workspace:entryModal.titles.debt")}
             onPrimaryAction={() => setModalKind("debt")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.debts"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.debts"))}
           />
           <div className="grid gap-3 lg:grid-cols-2">
             {caseData.debts.map((item) => (
@@ -511,7 +510,7 @@ export function CaseWorkspacePage() {
             example={t("workspace:caseWorkspace.assetExample")}
             primaryActionLabel={t("workspace:entryModal.titles.asset")}
             onPrimaryAction={() => setModalKind("asset")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.assets"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.assets"))}
           />
           <div className="grid gap-3 lg:grid-cols-2">
             {caseData.assets.map((item) => (
@@ -537,30 +536,24 @@ export function CaseWorkspacePage() {
             example={t("workspace:caseWorkspace.documentsExample")}
             primaryActionLabel={t("workspace:entryModal.titles.evidence")}
             onPrimaryAction={() => setModalKind("evidence")}
-            onOpenChat={() => openChat(t("workspace:caseWorkspace.chatPrompts.documents"))}
+            onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.documents"))}
           />
           {/* `min-w-0` on the cards, not just on the rows inside them. A grid
               item's automatic minimum size is its content, exactly like a flex
               item's, so these two cards were laid out at their min-content
               width — 320px — inside a 288px track at a 320px viewport, and
               overflowed the page by the `main` element's own 16px padding.
-              The truncation already inside the evidence row cannot engage
-              while its card is free to grow. `frontend/e2e/
-              responsive-overflow.spec.ts` is the regression gate. */}
+              `frontend/e2e/responsive-overflow.spec.ts` is the regression gate. */}
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
             <Card className="min-w-0 border border-[var(--color-border)] bg-white shadow-sm">
               <div className="space-y-3">
                 {caseData.evidence.map((item) => (
-                  // min-w-0 on the row and on the name column is what lets
-                  // `truncate` engage: a flex item's automatic minimum size is
-                  // its content, so an unbroken uploaded file name would
-                  // otherwise widen the card instead of ellipsizing.
-                  <div key={item.id} className="flex min-w-0 flex-col gap-3 rounded-xl border border-[var(--color-border)] p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-surface-muted)]"><AppIcon name="evidence" /></span>
-                      <div className="min-w-0"><p className="truncate font-semibold" title={item.name || undefined}>{item.name || t("workspace:entryModal.pendingFileName")}</p><p className="truncate text-sm text-[var(--color-text-muted)]">{t(`workspace:entryModal.evidenceTypes.${item.evidenceType}`)}</p></div>
+                  <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-surface-muted)]"><AppIcon name="evidence" /></span>
+                      <div><p className="font-semibold">{item.name || t("workspace:entryModal.pendingFileName")}</p><p className="text-sm text-[var(--color-text-muted)]">{t(`workspace:entryModal.evidenceTypes.${item.evidenceType}`)}</p></div>
                     </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <Badge color={item.status === "reviewed" ? "success" : item.status === "received" ? "info" : item.status === "requested" ? "warning" : "gray"}>{t(`workspace:entryModal.evidenceStatus.${item.status}`)}</Badge>
                       <AppButton size="xs" color="light" onClick={() => removeEntry("evidence", item.id)}>{t("common:actions.delete")}</AppButton>
                     </div>
@@ -577,7 +570,7 @@ export function CaseWorkspacePage() {
                   const present = requiredEvidencePresent(requirement);
                   return (
                     <div key={requirement} className="flex gap-2 rounded-lg bg-[var(--color-surface-muted)] p-3 text-sm">
-                      <AppIcon name={present ? "check" : "document"} className={present ? "text-fg-success" : "text-[var(--color-text-muted)]"} />
+                      <AppIcon name={present ? "check" : "document"} className={present ? "text-emerald-700" : "text-[var(--color-text-muted)]"} />
                       <span>{requirement}</span>
                     </div>
                   );
@@ -602,7 +595,7 @@ export function CaseWorkspacePage() {
                 [t("workspace:tabs.documents"), caseData.evidence.length > 0],
               ].map(([label, done]) => (
                 <div key={String(label)} className="flex items-center gap-2 rounded-lg bg-[var(--color-surface-muted)] p-3 text-sm">
-                  <AppIcon name={done ? "check" : "alert"} size={16} className={done ? "text-fg-success" : "text-fg-warning"} />
+                  <AppIcon name={done ? "check" : "alert"} size={16} className={done ? "text-emerald-700" : "text-[var(--color-warning)]"} />
                   <span>{label}</span>
                 </div>
               ))}
@@ -621,7 +614,7 @@ export function CaseWorkspacePage() {
           <Card className="border border-[var(--color-border)] bg-white shadow-sm">
             {isSubmitted ? (
               <>
-                <div className="flex items-center gap-3"><AppIcon name="check" className="text-fg-success" /><h2 className="text-xl font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.submitted.sentTitle")}</h2></div>
+                <div className="flex items-center gap-3"><AppIcon name="check" className="text-emerald-700" /><h2 className="text-xl font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.submitted.sentTitle")}</h2></div>
                 <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
                   {caseData.submittedAt ? t("workspace:caseWorkspace.submitted.sentAt", { date: formatDate(caseData.submittedAt) }) : t("workspace:caseWorkspace.submitted.attorneyHasAccess")}
                   {" "}{t("workspace:caseWorkspace.submitted.followUp")}

@@ -1,61 +1,74 @@
-import { createContext, type ReactNode, useContext, useMemo, useState } from "react";
-import { useLocation } from "react-router";
+import { createContext, type ReactNode, useCallback, useContext, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthContext";
-import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
+import { ASSISTANT_CASE_PARAM, assistantUrl } from "../config/routes";
 import type { BankruptcyCase } from "../types/bankruptcy";
+import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
 
 interface ChatPanelContextValue {
-  /** The case the chat is currently scoped to — null if none is resolvable (e.g. attorney on the inbox). */
+  /** The case the assistant is scoped to — null if none is resolvable (e.g. an attorney with no case open). */
   caseData: BankruptcyCase | null;
-  isOpen: boolean;
-  prefill: string;
-  openChat: (prefill?: string) => void;
-  closeChat: () => void;
+  /** Navigates to the assistant, optionally seeding the composer. */
+  openAssistant: (prefill?: string) => void;
 }
 
 const ChatPanelContext = createContext<ChatPanelContextValue | null>(null);
 
 /**
- * Master instruction §6.1: the chat must be a persistent, always-reachable
- * companion after login — not a tab buried inside a case. This provider
- * resolves "which case is the chat currently about" from route + role, so
- * a single floating entry point (rendered once in AppShell) works from the
- * dashboard, the case workspace, and everywhere else behind auth.
+ * Resolves "which case is the assistant currently about" from route + role, so
+ * every entry point agrees without each one re-deriving it.
  *
- * Scoping rule: the chat is always case-bound (it needs case context per
- * §6.2 — id, financials, evidence, etc. — a contextless chat has nothing to
- * reason about). For a client, that's their own case. For an attorney,
- * that's whichever case is currently open (no case open → no chat entry
- * point, since there is nothing to be contextual about yet).
+ * Scoping rule: the assistant is always case-bound — it needs case context to
+ * reason about, and a contextless assistant has nothing to say. For a client
+ * that is their own case; for an attorney it is whichever case is open.
+ *
+ * The assistant used to be a floating button opening a `Drawer`, with its
+ * open/closed state held here. It is now a route (`/assistant`), so that state
+ * is gone: the URL holds it. Three things follow that the drawer could not do —
+ * the assistant survives a reload, participates in browser back/forward, and
+ * can be linked to. It also stops being a second, parallel navigation surface
+ * on mobile competing with the bottom bar's centre action, which now points at
+ * the same place.
+ *
+ * A prefilled prompt travels as a query parameter for the same reason: it is
+ * part of where the user is, not hidden state a refresh would silently drop.
  */
 export function ChatPanelProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const workspace = useBankruptcyWorkspace();
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
-  const [prefill, setPrefill] = useState("");
+  const navigate = useNavigate();
+
+  // Resolution order: the case named in the URL (the assistant route's own
+  // `?case=`, then a `/case/:id` path), and finally the client's own case. A
+  // client can only ever reach their own, so the URL is never able to widen
+  // their access — `caseData` is looked up in the workspace they already hold,
+  // and the workspace is itself ownership-filtered server-side.
+  const routeCaseId = useMemo(() => {
+    const fromQuery = new URLSearchParams(location.search).get(ASSISTANT_CASE_PARAM);
+    if (fromQuery) return fromQuery;
+    return location.pathname.match(/^\/case\/([^/]+)/)?.[1] ?? null;
+  }, [location.search, location.pathname]);
 
   const caseData = useMemo(() => {
     if (!user) return null;
+    // A client's case comes from their account, never from the URL, so a
+    // hand-edited `?case=` can't point their assistant at anyone else's case.
     if (user.role === "client") {
       return workspace.cases.find((item) => item.ownerUserId === user.id) ?? null;
     }
-    const match = location.pathname.match(/^\/case\/([^/]+)/);
-    if (!match) return null;
-    return workspace.cases.find((item) => item.id === match[1]) ?? null;
-  }, [user, workspace.cases, location.pathname]);
+    if (!routeCaseId) return null;
+    return workspace.cases.find((item) => item.id === routeCaseId) ?? null;
+  }, [user, workspace.cases, routeCaseId]);
 
-  const openChat = (nextPrefill?: string) => {
-    if (nextPrefill) setPrefill(nextPrefill);
-    setIsOpen(true);
-  };
-  const closeChat = () => setIsOpen(false);
-
-  return (
-    <ChatPanelContext.Provider value={{ caseData, isOpen, prefill, openChat, closeChat }}>
-      {children}
-    </ChatPanelContext.Provider>
+  const openAssistant = useCallback(
+    (prefill?: string) => navigate(assistantUrl(prefill, caseData?.id ?? routeCaseId)),
+    [navigate, caseData?.id, routeCaseId],
   );
+
+  const value = useMemo(() => ({ caseData, openAssistant }), [caseData, openAssistant]);
+
+  return <ChatPanelContext.Provider value={value}>{children}</ChatPanelContext.Provider>;
 }
 
 export function useChatPanel(): ChatPanelContextValue {

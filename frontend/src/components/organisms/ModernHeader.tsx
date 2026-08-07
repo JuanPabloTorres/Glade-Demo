@@ -1,27 +1,28 @@
-import { Badge, Navbar, NavbarBrand, Tooltip } from "flowbite-react";
+import { Badge, Tooltip } from "flowbite-react";
 import { useTranslation } from "react-i18next";
-import { ROUTES } from "../../config/routes";
 import { useAiHealth } from "../../hooks/useAiHealth";
-import { LanguageSelector } from "../molecules/LanguageSelector";
-import { AppIcon } from "../atoms/AppIcon";
+import { AppLogo } from "../atoms/AppLogo";
+import { LanguageToggle } from "../molecules/LanguageToggle";
 import { UserMenu } from "./navigation/UserMenu";
 
 /**
- * Trimmed per the app-shell refactor (phase 1): primary navigation (the old
- * role-aware HeaderTab links) and every role-specific summary badge/search
- * box now live in the Sidebar (navigation/Sidebar.tsx) or on the dashboards
- * themselves — AttorneyDashboardPage already has its own search via
- * DataTableToolbar, and both dashboards already surface completion/urgent/
- * pending-document counts as metric tiles, so nothing here was lost, only
- * de-duplicated. What remains is exactly four responsibilities: contextual
- * title (brand block), language selector, AI status badge, profile dropdown.
+ * The global header, deliberately thin.
  *
- * The version badge deliberately does NOT live here — it was duplicated in
- * both header and footer; ModernFooter is now its only home (one build
- * identity, shown once, in the chrome where metadata belongs).
+ * On a phone this is the only chrome above the content, so it carries exactly
+ * what is global and nothing that already has a slot in the bottom bar: the
+ * product mark, the language toggle and the account menu. Adding page actions
+ * here would duplicate navigation the bar already owns.
  *
- * The avatar dropdown is `<UserMenu />`, not inline markup, so the product has
- * a single avatar-menu implementation.
+ * The AI status badge is desktop-only — it is diagnostic, not navigational, and
+ * on a 320px viewport it competes with the three controls that matter. The same
+ * state is spelled out inside the assistant itself, which is where a user acts
+ * on it.
+ *
+ * From 768px up the sidebar carries the product mark, so the header's copy of
+ * it would be a second brand block on the same screen; it renders below `md`
+ * only. The version badge lives in the footer, its single home.
+ *
+ * `<UserMenu />` rather than inline markup, so the product has one avatar menu.
  */
 export function ModernHeader() {
   const { t } = useTranslation(["navigation", "common"]);
@@ -30,19 +31,14 @@ export function ModernHeader() {
   return (
     <header className="sticky top-0 z-20 border-b border-default bg-neutral-primary-soft shadow-[0_4px_18px_rgba(15,23,42,0.05)] backdrop-blur-xl">
       <div className="glade-gradient h-1" />
-      <Navbar fluid rounded={false} className="mx-auto max-w-7xl bg-transparent px-4 py-3 sm:px-6 lg:px-8">
-        <NavbarBrand href={ROUTES.home} className="rounded-base focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-soft">
-          <span className="brand-mark flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-lg shadow-indigo-950/15">
-            <AppIcon name="brand" size={25} />
-          </span>
-          <span className="ml-3 self-center whitespace-nowrap">
-            <span className="block text-lg font-semibold tracking-tight text-heading">Fresh Start</span>
-            <span className="block text-xs font-medium text-body">{t("common:app.subtitle")}</span>
-          </span>
-        </NavbarBrand>
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        {/* Below md this is the product's only visible name; at md+ the sidebar
+            owns it and this collapses away rather than repeating it. */}
+        <AppLogo showTagline className="md:hidden" />
+        <div className="hidden min-w-0 md:block" />
 
-        <div className="flex items-center gap-2">
-          <LanguageSelector compact />
+        <div className="flex shrink-0 items-center gap-2">
+          <LanguageToggle compact />
 
           <Tooltip
             content={
@@ -67,7 +63,7 @@ export function ModernHeader() {
 
           <UserMenu />
         </div>
-      </Navbar>
+      </div>
     </header>
   );
 }

@@ -40,7 +40,7 @@ describe("assistant action allow-list", () => {
   });
 
   it("builds a workspace link for an allowed action", () => {
-    expect(assistantActionHref("case-1", action())).toBe("/case/case-1?focus=evidence");
+    expect(assistantActionHref("case-1", action())).toBe("/case/case-1/documents");
   });
 
   it("returns null instead of a partial URL for a disallowed action", () => {
@@ -49,7 +49,7 @@ describe("assistant action allow-list", () => {
 
   it("encodes a case id that would otherwise escape the path segment", () => {
     expect(assistantActionHref("case/../admin", action())).toBe(
-      "/case/case%2F..%2Fadmin?focus=evidence",
+      "/case/case%2F..%2Fadmin/documents",
     );
   });
 });

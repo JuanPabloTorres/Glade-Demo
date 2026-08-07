@@ -4,6 +4,7 @@
     "senderYou": "Tú",
     "senderAssistant": "Asistente",
     "openAssistant": "Abrir asistente de preparación",
+    "openCaseFirst": "Abre un expediente para conversar con el asistente.",
     "emptyTranscript": "Pregunta lo que necesites sobre tu expediente. El asistente organiza la información y prepara preguntas para tu abogado.",
     "writing": "El asistente está escribiendo...",
     "ready": "IA lista",
@@ -20,6 +21,7 @@
     "serviceUnavailable": "El servicio de IA local no está disponible. Puedes seguir usando el modo de guía determinística y reintentar la conexión.",
     "retryConnection": "Reintentar conexión IA",
     "responseError": "El asistente no respondió. Intenta de nuevo en un momento.",
-    "healthError": "No fue posible consultar el estado del asistente."
+    "healthError": "No fue posible consultar el estado del asistente.",
+    "pageDisclaimer": "El asistente prepara información y preguntas para tu abogado. No ofrece asesoramiento legal, no determina elegibilidad y no selecciona capítulo."
   }
 }

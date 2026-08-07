@@ -1,72 +1,143 @@
 {
-  "page": {
-    "title": "Help center",
-    "subtitle": "How to use Fresh Start to prepare your bankruptcy consultation, what the platform does, and what always stays with an attorney.",
-    "searchHint": "Open a section to see the questions it contains."
-  },
+  "title": "Help",
+  "description": "How Fresh Start works, area by area. Open a question to read the answer.",
+  "aboutHint": "Looking for privacy, security, accessibility or terms? Those are on",
+  "aboutLink": "About the platform",
   "sections": {
     "gettingStarted": {
       "title": "Getting started",
-      "q1": "What is Fresh Start?",
-      "a1": "A preparation workspace. It organizes your financial information (income, expenses, debts, assets and evidence) and prepares questions for a professional consultation. It is not a law firm, it does not file cases, and it does not provide legal advice.",
-      "q2": "Where do I start?",
-      "a2": "From Home, create your request. From there the case file moves through stages: household, income, expenses, debts, assets, documents and review. You can leave and come back — whatever you captured is saved.",
-      "q3": "Do I have to complete everything in one sitting?",
-      "a3": "No. The progress indicator shows how much information is still missing, and the next-action card takes you straight to the most useful next step."
+      "items": [
+        {
+          "question": "What is Fresh Start for?",
+          "answer": "It organizes your household, income, expenses, debts, assets and supporting documents into one place, so your attorney can review a complete picture. It prepares information and questions for a professional consultation — it does not file anything on your behalf."
+        },
+        {
+          "question": "Does Fresh Start decide whether I should file, or which chapter?",
+          "answer": "No. Fresh Start does not determine eligibility, does not select a chapter and does not run the official means test. Those are decisions for a licensed attorney reviewing your case."
+        },
+        {
+          "question": "How do I start my request?",
+          "answer": "From Home, choose to start a request. Fresh Start creates your case and takes you into it. From then on Home shows your progress and the next thing to do."
+        },
+        {
+          "question": "Do I have to finish it in one sitting?",
+          "answer": "No. Everything you enter is saved to your case as you go, and the progress indicator on Home shows how much is complete. You can leave and come back to the section you were in."
+        }
+      ]
     },
     "documents": {
-      "title": "Managing documents",
-      "q1": "How do I register a document?",
-      "a1": "In the Documents stage, use Add evidence. Give the document a type, a name and a status.",
-      "q2": "Are real files uploaded?",
-      "a2": "Not in this demo. What is recorded is the document's record (type, name, status and notes), not the file itself. Real file upload belongs to a later phase of the project.",
-      "q3": "What do the statuses mean?",
-      "a3": "Requested: the attorney asked for it and it has not arrived. Received: it is registered. Reviewed: the attorney has reviewed it."
+      "title": "Documents",
+      "items": [
+        {
+          "question": "Which documents do I need?",
+          "answer": "The Documents section lists the evidence your case needs and marks each item as present or still missing, so you always know what is left rather than guessing."
+        },
+        {
+          "question": "How do I add a document?",
+          "answer": "Open Documents and use the add action. You record what the document is and its status; the checklist next to it updates to reflect what the case now has."
+        },
+        {
+          "question": "What do the document statuses mean?",
+          "answer": "\"Requested\" means your attorney asked for it, \"received\" means Fresh Start has it, and \"reviewed\" means your attorney has looked at it. Anything still requested is what to work on next."
+        },
+        {
+          "question": "Why does my attorney keep asking for a document I already added?",
+          "answer": "A document stays in the requested state until your attorney marks it reviewed. If something looks stuck, raise it in the assistant or with your attorney directly."
+        }
+      ]
     },
     "tasks": {
       "title": "Tasks",
-      "q1": "Where do my tasks come from?",
-      "a1": "From two places: the gaps the case review detects, and the documents the attorney explicitly requests.",
-      "q2": "Where do I see them?",
-      "a2": "The Tasks entry in the menu opens the review stage of the case file, with the checklist and everything still outstanding before you submit.",
-      "q3": "Can I submit the case file with tasks outstanding?",
-      "a3": "Yes, but the review will point out what is missing. The more complete it arrives, the more useful the consultation."
+      "items": [
+        {
+          "question": "What does the Tasks section show?",
+          "answer": "A checklist of every part of your case — household, income, expenses, debts, assets and documents — with what is complete and what still needs attention before your attorney reviews it."
+        },
+        {
+          "question": "Do I have to complete every task?",
+          "answer": "Anything marked incomplete becomes a question your attorney has to ask you later, so completing it up front saves a round trip. If something genuinely does not apply to you, say so in the assistant and your attorney will see the note."
+        },
+        {
+          "question": "What happens when everything is complete?",
+          "answer": "You can send the case to your attorney. Fresh Start records when it was sent, and the case status changes so both of you can see where it stands."
+        }
+      ]
     },
-    "activities": {
+    "activity": {
       "title": "Activity",
-      "q1": "What does activity show?",
-      "a1": "The case file timeline: when it was created, which stages were completed, when it was sent to the attorney and what came back.",
-      "q2": "Is there activity across several cases?",
-      "a2": "Not yet. The timeline is per case file. For attorneys, a cross-case activity view does not exist yet and appears disabled in the menu rather than leading to an empty screen."
+      "items": [
+        {
+          "question": "What is in the Activity section?",
+          "answer": "A dated timeline of what has happened in your case — information added, documents requested and received, status changes, and attorney notes."
+        },
+        {
+          "question": "Who can see this activity?",
+          "answer": "You and the attorney assigned to your case. Fresh Start scopes every case to its owner, so no other client can see it."
+        },
+        {
+          "question": "Why does an entry appear that I did not create?",
+          "answer": "Your attorney also acts on the case — requesting a document or changing the status, for example — and those actions are recorded in the same timeline so nothing happens to your case invisibly."
+        }
+      ]
     },
     "assistant": {
       "title": "AI assistant",
-      "q1": "What can the assistant do?",
-      "a1": "Answer questions about your case file: what is missing, which document backs a figure, or how your monthly balance looks. It works only with the context of the case you have access to.",
-      "q2": "Can it tell me whether chapter 7 or 13 suits me?",
-      "a2": "No. The platform does not determine eligibility or select a chapter: that is a legal conclusion and belongs to an attorney. The assistant can help you prepare the question, not answer it.",
-      "q3": "What happens if the model is unavailable?",
-      "a3": "The assistant falls back to deterministic, rule-based guidance and tells you so. It would rather answer less than invent."
+      "items": [
+        {
+          "question": "What can the assistant do?",
+          "answer": "It answers questions about your own case using the information already in it, explains what a section is asking for, and points you at the section that needs attention next."
+        },
+        {
+          "question": "Can it give me legal advice?",
+          "answer": "No. It does not advise, determine eligibility or choose a chapter. It helps you prepare information and questions for your attorney, and every answer carries that reminder."
+        },
+        {
+          "question": "What information does it see?",
+          "answer": "Only your case, and only the parts appropriate to your role. It cannot see other clients' cases."
+        },
+        {
+          "question": "What if the assistant is unavailable?",
+          "answer": "The conversation tells you when the service is offline and offers to retry. Nothing else in Fresh Start depends on it — you can keep working on your case."
+        }
+      ]
     },
     "account": {
-      "title": "Account and preferences",
-      "q1": "How do I change the language?",
-      "a1": "With the language button in the header. It switches directly between Spanish and English and translates the whole interface immediately.",
-      "q2": "What does 'Remember me on this device' do?",
-      "a2": "It keeps your session open when you come back. Do not enable it on a shared computer.",
-      "q3": "Are the demo credentials private?",
-      "a3": "No. They are public and shared by every visitor. Never enter real personal or financial information."
+      "title": "Account and settings",
+      "items": [
+        {
+          "question": "How do I change the language?",
+          "answer": "Use the language button in the header. It switches directly between English and Spanish and shows the language it will switch to. Your choice is remembered."
+        },
+        {
+          "question": "How do I sign out?",
+          "answer": "Open the avatar menu in the header and choose to sign out. Your session ends immediately."
+        },
+        {
+          "question": "How do I get back to my case quickly?",
+          "answer": "On a phone, the bar at the bottom of the screen holds Home, Documents, the assistant, Tasks and Activity. On a tablet or computer the same destinations are in the sidebar on the left."
+        }
+      ]
     },
     "faq": {
       "title": "Frequently asked questions",
-      "q1": "Does Fresh Start file my case with the court?",
-      "a1": "No. It prepares and organizes the information; filing belongs to an attorney.",
-      "q2": "Does it run the official means test?",
-      "a2": "No. The calculations you see are there to guide the conversation with your attorney, not as an official determination.",
-      "q3": "Is my data real?",
-      "a3": "In this demo every name, case and figure is synthetic.",
-      "q4": "What happens when I submit the case file?",
-      "a4": "It moves to attorney review. You can follow the status in the case activity and respond to any documents you are asked for."
+      "items": [
+        {
+          "question": "Is Fresh Start a law firm?",
+          "answer": "No. Fresh Start is not a law firm and does not provide legal advice. It organizes information for a consultation with a licensed attorney."
+        },
+        {
+          "question": "Is the data in this demo real?",
+          "answer": "No. Every case, name and figure in this demo is synthetic."
+        },
+        {
+          "question": "Can another client see my information?",
+          "answer": "No. Each case is scoped to its owner and that ownership is enforced on the server, not just hidden in the interface."
+        },
+        {
+          "question": "Something is not working. What should I do?",
+          "answer": "Note what you were doing and tell your attorney. The Activity section's timeline is a useful record of what the case has done and when."
+        }
+      ]
     }
   }
 }

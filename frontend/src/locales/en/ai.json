@@ -4,6 +4,7 @@
     "senderYou": "You",
     "senderAssistant": "Assistant",
     "openAssistant": "Open preparation assistant",
+    "openCaseFirst": "Open a case to talk to the assistant.",
     "emptyTranscript": "Ask anything about your case. The assistant organizes your information and prepares questions for your attorney.",
     "writing": "The assistant is typing...",
     "ready": "AI ready",
@@ -20,6 +21,7 @@
     "serviceUnavailable": "The local AI service is unavailable. You can continue using deterministic guidance mode and retry the connection.",
     "retryConnection": "Retry AI connection",
     "responseError": "The assistant did not respond. Try again in a moment.",
-    "healthError": "Could not check assistant status."
+    "healthError": "Could not check assistant status.",
+    "pageDisclaimer": "The assistant prepares information and questions for your attorney. It does not provide legal advice, determine eligibility or select a chapter."
   }
 }

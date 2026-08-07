@@ -1,10 +1,10 @@
 import { Tooltip } from "flowbite-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
-import { ROUTES } from "../../../config/routes";
+import { sidebarNavItems } from "../../../config/navigation";
 import { useRoleNavigation } from "../../../hooks/useRoleNavigation";
 import { AppIcon } from "../../atoms/AppIcon";
+import { AppLogo } from "../../atoms/AppLogo";
 import { SidebarGroup } from "./SidebarGroup";
 import { SidebarItem } from "./SidebarItem";
 
@@ -21,25 +21,30 @@ function readCollapsedPreference(): boolean {
 }
 
 /**
- * Desktop and tablet navigation (>=768px): a collapsible column following
- * Flowbite's sidebar block. Below that breakpoint this renders nothing at all —
- * MobileNavigation owns small screens with a bottom bar plus an overflow
- * Drawer, because re-flowing a desktop sidebar onto a phone (previously: a
- * lone floating menu button) costs two taps per navigation and shows the user
- * nothing about where they currently are.
+ * Tablet and desktop navigation (>=768px): a permanent column, part of the app
+ * shell's flex row rather than an overlay. Below that breakpoint it renders
+ * nothing at all — BottomNavigation owns small screens.
+ *
+ * Permanent means permanent: no `translate-x`, no drawer, no backdrop, no
+ * hamburger. Because the column participates in normal flex flow, page content
+ * is offset by the sidebar's real width automatically — there is no `ml-64` to
+ * keep in sync with a `w-64`, and therefore no way for the two to drift apart.
+ *
+ * The width toggle is a preference, not a navigation mechanism: both states are
+ * always visible and always navigable, and the collapsed rail keeps every label
+ * in the accessibility tree via per-item tooltips and aria-labels.
  *
  * Collapse is hand-rolled rather than adopting flowbite-react's `Sidebar`
- * `collapsed` prop: per docs/ux/UX-SHELL-POLISH-AUDIT-2026-08-06.md §a, its
- * `SidebarItem` is a leaf-only href/icon/label component with no slot for this
- * app's group label, and swapping it would mean re-deriving the active-state
- * contrast rule and the disabled+tooltip pattern that already work here. The
- * surface styling still follows Flowbite's block through the token layer in
- * index.css.
+ * `collapsed` prop: that component's `SidebarItem` is a leaf-only
+ * href/icon/label element with no slot for this app's group label or its
+ * disabled+tooltip state. The surface styling still follows Flowbite's block
+ * through the token layer in index.css.
  */
 export function Sidebar() {
   const { t } = useTranslation(["navigation", "common"]);
   const { items, groupLabel } = useRoleNavigation();
   const [collapsed, setCollapsed] = useState(readCollapsedPreference);
+  const { main, support } = sidebarNavItems(items);
 
   useEffect(() => {
     try {
@@ -53,29 +58,14 @@ export function Sidebar() {
 
   return (
     <aside
-      aria-label={groupLabel}
-      className={`hidden shrink-0 border-e border-default bg-neutral-primary-soft p-4 transition-[width] duration-200 md:block ${
+      className={`sticky top-0 hidden h-screen shrink-0 flex-col border-e border-default bg-neutral-primary-soft p-4 transition-[width] duration-200 md:flex ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
-      {/* Product mark. The sidebar is the persistent chrome on desktop, so this
-          is where the name belongs. It is two words — "Fresh Start" — and it
-          collapses to the glyph alone in the icon rail, where the accessible
-          name still carries the full product name. */}
-      <Link
-        to={ROUTES.home}
-        aria-label={t("common:app.name")}
-        className={`mb-4 flex items-center rounded-base outline-none focus-visible:ring-4 focus-visible:ring-brand-soft ${
-          collapsed ? "justify-center" : "gap-3 px-1"
-        }`}
-      >
-        <span className="brand-mark flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-md shadow-indigo-950/15">
-          <AppIcon name="brand" size={20} />
-        </span>
-        {collapsed ? null : (
-          <span className="truncate text-base font-semibold tracking-tight text-heading">{t("common:app.name")}</span>
-        )}
-      </Link>
+      {/* The sidebar is the persistent chrome from 768px up, so this is where
+          the product name lives on those widths. The mobile header carries it
+          below that. */}
+      <AppLogo markOnly={collapsed} size="sm" className={collapsed ? "mb-4" : "mb-4 px-1"} />
 
       <div className={`mb-3 flex ${collapsed ? "justify-center" : "justify-end"}`}>
         <Tooltip content={toggleLabel} placement="right">
@@ -91,18 +81,23 @@ export function Sidebar() {
         </Tooltip>
       </div>
 
-      <SidebarGroup label={groupLabel} collapsed={collapsed}>
-        {items.map((item) => (
-          <SidebarItem
-            key={item.key}
-            labelKey={item.labelKey}
-            icon={item.icon}
-            to={item.to}
-            disabledReasonKey={item.disabledReasonKey}
-            collapsed={collapsed}
-          />
-        ))}
-      </SidebarGroup>
+      <div className="flex min-h-0 flex-1 flex-col justify-between gap-4 overflow-y-auto">
+        <SidebarGroup label={groupLabel} collapsed={collapsed} navLabel={t("navigation:primaryLabel")}>
+          {main.map((item) => (
+            <SidebarItem key={item.id} item={item} collapsed={collapsed} />
+          ))}
+        </SidebarGroup>
+
+        {/* Help and anything else secondary sits at the foot of the column,
+            reachable without competing with the primary journey above it. */}
+        {support.length ? (
+          <SidebarGroup collapsed={collapsed} navLabel={t("navigation:supportLabel")} className="border-t border-default pt-3">
+            {support.map((item) => (
+              <SidebarItem key={item.id} item={item} collapsed={collapsed} />
+            ))}
+          </SidebarGroup>
+        ) : null}
+      </div>
     </aside>
   );
 }

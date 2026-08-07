@@ -45,20 +45,9 @@
     "help": "Help"
   },
   "bottomNav": {
-    "label": "Main navigation",
-    "more": "More"
-  },
-  "languageSelector": {
-    "tooltip": "Change language",
-    "label": "Language",
-    "es": "Español",
-    "en": "English",
-    "switchTo": "Switch to {{language}}"
+    "label": "Primary navigation"
   },
   "sidebar": {
-    "openMenu": "Open navigation menu",
-    "closeMenu": "Close navigation menu",
-    "menuTitle": "Menu",
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar",
     "groupClient": "Client",
@@ -79,6 +68,14 @@
       "requestedDocuments": "Requested documents",
       "activity": "Activity",
       "help": "Help"
-    }
+    },
+    "assistant": "Assistant"
+  },
+  "primaryLabel": "Primary navigation",
+  "supportLabel": "Help and support",
+  "languageToggle": {
+    "es": "Español",
+    "en": "English",
+    "switchTo": "Switch to {{language}}"
   }
 }

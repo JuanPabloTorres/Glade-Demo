@@ -54,11 +54,9 @@ function makeCase(overrides: Partial<BankruptcyCase> = {}): BankruptcyCase {
   };
 }
 
-function renderChat(open = true) {
-  return render(<ChatPanel open={open} onClose={onClose} />);
+function renderChat(prefill?: string) {
+  return render(<ChatPanel prefill={prefill} />);
 }
-
-const onClose = vi.fn();
 
 /** Type the question and send it, the way a person does. */
 async function ask(question: string) {
@@ -71,7 +69,7 @@ describe("ChatPanel", () => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: { id: "client-1", name: "Elena Rivera", role: "client" } });
     mockUseBankruptcyWorkspace.mockReturnValue({ cases: [makeCase()], updateCase: vi.fn() });
-    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), prefill: "" });
+    mockUseChatPanel.mockReturnValue({ caseData: makeCase() });
     mockUseAiHealth.mockReturnValue({
       data: { available: true, model: "llama3.1:8b" },
       loading: false,
@@ -80,19 +78,22 @@ describe("ChatPanel", () => {
     });
   });
 
-  describe("dialog shell", () => {
-    it("is a modal dialog composed from the governed shell, not a drawer", () => {
+  describe("page shell", () => {
+    it("is a destination with its own heading, not an overlay", () => {
       renderChat();
 
-      const dialog = screen.getByRole("dialog");
-      expect(dialog).toHaveAttribute("aria-modal", "true");
       expect(screen.getByRole("heading", { name: "Asistente de preparación" })).toBeInTheDocument();
+      // The drawer era left a close control behind; leaving a page is what
+      // browser back is for.
+      expect(screen.queryByRole("button", { name: "Cerrar" })).toBeNull();
     });
 
-    it("renders nothing at all while closed", () => {
-      renderChat(false);
+    it("asks for a case when none is resolvable, rather than rendering an assistant with nothing to reason about", () => {
+      mockUseChatPanel.mockReturnValue({ caseData: null });
+      renderChat();
 
-      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(screen.getByText("Abre un expediente para conversar con el asistente.")).toBeInTheDocument();
+      expect(screen.queryByLabelText("Mensaje")).toBeNull();
     });
 
     it("pins the case it is scoped to and the model behind it, so neither scrolls away with the transcript", () => {
@@ -195,8 +196,7 @@ describe("ChatPanel", () => {
 
       fireEvent.click(await screen.findByRole("button", { name: "Abrir la sección recomendada" }));
 
-      expect(mockNavigate).toHaveBeenCalledWith("/case/case-1?focus=chapter-comparison");
-      expect(onClose).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith("/case/case-1/overview");
       // The removed button carried this label from the frontend's locale file.
       // Nothing should render it any more: the only navigable control is the
       // chip above, whose label comes from the backend action.
@@ -256,9 +256,8 @@ describe("ChatPanel", () => {
     });
   });
 
-  it("opens with the section's question already written when a section card asked for it", () => {
-    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), prefill: "¿Qué documentos me faltan?" });
-    renderChat();
+  it("opens with the section's question already written when a section card linked here with one", () => {
+    renderChat("¿Qué documentos me faltan?");
 
     expect(screen.getByLabelText("Mensaje")).toHaveValue("¿Qué documentos me faltan?");
   });

@@ -12,8 +12,10 @@ test("client completes the full 10-step preparation flow (master instruction §2
   await expect(page.getByRole("heading", { name: "Elena Rivera" })).toBeVisible();
   await expect(page.getByTestId("completion-score")).toBeVisible();
 
-  // 3. Ver chat (persistent global panel, Block 7 — not a workspace tab).
-  await page.getByRole("button", { name: "Abrir asistente de preparación" }).click();
+  // 3. Ver asistente. It is a route now, not a floating button and a drawer,
+  // so it is reached by navigating — which is also what lets it be linked to
+  // and survive a reload.
+  await page.goto("/assistant");
   await expect(page.getByRole("heading", { name: "Asistente de preparación" })).toBeVisible();
 
   // 4. Preguntar qué falta.
@@ -141,7 +143,7 @@ test("client flow succeeds on a mobile viewport (§17)", async ({ page }) => {
   await page.getByRole("button", { name: "Continuar", exact: true }).click();
   await expect(page.getByTestId("completion-score")).toBeVisible();
 
-  await page.getByRole("button", { name: "Abrir asistente de preparación" }).click();
+  await page.goto("/assistant");
   await page.getByLabel("Mensaje").fill("¿Qué me falta?");
   await page.getByRole("button", { name: "Enviar", exact: true }).click();
   await expect(page.getByText("La plantilla financiera está completa.", { exact: false })).toBeVisible();

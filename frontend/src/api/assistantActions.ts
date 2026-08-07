@@ -1,3 +1,4 @@
+import { CASE_SECTION, FOCUS_PARAM_TO_SECTION, ROUTES } from "../config/routes";
 import type { AssistantAction } from "../types/bankruptcy";
 
 /**
@@ -52,5 +53,16 @@ export function allowedAssistantActions(actions: AssistantAction[]): AssistantAc
  */
 export function assistantActionHref(caseId: string, action: AssistantAction): string | null {
   if (!isAllowedAssistantAction(action)) return null;
-  return `/case/${encodeURIComponent(caseId)}?focus=${encodeURIComponent(action.resource)}`;
+  // The backend's resource vocabulary predates the workspace's section slugs
+  // and is part of an API contract, so it is translated here rather than
+  // changed — the same map CaseWorkspacePage uses to resolve legacy `?focus=`
+  // links (see config/routes.ts). A resource that survived the allow-list but
+  // has no section falls back to the overview rather than building a path to
+  // a section that does not exist.
+  const section = FOCUS_PARAM_TO_SECTION[action.resource] ?? CASE_SECTION.overview;
+  // Encoded here, not in `ROUTES.caseSection`: that builder's other callers
+  // pass ids they already control, while this one is on the path a
+  // model-authored response reaches. An id like `case/../admin` would
+  // otherwise escape its path segment and resolve to a different route.
+  return ROUTES.caseSection(encodeURIComponent(caseId), section);
 }

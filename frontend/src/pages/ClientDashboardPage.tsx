@@ -8,7 +8,7 @@ import { useChatPanel } from "../chat/ChatPanelContext";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { AppButton } from "../components/ui/AppButton";
 import { CaseTimeline } from "../components/organisms/CaseTimeline";
-import { ROUTES } from "../config/routes";
+import { CASE_SECTION, ROUTES } from "../config/routes";
 import type { CaseAnalysis } from "../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
 import { currency, localCompletion } from "../workspace/caseMetrics";
@@ -25,7 +25,7 @@ export function ClientDashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const workspace = useBankruptcyWorkspace();
-  const { openChat } = useChatPanel();
+  const { openAssistant } = useChatPanel();
   const cases = workspace.cases.filter((item) => item.ownerUserId === user?.id);
   const activeCase = cases[0];
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
@@ -113,7 +113,7 @@ export function ClientDashboardPage() {
               </p>
             </div>
           </div>
-          <AppButton className="primary-action shrink-0" onClick={() => navigate(ROUTES.case(activeCase.id))}>
+          <AppButton className="primary-action shrink-0" onClick={() => navigate(ROUTES.caseSection(activeCase.id, CASE_SECTION.overview))}>
             {t("common:actions.continue")} <AppIcon name="arrow-right" className="ml-2" />
           </AppButton>
         </div>
@@ -122,16 +122,19 @@ export function ClientDashboardPage() {
       {analysisError ? <Alert color="failure">{analysisError}</Alert> : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Chat entry point — opens the persistent chat panel (Block 7), not a page navigation */}
-        <Card className="app-card interactive-card cursor-pointer" onClick={() => openChat()}>
+        {/* Assistant entry point. A card-wide click handler used to sit on the
+            outer Card with a second one on the button inside it, which meant a
+            keyboard user could reach the button but not the card. It is one
+            control now: the button navigates, the card is just its surface. */}
+        <Card className="app-card">
           <div className="flex items-start gap-3">
-            <span className="glade-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"><AppIcon name="chat" /></span>
+            <span className="glade-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"><AppIcon name="assistant" /></span>
             <div className="flex-1">
               <p className="font-semibold text-[var(--color-text)]">{t("workspace:clientDashboard.assistant.title")}</p>
               <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
                 {t("workspace:clientDashboard.assistant.description")}
               </p>
-              <AppButton size="xs" color="light" className="mt-3" onClick={(event) => { event.stopPropagation(); openChat(); }}>{t("workspace:clientDashboard.assistant.openChat")}</AppButton>
+              <AppButton size="xs" color="light" className="mt-3" onClick={() => openAssistant()}>{t("workspace:clientDashboard.assistant.openChat")}</AppButton>
             </div>
           </div>
         </Card>
@@ -212,7 +215,7 @@ export function ClientDashboardPage() {
       <Card className="app-card">
         <h2 className="text-lg font-semibold text-[var(--color-text)]">{t("workspace:clientDashboard.recentActivity")}</h2>
         {recentEvents.length ? <CaseTimeline events={recentEvents} /> : <p className="mt-3 text-sm text-[var(--color-text-muted)]">{t("workspace:clientDashboard.noRecentActivity")}</p>}
-        <AppButton color="light" size="sm" className="mt-2" onClick={() => navigate(ROUTES.case(activeCase.id))}>{t("workspace:clientDashboard.viewFullCase")}</AppButton>
+        <AppButton color="light" size="sm" className="mt-2" onClick={() => navigate(ROUTES.caseSection(activeCase.id, CASE_SECTION.overview))}>{t("workspace:clientDashboard.viewFullCase")}</AppButton>
       </Card>
 
       {cases.length > 1 ? (

@@ -11,36 +11,36 @@ import type { AssistantAction, AssistantResponse } from "../../types/bankruptcy"
 import { useBankruptcyWorkspace } from "../../workspace/BankruptcyWorkspaceContext";
 import { AppIcon } from "../atoms/AppIcon";
 import { AssistantCardView } from "../molecules/AssistantCardView";
-import { AppModal, AppModalBody, AppModalFooterBar } from "../overlays/AppModal";
 import { ChatBubble } from "./ChatBubble";
 import { ChatComposer } from "./ChatComposer";
 
+interface ChatPanelProps {
+  /** Seeds the composer — the assistant route passes `?prompt=` through here. */
+  prefill?: string;
+}
+
 /**
- * The preparation assistant, as a centred dialog composed from the governed
- * modal shell (`overlays/AppModal`) rather than a right-edge Drawer.
+ * The assistant conversation.
  *
- * The Drawer was the wrong container for this content. It capped itself at
- * `sm:max-w-sm md:max-w-md`, so the assistant's cards — a two-column
- * definition list of case figures — were squeezed into ~380px on every screen
- * size, no matter how much room the display had; and below `sm` it took the
- * full width anyway, which is a modal with extra steps. A dialog that is
- * centred and free to use `2xl` gives the transcript and the cards the same
- * reading measure the rest of the workspace uses.
+ * It fills whatever container it is given (`h-full`), so the page shell decides
+ * its size. It used to live inside a right-hand `Drawer` opened by a floating
+ * button, which meant it had no URL: it could not be linked to, did not survive
+ * a reload, and on a phone it was a second navigation surface competing with
+ * the bottom bar. It now renders inside `AssistantPage` at `/assistant`, and
+ * the close control is gone with the drawer — leaving a page is what browser
+ * back is for.
  *
- * `fillHeight` is what makes it usable as a conversation: without it the panel
- * hugs its content, so it would be short on the first turn and grow with every
- * answer, walking the composer down the screen while the user types into it.
- *
- * Everything the shell already owns — portal, focus trap, `role="dialog"`,
- * `aria-modal`, `aria-labelledby`, Escape, outside-click dismissal, background
- * scroll lock — is deliberately not reimplemented here.
+ * Three rows, and only the middle one scrolls: a header that pins the case and
+ * the model behind it, the transcript, and the composer. Sizing the transcript
+ * rather than the page is what keeps the composer where the user left it
+ * instead of walking it down the screen as the conversation grows.
  */
-export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ChatPanel({ prefill = "" }: ChatPanelProps) {
   const { t } = useTranslation("ai");
   const { user } = useAuth();
   const workspace = useBankruptcyWorkspace();
   const navigate = useNavigate();
-  const { caseData, prefill } = useChatPanel();
+  const { caseData } = useChatPanel();
   const aiHealth = useAiHealth();
   const [message, setMessage] = useState(prefill);
   const [guidance, setGuidance] = useState<AssistantResponse | null>(null);
@@ -51,25 +51,24 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
 
   const messages = caseData?.messages ?? [];
 
-  // Section cards open the assistant with the question already written
-  // (CaseWorkspacePage passes it through `openChat`). Keyed on `open` as well
-  // as `prefill` so entering the same section twice re-arms the same question:
-  // keyed on `prefill` alone, the second visit changes nothing and the
-  // composer stays empty.
+  // Section cards link here with the question already written (`?prompt=`).
   useEffect(() => {
-    if (open && prefill) setMessage(prefill);
-  }, [open, prefill]);
+    if (prefill) setMessage(prefill);
+  }, [prefill]);
 
-  // Pin to the newest message. `open` is a dependency because the body does
-  // not exist while the dialog is closed — without it, reopening a
-  // conversation would restore it scrolled to the top.
+  // Pin to the newest message.
   useEffect(() => {
-    if (!open) return;
     const transcript = transcriptRef.current;
     transcript?.scrollTo({ top: transcript.scrollHeight, behavior: "smooth" });
-  }, [open, messages.length, busy]);
+  }, [messages.length, busy]);
 
-  if (!user || !caseData) return null;
+  if (!user || !caseData) {
+    return (
+      <div className="flex h-full items-center justify-center p-6 text-center text-sm text-body">
+        {t("chat.openCaseFirst")}
+      </div>
+    );
+  }
 
   const send = async (text: string) => {
     const trimmed = text.trim();
@@ -111,13 +110,13 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
 
   /**
    * `ask` puts the suggested follow-up in the composer for the user to send.
-   * Navigation types route and close the dialog. No action type mutates the
-   * case: writes are phase 2 and require the signed server-side confirmation
-   * flow, so there is deliberately no default branch that "does something"
-   * with an unrecognized type.
+   * Navigation types route. No action type mutates the case: writes are phase 2
+   * and require the signed server-side confirmation flow, so there is
+   * deliberately no default branch that "does something" with an unrecognized
+   * type.
    *
-   * This is the single handler for every action the assistant offers. The
-   * dialog used to carry a second "open recommended section" button beside the
+   * This is the single handler for every action the assistant offers. The panel
+   * used to carry a second "open recommended section" button beside the
    * composer, which navigated to whichever action happened to be navigable —
    * the same destination one of the chips above it already went to, under a
    * label that named none of them.
@@ -130,69 +129,68 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
     const href = assistantActionHref(caseData.id, action);
     if (!href) return;
     navigate(href);
-    onClose();
   };
 
   const aiReady = aiHealth.data?.available === true;
   const aiOffline = !aiHealth.loading && !aiReady;
 
   return (
-    <AppModal
-      open={open}
-      onClose={onClose}
-      title={t("chat.title")}
-      size="2xl"
-      fillHeight
-      description={
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="min-w-0 truncate font-medium text-heading">{caseData.clientName}</span>
-          <Badge color={aiReady ? "success" : "warning"}>
-            {aiReady ? `${t("chat.ready")} (${aiHealth.data?.model})` : t("chat.offline")}
-          </Badge>
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-default px-5 py-4 sm:px-6">
+        <span className="glade-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white">
+          <AppIcon name="chat" />
         </span>
-      }
-    >
-      <AppModalBody ref={transcriptRef}>
-        <div className="space-y-4">
-          {messages.length ? (
-            messages.map((item) => <ChatBubble key={item.id} message={item} />)
-          ) : (
-            <p className="py-6 text-center text-sm text-body">{t("chat.emptyTranscript")}</p>
-          )}
-
-          {busy ? (
-            <div className="flex items-center gap-2 text-xs text-body">
-              <Spinner size="sm" /> {t("chat.writing")}
-            </div>
-          ) : null}
-
-          {/* Cards and the degraded notice describe the answer immediately
-              above them, so they belong in the transcript flow rather than
-              pinned over the composer where they would outlive it. */}
-          {guidance?.cards.length ? (
-            <div className="space-y-2">
-              {guidance.cards.map((card, index) => (
-                <AssistantCardView key={`${card.card_type}-${index}`} card={card} />
-              ))}
-            </div>
-          ) : null}
-
-          {guidance?.degraded ? <Alert color="info">{t("chat.degradedAnswer")}</Alert> : null}
-
-          {error ? (
-            <Alert color="failure">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span>{error}</span>
-                <button type="button" onClick={retry} className="font-medium underline underline-offset-2">
-                  {t("chat.retry")}
-                </button>
-              </div>
-            </Alert>
-          ) : null}
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-base font-semibold text-heading">{t("chat.title")}</h1>
+          <p className="truncate text-xs text-body">{caseData.clientName}</p>
         </div>
-      </AppModalBody>
+        <Badge color={aiReady ? "success" : "warning"}>
+          {aiReady ? `${t("chat.ready")} (${aiHealth.data?.model})` : t("chat.offline")}
+        </Badge>
+      </header>
 
-      <AppModalFooterBar>
+      <div
+        ref={transcriptRef}
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
+      >
+        {messages.length ? (
+          messages.map((item) => <ChatBubble key={item.id} message={item} />)
+        ) : (
+          <p className="py-6 text-center text-sm text-body">{t("chat.emptyTranscript")}</p>
+        )}
+
+        {busy ? (
+          <div className="flex items-center gap-2 text-xs text-body">
+            <Spinner size="sm" /> {t("chat.writing")}
+          </div>
+        ) : null}
+
+        {/* Cards and the degraded notice describe the answer immediately above
+            them, so they belong in the transcript flow rather than pinned over
+            the composer where they would outlive it. */}
+        {guidance?.cards.length ? (
+          <div className="space-y-2">
+            {guidance.cards.map((card, index) => (
+              <AssistantCardView key={`${card.card_type}-${index}`} card={card} />
+            ))}
+          </div>
+        ) : null}
+
+        {guidance?.degraded ? <Alert color="info">{t("chat.degradedAnswer")}</Alert> : null}
+
+        {error ? (
+          <Alert color="failure">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span>{error}</span>
+              <button type="button" onClick={retry} className="font-medium underline underline-offset-2">
+                {t("chat.retry")}
+              </button>
+            </div>
+          </Alert>
+        ) : null}
+      </div>
+
+      <div className="shrink-0 border-t border-default px-5 py-4 sm:px-6">
         {/* The offline state is a standing condition with a recovery action,
             not a property of the last answer, so it stays pinned with the
             composer instead of scrolling away inside the transcript. */}
@@ -222,7 +220,7 @@ export function ChatPanel({ open, onClose }: { open: boolean; onClose: () => voi
         />
 
         {guidance ? <p className="mt-2 text-xs text-body">{guidance.disclaimer}</p> : null}
-      </AppModalFooterBar>
-    </AppModal>
+      </div>
+    </div>
   );
 }
