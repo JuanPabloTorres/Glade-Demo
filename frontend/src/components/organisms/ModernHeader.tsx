@@ -36,7 +36,7 @@ export function ModernHeader() {
             <AppIcon name="brand" size={25} />
           </span>
           <span className="ml-3 self-center whitespace-nowrap">
-            <span className="block text-lg font-semibold tracking-tight text-heading">FreshStart</span>
+            <span className="block text-lg font-semibold tracking-tight text-heading">Fresh Start</span>
             <span className="block text-xs font-medium text-body">{t("common:app.subtitle")}</span>
           </span>
         </NavbarBrand>

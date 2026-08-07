@@ -154,7 +154,7 @@ export function ModernFooter({ variant = "full" }: ModernFooterProps) {
         <hr className="my-6 border-default lg:my-8" />
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <FooterCopyright href="/" by="FreshStart" year={new Date().getFullYear()} />
+          <FooterCopyright href="/" by="Fresh Start" year={new Date().getFullYear()} />
           <BuildBadges />
         </div>
       </div>

@@ -113,7 +113,7 @@ export function LoginPage() {
                 <AppIcon name="brand" size={30} />
               </span>
               <div>
-                <p className="text-xl font-semibold tracking-[-0.02em]">FreshStart</p>
+                <p className="text-xl font-semibold tracking-[-0.02em]">Fresh Start</p>
                 <p className="text-sm text-white/70">{t("common:app.subtitle")}</p>
               </div>
             </div>
