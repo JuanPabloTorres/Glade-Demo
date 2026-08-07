@@ -70,7 +70,8 @@ Mechanical gates
   npm --prefix frontend run test -- --run   /  build  /  test:e2e
 
 Measured test inventory (count from the tree, do not inherit):
-  backend/tests      24 modules, 176 test functions
+  backend/tests      24 modules, 192 test functions (pytest collects more — parametrized cases
+                     expand; 4.7.0's notes report 219 collected. Compare like with like)
   frontend unit      73 cases
   frontend e2e       4 specs, 21 cases
   NOTE: .claude/agents/qa-release-gate.md still cites a "55 backend / 27 frontend" baseline from an
@@ -189,7 +190,7 @@ authorization facts, and degradation surfaced honestly in the UI.
 - `security-reviewer` has no open findings, or each has a linked fix.
 
 ### Calidad
-- Test counts have not regressed. Measure now (`176` backend functions / `73` frontend / `21` e2e at
+- Test counts have not regressed. Measure now (`192` backend functions / `73` frontend / `21` e2e at
   the time this skill was written) and compare against the last green run, not against the stale
   55/27 baseline in the agent file.
 - `npm run agent:verify -- full` passes — run it, do not assume.
@@ -391,7 +392,7 @@ release-readiness-gate
 `documents.py:40/49` and `test_case_ownership.py`; rate limiting verified at
 `core/security.py` and `routers/auth.py` with `test_login_rate_limit.py`; the AI audit's ten checks
 with citations; a visual grid with forty screenshots; `agent:verify -- full` output; measured counts
-of 176/73/21; two known limitations named; and CONDITIONAL GO with one exception — the registered
+of 192/73/21; two known limitations named; and CONDITIONAL GO with one exception — the registered
 `AttorneyDashboardPage` overflow, which the demo script should route around.
 
 **Incorrect.** "NO-GO — case ownership and login rate limiting are missing per the grounded-state

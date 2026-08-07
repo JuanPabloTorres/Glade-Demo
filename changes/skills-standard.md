@@ -53,10 +53,11 @@ Stale claims corrected, each re-derived against the current tree:
   and `routers/documents.py:40,49` with `test_case_ownership.py`; rate limiting spans
   `core/config.py`, `core/security.py`, `routers/auth.py` and `main.py` with
   `test_login_rate_limit.py`. Repeating them would have produced a false NO-GO.
-- `release-readiness-gate` cited a 55 backend / 27 frontend test baseline. Measured now: 176 backend
-  test functions across 24 modules, 73 frontend unit cases, 21 e2e cases. The skill now instructs
-  measuring rather than inheriting, and flags that `.claude/agents/qa-release-gate.md` still carries
-  the old numbers.
+- `release-readiness-gate` cited a 55 backend / 27 frontend test baseline. Measured on the rebased
+  tree: 192 backend test functions across 24 modules, 73 frontend unit cases, 21 e2e cases. The
+  skill now instructs measuring rather than inheriting, notes that pytest collects more than the
+  function count because parametrized cases expand (4.7.0 reports 219 collected), and flags that
+  `.claude/agents/qa-release-gate.md` still carries the old numbers.
 - `design-system-audit` claimed only `--color-*` tokens exist and named icon-registry and hardcoded
   -copy violations that have since been fixed. Measured now: `--font-size/weight/leading-*` and
   `--space-1..10` both exist; icon-registry bypasses are 0; the tag-level hardcoded-copy heuristic

@@ -1,3 +1,35 @@
+# FreshStart 4.7.1
+
+The skills agents load before touching this repository now describe the repository that exists.
+
+## Nineteen contracts instead of nineteen paragraphs
+
+`.claude/skills/*/SKILL.md` was the thinnest layer in the governance system: 281 lines across nineteen files, most of them a title and one paragraph of imperatives. `start-change` said "populate owned/shared paths" without saying that two agents claiming one path is rejected at registration, or that `changes/<task-id>.md` is claimed rather than `changes/**`. An agent loading it learned the step and not the reason, which is how the same collisions kept happening.
+
+Each skill is now an operational contract: what it owns and does not own, when *not* to use it, numbered invariants, the searches to run before editing, a decision framework, the commands that actually validate the work, and worked examples taken from this codebase — including the wrong ones. 6,397 lines, derived by reading the agent scripts, the hooks, the contract registry, the repository protocols, the AI runtime, the component inventory, the locale validator and the test suite, then verifying that every path, command and enum cited exists.
+
+## The corrections matter more than the length
+
+Four skills were confidently describing a system that had moved on, and two of those errors were load-bearing.
+
+`release-readiness-gate` listed absent case ownership and absent login rate limiting as confirmed blockers. Both have been present for several releases — `CaseAccessDep` is wired into the bankruptcy and documents routers, and the rate limiter spans config, security, the auth router and app startup, each with its own test. A gate that repeats a fixed blocker withholds a shippable release, and it costs exactly as much trust as one that waves a broken one through.
+
+`ai-context-audit` searched for `backend/app/ai/providers/ollama_provider.py`, which ADR 0002 removed; Ollama has been a model behind `AgentRuntime` since 4.0.0. It also described RAG as possibly ingestion-only, when `bankruptcy_service.py` calls `CaseDocumentIndex.search` and feeds the result into the case context. Both checks were re-derived against the current layout, and four more added: allow-list mirroring between server and client, role redaction at specialist construction, the bounded agent loop with its lazy `strands` import, and whether injection and cross-case isolation are pinned by tests at all.
+
+`design-system-audit` claimed only colour tokens existed and named icon-registry and hardcoded-copy violations that have since been migrated. Measured against the tree: the typography and spacing scales both exist, icon-registry bypasses are zero, and the hardcoded-copy heuristic returns nothing. What it found instead were four unregistered hex literals in `CaseWorkspacePage` and `LoginPage` — real drift that no mechanical rule covers, because `flowbite-check` enforces four specific rules and hardcoded colours is not one of them. Four checks were added for exactly that gap.
+
+Stale test baselines were replaced with measured ones — 192 backend test functions across 24 modules, 73 frontend unit cases, 21 end-to-end cases — against a checklist still citing 55 and 27. Both audit skills now instruct the reader to re-measure, to compare like with like (pytest collects 219 because parametrized cases expand past the function count), and to say so when the numbers no longer match. A baseline written into a document is a claim with an expiry date.
+
+## Boundaries made explicit
+
+`visual-qa` and `visual-acceptance` had drifted into near-duplicates. They are now separated on the axis that matters: change-scoped and run by the implementer, versus app-wide and run independently before a release verdict. Both files say so, and both say that running one does not satisfy the other.
+
+## Limitations
+
+`.claude/agents/*.md` were not touched. `qa-release-gate.md` still carries the 55/27 baseline and still asks for an Ollama test phrased for the pre-ADR-0002 provider layout; that is a follow-up. `docs/flows/` is referenced by `CLAUDE.md` and by `create-feature-flow` but does not exist yet — the skill states this rather than implying otherwise. No new skills were created; the catalog records which responsibilities have no first-class owner (authentication and JWT, document upload and RAG ingestion as a domain, test authoring) instead of inventing files to complete a taxonomy.
+
+Nothing in this release changes what the application does at runtime.
+
 # FreshStart 4.7.0
 
 Three defects a real transcript exposed. Together they made the assistant look like it was answering at random and showing nothing worth reading — and all three sat on the deterministic path, which is what every default deployment actually runs.
