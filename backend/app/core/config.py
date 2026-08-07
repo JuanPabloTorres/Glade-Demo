@@ -2,7 +2,7 @@ import logging
 from functools import lru_cache
 from typing import ClassVar
 
-from pydantic import model_validator
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -71,15 +71,27 @@ class Settings(BaseSettings):
     # required, only the connection string and driver.
     database_url: str = "sqlite:///./data/freshstart.db"
 
-    # AI provider selection (master instruction §7.2): "rule_based" (default,
-    # deterministic, no network/model dependency), "ollama", or "transformers".
+    # AI provider selection (ADR 0002). Four values:
+    #   rule_based   — default. Deterministic, no network, no model. Always
+    #                  available and always the fallback for the others.
+    #   openai       — Strands orchestration against OpenAI. Requires
+    #                  OPENAI_API_KEY; sends reduced case context off-host.
+    #   ollama       — Strands orchestration against a local Ollama server.
+    #                  No egress. This replaces the removed OllamaProvider,
+    #                  which only ever rephrased a deterministic draft.
+    #   transformers — local rephrase-only provider, unchanged.
     # Never hardcode a model id here beyond these defaults — override via env.
     ai_provider: str = "rule_based"
     ai_model_id: str = "Qwen/Qwen3-0.6B"
     ai_max_new_tokens: int = 180
+    # Shared by both Strands model providers (ModelFactory). Temperature is
+    # low by default because this assistant reports figures it was handed and
+    # must not embellish them.
+    ai_temperature: float = 0.2
+    ai_max_output_tokens: int = 1500
+    openai_api_key: SecretStr | None = None
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen3:4b"
-    ollama_timeout_ms: int = 60000
     ollama_embedding_model: str = "nomic-embed-text"
 
     @property

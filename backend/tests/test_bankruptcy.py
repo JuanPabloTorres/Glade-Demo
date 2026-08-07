@@ -1,5 +1,9 @@
 from fastapi.testclient import TestClient
 
+from app.ai.contracts.assistant_response import ALLOWED_ACTION_RESOURCES, AssistantActionType
+
+ALLOWED_ACTION_TYPES = {member.value for member in AssistantActionType}
+
 
 def sample_case() -> dict[str, object]:
     return {
@@ -102,8 +106,12 @@ def test_guidance_asks_for_missing_section(client: TestClient) -> None:
         },
     )
     assert response.status_code == 200
-    assert response.json()["focus_section"] == "debts-assets"
-    assert "bienes" in response.json()["message"].casefold()
+    payload = response.json()
+    assert "bienes" in payload["message"].casefold()
+    # The deterministic draft's focus section survives the 4.0.0 contract
+    # change as the resource an action points at — the workspace section
+    # vocabulary did not change, only where it is carried.
+    assert any(action["resource"] == "debts-assets" for action in payload["actions"])
 
 
 def test_guidance_returns_structured_actions(client: TestClient) -> None:
@@ -113,13 +121,33 @@ def test_guidance_returns_structured_actions(client: TestClient) -> None:
     )
     assert response.status_code == 200
     payload = response.json()
-    assert isinstance(payload["suggested_actions"], list)
-    for action in payload["suggested_actions"]:
-        assert {"id", "label", "icon", "action_type"} <= action.keys()
-        assert action["action_type"] == "ask"
-    # New AssistantResponse fields (Block 9) are present even when empty/default.
-    for field in ("intent", "requested_fields", "requested_documents", "warnings", "summary_updates", "requires_attorney_review"):
+    assert isinstance(payload["actions"], list)
+    for action in payload["actions"]:
+        assert {"id", "label", "icon", "action_type", "resource"} <= action.keys()
+        assert action["action_type"] in ALLOWED_ACTION_TYPES
+        assert action["resource"] in ALLOWED_ACTION_RESOURCES
+    for field in ("language", "handled_by", "cards", "warnings", "requires_attorney_review", "degraded", "disclaimer"):
         assert field in payload
+
+
+def test_guidance_without_a_model_is_deterministic_and_disclaims(client: TestClient) -> None:
+    """The default deployment (AI_PROVIDER=rule_based) has no agent layer.
+
+    It must still answer — never 5xx, never an empty body — and must still
+    carry the disclaimer. `degraded` is how the contract admits the answer
+    did not come from the agent layer, instead of silently passing a
+    deterministic draft off as a model response.
+    """
+    response = client.post(
+        "/api/v1/bankruptcy/guide",
+        json={"case": sample_case(), "message": "¿Qué me falta?", "role": "client", "locale": "es"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["degraded"] is True
+    assert payload["handled_by"] == "deterministic"
+    assert payload["message"].strip()
+    assert "no es asesoramiento legal" in payload["disclaimer"]
 
 
 def test_guidance_guardrail_forces_attorney_review(client: TestClient) -> None:

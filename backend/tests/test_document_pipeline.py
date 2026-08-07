@@ -17,6 +17,7 @@ from __future__ import annotations
 import pytest
 
 from app.ai.providers.rule_based import RuleBasedProvider
+from app.ai.runtime import AgentRuntime
 from app.core.config import get_settings
 from app.schemas.assistant import CaseContextDto
 from app.schemas.bankruptcy import BankruptcyCaseDto, GuidanceRequestDto
@@ -183,8 +184,17 @@ class TestCaseDocumentIndexIsolationThroughGuidanceFlow:
         index.add_document("case-b", ["Miguel tiene una deuda hipotecaria de $150,000 en mora."])
 
         provider = self._CapturingProvider()
+        # The capturing provider goes in as the runtime's deterministic
+        # floor, which AgentRuntime computes on every request — so this still
+        # observes the exact CaseContextDto the service built, without a
+        # model. Settings default to AI_PROVIDER=rule_based, so the agent
+        # path is never entered.
         service = BankruptcyGuidanceService(
-            get_settings(), provider=provider, document_index=index
+            get_settings(),
+            runtime=AgentRuntime(
+                settings=get_settings(), document_index=index, fallback=provider
+            ),
+            document_index=index,
         )
 
         case_a = BankruptcyCaseDto(

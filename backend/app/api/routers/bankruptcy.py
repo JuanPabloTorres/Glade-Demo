@@ -2,13 +2,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.ai.contracts.assistant_response import AssistantResponse
 from app.core.config import Settings, get_settings
 from app.core.contracts import get_contract_registry
 from app.core.security import CurrentUserDep
 from app.domain.value_objects import TimelineEventType
 from app.repositories.ai_conversation_repository import AIConversationRepositoryDep
 from app.repositories.case_repository import CaseRepositoryDep
-from app.schemas.assistant import AssistantResponse
 from app.schemas.bankruptcy import (
     CaseAnalysisDto,
     CaseAnalysisRequestDto,

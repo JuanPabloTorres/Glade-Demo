@@ -1,6 +1,6 @@
 [project]
 name = "freshstart-bankruptcy-api"
-version = "3.1.0"
+version = "4.0.0"
 description = "FreshStart bankruptcy intake, financial organization, and attorney collaboration API"
 requires-python = ">=3.13"
 dependencies = [
@@ -22,6 +22,21 @@ ai = [
   "transformers>=4.55,<5.0",
   "sentence-transformers>=5.0,<6.0",
   "accelerate>=1.10,<2.0",
+]
+# Strands Agents orchestration layer (ADR-0007). Optional, exactly like the
+# `ai` extra above and for the same reason: the trimmed Vercel function must
+# stay importable without it. `app.ai.agents` lazy-imports strands, and
+# AgentRuntime degrades to the deterministic RuleBasedProvider when the
+# import fails, so an install without this extra is a supported configuration,
+# not a broken one.
+#
+# `strands-agents-tools` is deliberately NOT included: it is the SDK's
+# prebuilt tool catalogue (shell access, file I/O, Slack, AWS) and pulls
+# slack-bolt/boto3/sympy/watchdog with it. Every tool this app exposes is
+# written locally in app/ai/tools and bound to an authorized case — a generic
+# shell/file tool catalogue is precisely what must never reach these agents.
+agents = [
+  "strands-agents[openai,ollama]>=1.50,<2.0",
 ]
 # Document ingestion (master instruction §7.5): Docling primary, PyMuPDF PDF
 # fallback, python-docx/openpyxl for Office formats. Tesseract OCR is
