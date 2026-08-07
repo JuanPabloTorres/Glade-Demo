@@ -234,6 +234,19 @@ test.describe("no horizontal overflow across the responsive range", () => {
  * still reserving a column), that the mobile chrome is reachable by thumb,
  * and that the two navigation surfaces never appear at once.
  */
+/**
+ * The bottom bar, isolated from the sidebar.
+ *
+ * Both surfaces expose a `navigation` landmark under the same accessible name,
+ * which is correct — they are the same navigation, and only ever one of them is
+ * in the accessibility tree at a time (`md:hidden` on one, `hidden md:flex` on
+ * the other). But `getByRole` searches the whole DOM, so at desktop the name
+ * resolves to the sidebar's `<nav>` and an assertion about the bottom bar
+ * silently measures the wrong element. The sidebar's lives inside `<aside>`;
+ * this one does not.
+ */
+const BOTTOM_NAV = "nav[aria-label='Navegación principal']:not(aside nav)";
+
 test.describe("mobile shell contract", () => {
   const MOBILE = 390;
   const DESKTOP = 1024;
@@ -261,7 +274,7 @@ test.describe("mobile shell contract", () => {
     await page.setViewportSize({ width: MOBILE, height: 900 });
     await loginAs(page, "cliente");
 
-    const bottomNav = page.getByRole("navigation", { name: "Navegación principal" });
+    const bottomNav = page.locator(BOTTOM_NAV);
     await expect(bottomNav).toBeVisible();
 
     const targets = bottomNav.locator("a, button");
@@ -291,6 +304,6 @@ test.describe("mobile shell contract", () => {
     await expect(page.getByRole("heading", { name: "Así va tu expediente." })).toBeVisible();
 
     await expect(page.locator("aside")).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Navegación principal" })).toBeHidden();
+    await expect(page.locator(BOTTOM_NAV)).toBeHidden();
   });
 });

@@ -68,7 +68,11 @@ test.describe("Assistant route", () => {
 
     await page.getByLabel("Mensaje").fill("¿Qué documentos me faltan?");
     await page.getByRole("button", { name: "Enviar", exact: true }).click();
-    await expect(page.getByText("La plantilla financiera está completa.", { exact: false })).toBeVisible();
+    // The reply is about documents, because that is what was asked — the
+    // deterministic draft branches on the message now, not only on case state.
+    await expect(
+      page.getByText(/documentos? pendientes?|documento\(s\) pendiente\(s\)/i).first(),
+    ).toBeVisible();
 
     // Two new bubbles arrived. If the page grew instead of the transcript, the
     // input the user is typing into would have walked down the screen.

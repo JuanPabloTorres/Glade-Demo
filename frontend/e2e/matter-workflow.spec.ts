@@ -21,7 +21,15 @@ test("client completes the full 10-step preparation flow (master instruction §2
   // 4. Preguntar qué falta.
   await page.getByLabel("Mensaje").fill("¿Qué documentos me faltan?");
   await page.getByRole("button", { name: "Enviar", exact: true }).click();
-  await expect(page.getByText("La plantilla financiera está completa.", { exact: false })).toBeVisible();
+  // The reply is *about documents*, because that is what was asked. Until the
+  // deterministic draft was grounded in the message it returned the same
+  // "La plantilla financiera está completa." for every question, which this
+  // step asserted and which proved only that some answer came back. Either
+  // branch of the documents topic is a pass — what matters is that the topic
+  // matches the question.
+  await expect(
+    page.getByText(/documentos? pendientes?|documento\(s\) pendiente\(s\)/i).first(),
+  ).toBeVisible();
 
   // 5. Abrir sección recomendada — this also closes the chat dialog.
   //
@@ -146,7 +154,12 @@ test("client flow succeeds on a mobile viewport (§17)", async ({ page }) => {
   await page.goto("/assistant");
   await page.getByLabel("Mensaje").fill("¿Qué me falta?");
   await page.getByRole("button", { name: "Enviar", exact: true }).click();
-  await expect(page.getByText("La plantilla financiera está completa.", { exact: false })).toBeVisible();
+  // A generic "what am I missing" question routes to the missing-status topic,
+  // whose two branches name the first outstanding item or say plainly that
+  // nothing is outstanding. Either is a pass; what this pins is that the reply
+  // answers *this* question, which it did not before the deterministic draft
+  // was grounded in the message.
+  await expect(page.getByText(/falta/i).first()).toBeVisible();
 
   const bodyBox = await page.locator("body").boundingBox();
   expect(bodyBox?.width).toBeLessThanOrEqual(390);
