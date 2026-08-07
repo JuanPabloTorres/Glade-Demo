@@ -1,3 +1,32 @@
+# FreshStart 4.6.1
+
+Two defects a live run against Groq exposed. Both were invisible until a strict provider was pointed at this layer, and both made the agent look broken for reasons nothing in the response explained.
+
+## The agent was being asked to invent an identifier
+
+Half the turns degraded on one error:
+
+```
+tool call validation failed: parameters for tool AgentAnswer did not match
+schema: errors: [`/actions/0`: missing properties: 'id']
+```
+
+`AssistantAction.id` was a required field. It is a React list key — it carries no meaning a model could know, so requiring it made the model guess. Providers differ in how strictly they validate structured output, which meant the agent path worked or failed depending on which vendor was configured, and the failure surfaced as a silent degrade rather than an error.
+
+The field is optional now, and `AgentRuntime` assigns it after the allow-list filter, so the numbering has no gaps and a model that did supply one keeps it.
+
+## The header contradicted the answer under it
+
+`/ai/health` reported `ai_model_id` on the OpenAI path — the transformers provider's setting, defaulting to a HuggingFace repo id. The run answered with `llama-3.3-70b-versatile` through Groq while the endpoint said `Qwen/Qwen3-0.6B`, and the chat header renders that value. Same root cause as the `ModelFactory` fix in 4.5.0, in the one place that had been missed.
+
+## Evidence
+
+A real run through the agent layer against Groq (`llama-3.3-70b-versatile`): **4 of 8 turns answered by real specialists** — `documents_agent`, `analysis_agent`, `case_agent` — with `degraded: false`. Every one of the four that degraded failed on the missing-`id` error above.
+
+This is the first time this layer has run against a hosted provider. `docs/evidence/live-agent-turns.json` still records the Ollama run; `live_agent_turns.py` is provider-agnostic now, since it hardcoded the one path the deployed demo does not use.
+
+Backend 200 tests, `ruff` and `mypy` clean.
+
 # FreshStart 4.6.0
 
 The demo runs its agent and keeps its data without a paid account. Two blockers, both one variable away once the code supports them.
