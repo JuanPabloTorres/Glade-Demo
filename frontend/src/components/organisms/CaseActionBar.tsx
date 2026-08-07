@@ -1,6 +1,8 @@
+import type { TFunction } from "i18next";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppIcon } from "../atoms/AppIcon";
+import { ActionGroup } from "../ui/ActionGroup";
 import { AppButton } from "../ui/AppButton";
 import { AppModal, AppModalBody, AppModalFooter } from "../overlays/AppModal";
 import { SelectField, TextField, TextareaField } from "../forms/fields";
@@ -29,24 +31,47 @@ function timestampNote(label: string, body: string): string {
   return `[${formatDate(new Date())}] ${label}: ${body}`;
 }
 
-function draftSummary(caseData: BankruptcyCase, analysis: CaseAnalysis | null): string {
-  const lines = [
-    `Resumen del caso — ${caseData.clientName}`,
-    `Objetivo declarado: ${caseData.clientGoal || "No especificado"}`,
-    `Hogar: ${caseData.household.householdSize} persona(s), ${caseData.household.dependents} dependiente(s), vivienda: ${caseData.household.housingStatus ?? "no especificada"}.`,
-    `Ingreso neto mensual: ${analysis ? `$${analysis.monthly_net_income.toFixed(2)}` : "pendiente de análisis"}.`,
-    `Gastos mensuales: ${analysis ? `$${analysis.monthly_expenses.toFixed(2)}` : "pendiente de análisis"}.`,
-    `Flujo disponible: ${analysis ? `$${analysis.monthly_cash_flow.toFixed(2)}` : "pendiente de análisis"}.`,
-    `Deuda total: ${analysis ? `$${analysis.total_debt.toFixed(2)}` : "pendiente de análisis"}.`,
-    `Bienes: ${caseData.assets.length} registrado(s).`,
-    `Urgencias: ${caseData.household.urgentCollectionAction ? "Sí — cobro urgente reportado." : "Ninguna reportada."}`,
-    `Documentos recibidos: ${caseData.evidence.filter((item) => item.status !== "requested" && item.status !== "missing").length} de ${caseData.evidence.length} registrados.`,
-    analysis?.warnings.length ? `Alertas: ${analysis.warnings.join("; ")}` : "Alertas: ninguna detectada.",
+/**
+ * Composes the attorney's draft summary through `t()`.
+ *
+ * Every line of this document used to be a hardcoded Spanish template literal,
+ * so an English session opened "Generate summary" and got a Spanish document —
+ * one of the clearest cases of the mixed-language symptom, and invisible to the
+ * locale-file parity check because none of the text lived in a locale file.
+ * The `t` function is passed in rather than read from a hook so this stays a
+ * pure function and can be unit-tested against both languages.
+ */
+function draftSummary(t: TFunction, caseData: BankruptcyCase, analysis: CaseAnalysis | null): string {
+  const pending = t("workspace:actionBar.summary.pendingAnalysis");
+  const money = (value: number | undefined) => (analysis && value !== undefined ? `$${value.toFixed(2)}` : pending);
+  const received = caseData.evidence.filter((item) => item.status !== "requested" && item.status !== "missing").length;
+
+  return [
+    t("workspace:actionBar.summary.lines.heading", { client: caseData.clientName }),
+    t("workspace:actionBar.summary.lines.goal", { goal: caseData.clientGoal || t("workspace:actionBar.summary.notSpecified") }),
+    t("workspace:actionBar.summary.lines.household", {
+      size: caseData.household.householdSize,
+      dependents: caseData.household.dependents,
+      housing: caseData.household.housingStatus ?? t("workspace:actionBar.summary.notSpecified"),
+    }),
+    t("workspace:actionBar.summary.lines.netIncome", { amount: money(analysis?.monthly_net_income) }),
+    t("workspace:actionBar.summary.lines.expenses", { amount: money(analysis?.monthly_expenses) }),
+    t("workspace:actionBar.summary.lines.cashFlow", { amount: money(analysis?.monthly_cash_flow) }),
+    t("workspace:actionBar.summary.lines.totalDebt", { amount: money(analysis?.total_debt) }),
+    t("workspace:actionBar.summary.lines.assets", { count: caseData.assets.length }),
+    t("workspace:actionBar.summary.lines.urgency", {
+      detail: caseData.household.urgentCollectionAction
+        ? t("workspace:actionBar.summary.urgencyReported")
+        : t("workspace:actionBar.summary.urgencyNone"),
+    }),
+    t("workspace:actionBar.summary.lines.documents", { received, total: caseData.evidence.length }),
+    analysis?.warnings.length
+      ? t("workspace:actionBar.summary.lines.warnings", { warnings: analysis.warnings.join("; ") })
+      : t("workspace:actionBar.summary.lines.warningsNone"),
     "",
-    "Preguntas para la consulta:",
-    ...(analysis?.discussion_points.slice(0, 5).map((item) => `- ${item}`) ?? ["- Pendiente de análisis."]),
-  ];
-  return lines.join("\n");
+    t("workspace:actionBar.summary.lines.questionsHeading"),
+    ...(analysis?.discussion_points.slice(0, 5).map((item) => `- ${item}`) ?? [`- ${pending}`]),
+  ].join("\n");
 }
 
 /**
@@ -114,7 +139,9 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
         {
           id: `timeline-${crypto.randomUUID()}`,
           stage: "consultation_scheduled",
-          title: "Consulta programada",
+          // Was the hardcoded Spanish "Consulta programada" — it reached the
+          // case timeline, which both roles read, in either language.
+          title: t("workspace:actionBar.timeline.consultationScheduled"),
           description: consultationDate
             ? t("workspace:actionBar.timeline.consultationScheduledFor", { date: consultationDate })
             : t("workspace:actionBar.timeline.consultationScheduled"),
@@ -151,25 +178,53 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
     { kind: "add-note", label: t("workspace:actions.addNote"), icon: "document", onClick: () => setOpenAction("add-note") },
     { kind: "schedule-consultation", label: t("workspace:actions.scheduleConsultation"), icon: "timeline", onClick: () => setOpenAction("schedule-consultation") },
     { kind: "assign-attorney", label: t("workspace:actions.assignAttorney"), icon: "attorney", onClick: () => setOpenAction("assign-attorney") },
-    { kind: "generate-summary", label: t("workspace:actions.generateSummary"), icon: "calculator", onClick: () => { setSummaryDraft(draftSummary(caseData, analysis)); setOpenAction("generate-summary"); } },
+    { kind: "generate-summary", label: t("workspace:actions.generateSummary"), icon: "calculator", onClick: () => { setSummaryDraft(draftSummary(t, caseData, analysis)); setOpenAction("generate-summary"); } },
     { kind: "message-client", label: t("workspace:actions.messageClient"), icon: "chat", onClick: () => setOpenAction("message-client") },
   ];
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
-        {actions.map((action) => (
-          <AppButton key={action.kind} size="xs" color="light" onClick={action.onClick}>
-            <AppIcon name={action.icon} size={15} className="mr-1.5" /> {action.label}
-          </AppButton>
-        ))}
-        <AppButton size="xs" color={caseData.household.urgentCollectionAction ? "failure" : "light"} onClick={onMarkUrgent}>
-          <AppIcon name="alert" size={15} className="mr-1.5" /> {caseData.household.urgentCollectionAction ? t("workspace:actions.removeUrgency") : t("workspace:actions.markUrgent")}
-        </AppButton>
-        <AppButton size="xs" color="light" onClick={onOpenAttorneyReviewTab}>
-          <AppIcon name="check" size={15} className="mr-1.5" /> {t("workspace:actions.changeStatus")}
-        </AppButton>
-      </div>
+      {/*
+        Nine equal buttons used to wrap here into three ragged rows on a laptop
+        and a column of full-width blocks on a phone, with no indication which
+        one an attorney actually reaches for. Requesting a document is that
+        action, so it is the only one that keeps a click of its own; the rest
+        move behind the menu, which is portaled and so is not clipped by the
+        card this bar sits in.
+      */}
+      <ActionGroup
+        align="start"
+        primary={{
+          id: "request-document",
+          label: t("workspace:actions.requestDocument"),
+          icon: "evidence",
+          onClick: () => setOpenAction("request-document"),
+        }}
+        actions={[
+          ...actions
+            .filter((action) => action.kind !== "request-document")
+            .map((action) => ({
+              id: action.kind,
+              label: action.label,
+              icon: action.icon,
+              onClick: action.onClick,
+            })),
+          {
+            id: "urgency",
+            label: caseData.household.urgentCollectionAction
+              ? t("workspace:actions.removeUrgency")
+              : t("workspace:actions.markUrgent"),
+            icon: "alert" as const,
+            onClick: onMarkUrgent,
+          },
+          {
+            id: "change-status",
+            label: t("workspace:actions.changeStatus"),
+            icon: "check" as const,
+            onClick: onOpenAttorneyReviewTab,
+          },
+        ]}
+      />
 
       {/* Every action below composes the shared AppModal. They previously
           repeated Flowbite's dialog markup with `flex items-center` footers, so

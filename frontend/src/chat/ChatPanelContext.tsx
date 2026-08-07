@@ -1,15 +1,48 @@
-import { createContext, type ReactNode, useCallback, useContext, useMemo } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthContext";
 import { ASSISTANT_CASE_PARAM, assistantUrl } from "../config/routes";
 import type { BankruptcyCase } from "../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
 
+/**
+ * Panel lifecycle. `minimized` is a distinct state from `closed` on purpose:
+ * closing is "I am done", minimizing is "keep this, I need the page" — and the
+ * two must not collapse into one, or minimizing throws away a conversation the
+ * user intended to come back to.
+ */
+export type AssistantStatus = "closed" | "open" | "minimized";
+
+/**
+ * What the assistant knows about where the user is, derived from the route.
+ *
+ * This is the whole "assistant receives context from the current area"
+ * mechanism. It is read from the URL in this provider rather than pushed up by
+ * each page, so no page has to know the assistant exists and none of them can
+ * disagree about what is currently open.
+ */
+export interface AssistantRouteContext {
+  route: string;
+  entityType: "case" | null;
+  entityId: string | null;
+  /** Case-workspace section slug (`documents`, `debts`, …) when on one. */
+  section: string | null;
+}
+
 interface ChatPanelContextValue {
   /** The case the assistant is scoped to — null if none is resolvable (e.g. an attorney with no case open). */
   caseData: BankruptcyCase | null;
-  /** Navigates to the assistant, optionally seeding the composer. */
+  /** Navigates to the assistant page, optionally seeding the composer. */
   openAssistant: (prefill?: string) => void;
+  /** Where the user currently is, for the assistant to reason about. */
+  routeContext: AssistantRouteContext;
+  status: AssistantStatus;
+  /** Opens the global panel in place — no navigation. Optionally seeds the composer. */
+  openPanel: (prefill?: string) => void;
+  minimizePanel: () => void;
+  closePanel: () => void;
+  /** Composer seed handed to the panel when it is opened from a suggestion. */
+  panelPrefill: string;
 }
 
 const ChatPanelContext = createContext<ChatPanelContextValue | null>(null);
@@ -66,7 +99,32 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
     [navigate, caseData?.id, routeCaseId],
   );
 
-  const value = useMemo(() => ({ caseData, openAssistant }), [caseData, openAssistant]);
+  const [status, setStatus] = useState<AssistantStatus>("closed");
+  const [panelPrefill, setPanelPrefill] = useState("");
+
+  const openPanel = useCallback((prefill?: string) => {
+    if (prefill) setPanelPrefill(prefill);
+    setStatus("open");
+  }, []);
+  const minimizePanel = useCallback(() => setStatus("minimized"), []);
+  const closePanel = useCallback(() => setStatus("closed"), []);
+
+  // Derived, not stored: the route is already the source of truth for where
+  // the user is, so there is nothing here to keep in sync.
+  const routeContext = useMemo<AssistantRouteContext>(() => {
+    const caseMatch = location.pathname.match(/^\/case\/([^/]+)(?:\/([^/]+))?/);
+    return {
+      route: location.pathname,
+      entityType: caseMatch ? "case" : null,
+      entityId: caseMatch?.[1] ?? null,
+      section: caseMatch?.[2] ?? null,
+    };
+  }, [location.pathname]);
+
+  const value = useMemo(
+    () => ({ caseData, openAssistant, routeContext, status, openPanel, minimizePanel, closePanel, panelPrefill }),
+    [caseData, openAssistant, routeContext, status, openPanel, minimizePanel, closePanel, panelPrefill],
+  );
 
   return <ChatPanelContext.Provider value={value}>{children}</ChatPanelContext.Provider>;
 }

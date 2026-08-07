@@ -80,7 +80,7 @@ export function BottomNavigation() {
   return (
     <nav
       aria-label={t("navigation:bottomNav.label")}
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-nav px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden"
     >
       <ul className="pointer-events-auto mx-auto grid h-[4.5rem] w-full max-w-lg grid-cols-5 items-stretch rounded-full border border-default bg-neutral-primary-soft shadow-[0_10px_30px_rgba(15,23,42,0.16)]">
         {slots.map((item) => {

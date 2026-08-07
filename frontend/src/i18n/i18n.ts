@@ -68,28 +68,33 @@ const resources = {
 void i18n.use(initReactI18next).init({
   resources,
   lng: DEFAULT_LANGUAGE,
-  fallbackLng: DEFAULT_LANGUAGE,
+  /**
+   * No cross-language fallback, deliberately.
+   *
+   * This used to be `fallbackLng: DEFAULT_LANGUAGE` — Spanish. Any key missing
+   * from `en` therefore rendered its Spanish string instead, which is precisely
+   * how mixed-language screens survived: the defect looked like a translation
+   * that existed, so nobody went looking for it. Parity is guaranteed ahead of
+   * this by `scripts/validate-locales.mjs` (a build gate), so switching the
+   * fallback off costs nothing at runtime and makes any future gap loud.
+   */
+  fallbackLng: false,
+  // Turns a gap that slipped past the gate into a console error during
+  // development instead of a silently plausible screen.
+  saveMissing: import.meta.env.DEV,
+  missingKeyHandler: import.meta.env.DEV
+    ? (languages, namespace, key) => {
+        console.error(`[i18n] missing key "${namespace}:${key}" for ${languages.join(", ")}`);
+      }
+    : undefined,
   interpolation: {
     escapeValue: false,
   },
   defaultNS: "common",
-  ns: [
-    "common",
-    "auth",
-    "navigation",
-    "dashboard",
-    "forms",
-    "help",
-    "tables",
-    "validation",
-    "errors",
-    "users",
-    "reports",
-    "settings",
-    "ai",
-    "workspace",
-    "help",
-  ],
+  // Derived from the resource bundle rather than restated: the hand-written
+  // list had drifted (it declared "help" twice and could omit a namespace that
+  // was actually loaded).
+  ns: Object.keys(resources.es),
 });
 
 export { i18n };

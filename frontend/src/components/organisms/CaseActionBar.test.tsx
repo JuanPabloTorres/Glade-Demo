@@ -31,6 +31,25 @@ function makeCase(overrides: Partial<BankruptcyCase> = {}): BankruptcyCase {
   };
 }
 
+/**
+ * The bar renders a single `ActionGroup` now, not nine flat buttons: requesting
+ * a document is the primary segment, everything else is behind the menu. These
+ * helpers express that so each test still asserts on behaviour rather than on
+ * the markup that produces it.
+ */
+function openMenu() {
+  // The trigger toggles, so clicking an already-open menu would close it —
+  // open only when it is not on screen yet.
+  if (!screen.queryByRole("menu")) {
+    fireEvent.click(screen.getByRole("button", { name: /Más acciones/ }));
+  }
+  return screen.getByRole("menu");
+}
+
+function clickMenuItem(name: RegExp) {
+  fireEvent.click(within(openMenu()).getByRole("menuitem", { name }));
+}
+
 describe("CaseActionBar", () => {
   it("opens the 'Solicitar documento' modal and adds a requested-evidence entry on submit", () => {
     const caseData = makeCase();
@@ -71,7 +90,7 @@ describe("CaseActionBar", () => {
         onOpenAttorneyReviewTab={() => {}}
       />,
     );
-    expect(screen.getByRole("button", { name: /Marcar urgente/ })).toBeInTheDocument();
+    expect(within(openMenu()).getByRole("menuitem", { name: /Marcar urgente/ })).toBeInTheDocument();
 
     rerender(
       <CaseActionBar
@@ -82,9 +101,9 @@ describe("CaseActionBar", () => {
         onOpenAttorneyReviewTab={() => {}}
       />,
     );
-    expect(screen.getByRole("button", { name: /Quitar urgencia/ })).toBeInTheDocument();
+    expect(within(screen.getByRole("menu")).getByRole("menuitem", { name: /Quitar urgencia/ })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Quitar urgencia/ }));
+    clickMenuItem(/Quitar urgencia/);
     expect(onMarkUrgent).toHaveBeenCalledOnce();
   });
 
@@ -99,7 +118,7 @@ describe("CaseActionBar", () => {
         onOpenAttorneyReviewTab={onOpenAttorneyReviewTab}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /Cambiar estado/ }));
+    clickMenuItem(/Cambiar estado/);
     expect(onOpenAttorneyReviewTab).toHaveBeenCalledOnce();
   });
 });

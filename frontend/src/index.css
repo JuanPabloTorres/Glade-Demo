@@ -67,6 +67,35 @@
   /* `rounded-base` is Flowbite's default corner; matches the 0.75rem already
      used by .glade-button / .app-input so both vocabularies agree. */
   --radius-base: 0.75rem;
+
+  /* Overlay layer scale — the single source of truth for stacking order.
+     ------------------------------------------------------------------
+     Tailwind v4's `--z-index-*` namespace, so every rung is usable both as a
+     utility (`z-tooltip`) and as a raw var (`var(--z-index-tooltip)`) from a
+     portal's inline style. Nothing in this app may write a numeric z-index;
+     `docs/ux/OVERLAY-LAYERS.md` explains each rung and the two orderings that
+     look wrong at first glance but are deliberate:
+
+     1. Menus and tooltips sit ABOVE the modal, not below it. The spec sketch
+        puts them under it, but a dropdown inside a dialog is the common case
+        (the row actions in a detail modal) and it renders behind the dialog
+        under that ordering. A menu is only ever open because its trigger was
+        interactive, and a trigger behind a modal is not — so "above" cannot
+        leak an overlay over a surface the user is actually looking at.
+     2. Tooltip sits above menu, so a tooltip on a menu item is visible.
+
+     The gaps are 10 so a future rung can land between two without a renumber. */
+  --z-index-base: 0;
+  --z-index-raised: 10;
+  --z-index-sticky: 30;      /* app header + sidebar column */
+  --z-index-nav: 40;         /* mobile bottom navigation */
+  --z-index-launcher: 50;    /* assistant launcher button */
+  --z-index-drawer: 60;      /* assistant panel / side sheets */
+  --z-index-backdrop: 70;    /* modal scrim */
+  --z-index-modal: 80;
+  --z-index-menu: 90;        /* dropdown, popover, select menu, context menu */
+  --z-index-tooltip: 100;
+  --z-index-toast: 120;      /* critical, always last */
 }
 
 :root {
@@ -154,9 +183,26 @@
   text-rendering: optimizeLegibility;
 }
 
+/* `clip`, never `hidden`.
+   ------------------------
+   `overflow-x: hidden` computes `overflow-y` to `auto`, which turns the
+   element into a scroll container. When that happens on `html`/`body` every
+   `position: sticky` descendant binds to a scrollport that never scrolls (the
+   document scrolls instead), so it silently stops sticking — the app header
+   and the sidebar both scrolled away with the page, which is why the sidebar
+   appeared to "end halfway down" a long document.
+
+   `overflow-x: clip` suppresses horizontal scroll without creating a scroll
+   container, so sticky keeps working. Measured, both values, in
+   `frontend/e2e/overlay-and-shell.spec.ts`.
+
+   This is a safety net, not the layout strategy: the real defence against
+   horizontal overflow is `min-w-0` on the flex column in AppShell plus
+   `min-w-0` on grid/flex children. Clip only stops one stray element from
+   producing a page-wide horizontal scrollbar. */
 html {
   scroll-behavior: smooth;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Typography scale utility classes — the actual consumption point for the
@@ -222,9 +268,12 @@ html {
 
 body {
   margin: 0;
-  min-width: 320px;
+  /* Deliberately no `min-width`: a 320px floor makes the body wider than a
+     narrower viewport and reintroduces the horizontal scroll this file is
+     trying to prevent. 320px is the *design* floor, enforced by the responsive
+     e2e sweep, not by a CSS minimum that can only cause overflow. */
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   background:
     radial-gradient(circle at 8% 0%, rgba(79, 70, 229, 0.07), transparent 28rem),
     var(--glade-surface);

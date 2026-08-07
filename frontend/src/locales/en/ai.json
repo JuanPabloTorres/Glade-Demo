@@ -1,5 +1,11 @@
 {
+  "launcher": {
+    "open": "Open assistant",
+    "resume": "Resume conversation",
+    "minimize": "Minimize assistant"
+  },
   "chat": {
+    "scopedToSection": "{{client}} · {{section}} section",
     "title": "Preparation assistant",
     "senderYou": "You",
     "senderAssistant": "Assistant",

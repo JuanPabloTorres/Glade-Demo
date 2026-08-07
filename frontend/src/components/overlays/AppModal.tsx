@@ -47,7 +47,10 @@ const CONTENT_INNER_FILL = `${CONTENT_INNER_BASE} h-[calc(100dvh-3rem)] sm:h-[mi
 
 const APP_MODAL_THEME = {
   root: {
-    base: "fixed inset-x-0 top-0 z-50 h-dvh overflow-y-auto overflow-x-hidden md:inset-0 md:h-full",
+    // `z-modal` from the layer scale (index.css). Menus and tooltips sit
+    // deliberately *above* this rung so a dropdown opened inside a dialog is
+    // visible; see the scale's own comment for why that cannot leak.
+    base: "fixed inset-x-0 top-0 z-modal h-dvh overflow-y-auto overflow-x-hidden md:inset-0 md:h-full",
   },
   content: {
     // `h-auto` is not redundant: Flowbite twMerges these strings over its

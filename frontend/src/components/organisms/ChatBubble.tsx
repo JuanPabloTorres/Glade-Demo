@@ -1,9 +1,10 @@
-import { Avatar, Tooltip } from "flowbite-react";
+import { Avatar } from "flowbite-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatTime } from "../../i18n/format";
 import { AppIcon } from "../atoms/AppIcon";
+import { AppTooltip } from "../overlays/AppTooltip";
 import type { ChatMessage } from "../../types/bankruptcy";
 
 interface ChatBubbleProps {
@@ -75,7 +76,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
         <p className={`py-2.5 text-sm leading-6 ${isUser ? "text-white" : "text-body"}`}>{message.content}</p>
       </div>
 
-      <Tooltip content={copied ? t("chat.copied") : t("chat.copy")}>
+      <AppTooltip content={copied ? t("chat.copied") : t("chat.copy")}>
         <button
           type="button"
           onClick={copy}
@@ -84,7 +85,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
         >
           <AppIcon name={copied ? "check" : "document"} size={16} />
         </button>
-      </Tooltip>
+      </AppTooltip>
     </div>
   );
 }

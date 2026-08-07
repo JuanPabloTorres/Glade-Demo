@@ -7,7 +7,7 @@ import { useAuth } from "../auth/AuthContext";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { AppButton } from "../components/ui/AppButton";
 import { FloatingField } from "../components/molecules/FloatingField";
-import { LanguageToggle } from "../components/molecules/LanguageToggle";
+import { LanguageSwitcher } from "../components/molecules/LanguageSwitcher";
 import { ROUTES } from "../config/routes";
 import { resolveApiErrorMessage } from "../i18n/backendErrors";
 
@@ -38,18 +38,20 @@ export function LoginPage() {
 
   if (auth.isAuthenticated) return <Navigate to={ROUTES.home} replace />;
 
-  // Exactly one alert slot: error > validation error > background-load fallback.
-  // These conditions are not mutually exclusive in the underlying state (a
-  // background failure and a stale validation error could both be true at
-  // once), so priority is chosen explicitly instead of stacking every
-  // active Alert.
+  // Exactly one alert slot, and only for things the user can act on: a failed
+  // sign-in, or a field they need to correct.
+  //
+  // A third state used to live here — "the external background could not load,
+  // a fallback was applied to keep it legible". That is a decorative asset
+  // failing and the page recovering by itself; there is no action to take, and
+  // naming the recovery mechanism tells the user about an implementation
+  // detail while they are trying to sign in. The recovery still happens (see
+  // `backgroundFailed` below), silently, which is what a fallback is for.
   const activeAlert = error
     ? { color: "failure" as const, message: error }
     : validationError
       ? { color: "warning" as const, message: validationError }
-      : backgroundFailed
-        ? { color: "info" as const, message: t("auth:login.backgroundFallback") }
-        : null;
+      : null;
 
   const openSession = async (credentials: typeof CLIENT) => {
     setBusy(true);
@@ -98,14 +100,20 @@ export function LoginPage() {
       />
       <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,15,29,0.92)_0%,rgba(7,15,29,0.72)_48%,rgba(7,15,29,0.42)_100%)]" />
 
-      <div className="absolute right-4 top-4 z-10">
-        <LanguageToggle compact />
+      {/* `onDark`: this control sits on the hero photograph, not on a surface. */}
+      <div className="absolute right-4 top-4 z-raised">
+        <LanguageSwitcher compact tone="onDark" />
       </div>
 
       <div className="relative mx-auto grid min-h-screen w-full max-w-360 gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_480px] lg:items-center lg:gap-16 lg:px-10 xl:px-16">
         <section className="max-w-3xl text-white">
           <div className="mb-7">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
+            {/* `pe-28` on the eyebrow only: the language switcher is absolutely
+                positioned in this corner, and the English string of this line
+                is long enough to run underneath it on a phone. Reserving the
+                space here keeps the fix local to the one line that collides,
+                rather than indenting the whole hero. */}
+            <p className="mb-3 pe-28 text-xs font-semibold uppercase tracking-[0.14em] text-white/70 lg:pe-0">
               {t("auth:login.heroBadge")}
             </p>
             <div className="flex items-center gap-4">

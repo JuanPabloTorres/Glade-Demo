@@ -205,8 +205,8 @@
     "discussionPointsTitle": "Puntos para discutir con el abogado",
     "chapterComparisonTitle": "Chapter 7 y Chapter 13",
     "chapterComparisonDescription": "Estas son preguntas de preparación, no una recomendación automática.",
-    "chapter7": "Chapter 7",
-    "chapter13": "Chapter 13",
+    "chapter7": "Capítulo 7",
+    "chapter13": "Capítulo 13",
     "householdMissing": {
       "maritalStatus": "Estado civil",
       "housingStatus": "Situación de vivienda"
@@ -443,7 +443,26 @@
     "summary": {
       "title": "Resumen del caso (borrador)",
       "disclaimer": "Borrador generado a partir del expediente — sujeto a revisión profesional. No constituye asesoramiento legal.",
-      "saveInNotes": "Guardar en notas"
+      "saveInNotes": "Guardar en notas",
+      "pendingAnalysis": "pendiente de análisis",
+      "notSpecified": "No especificado",
+      "urgencyReported": "Sí — cobro urgente reportado.",
+      "urgencyNone": "Ninguna reportada.",
+      "lines": {
+        "heading": "Resumen del caso — {{client}}",
+        "goal": "Objetivo declarado: {{goal}}",
+        "household": "Hogar: {{size}} persona(s), {{dependents}} dependiente(s), vivienda: {{housing}}.",
+        "netIncome": "Ingreso neto mensual: {{amount}}.",
+        "expenses": "Gastos mensuales: {{amount}}.",
+        "cashFlow": "Flujo disponible: {{amount}}.",
+        "totalDebt": "Deuda total: {{amount}}.",
+        "assets": "Bienes: {{count}} registrado(s).",
+        "urgency": "Urgencias: {{detail}}",
+        "documents": "Documentos recibidos: {{received}} de {{total}} registrados.",
+        "warnings": "Alertas: {{warnings}}",
+        "warningsNone": "Alertas: ninguna detectada.",
+        "questionsHeading": "Preguntas para la consulta:"
+      }
     },
     "messageClient": {
       "description": "El mensaje aparecerá en el chat de Guía inteligente que ve el cliente.",

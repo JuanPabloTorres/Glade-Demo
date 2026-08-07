@@ -5,7 +5,7 @@ import { useNavigate } from "react-router";
 import { allowedAssistantActions, assistantActionHref } from "../../api/assistantActions";
 import { bankruptcyApi } from "../../api/bankruptcyApi";
 import { useAuth } from "../../auth/AuthContext";
-import { useChatPanel } from "../../chat/ChatPanelContext";
+import { useChatPanel, type AssistantRouteContext } from "../../chat/ChatPanelContext";
 import { useAiHealth } from "../../hooks/useAiHealth";
 import type { AssistantAction, AssistantResponse } from "../../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../../workspace/BankruptcyWorkspaceContext";
@@ -17,6 +17,18 @@ import { ChatComposer } from "./ChatComposer";
 interface ChatPanelProps {
   /** Seeds the composer — the assistant route passes `?prompt=` through here. */
   prefill?: string;
+  /**
+   * Where the user is, supplied by the global panel.
+   *
+   * Used to *show* the scope, not to widen it. Sending the section to the model
+   * would need a new field on `bankruptcy.guide`, and that request shape is
+   * owned by `contracts/api-contracts.json` plus the backend schema — a
+   * coordinated contract change, not something a UI refactor may do quietly.
+   * Displaying it already fixes the honesty problem the global panel creates:
+   * opened from anywhere, the assistant otherwise gives no indication of what
+   * it is and is not looking at.
+   */
+  routeContext?: AssistantRouteContext | null;
 }
 
 /**
@@ -35,7 +47,7 @@ interface ChatPanelProps {
  * rather than the page is what keeps the composer where the user left it
  * instead of walking it down the screen as the conversation grows.
  */
-export function ChatPanel({ prefill = "" }: ChatPanelProps) {
+export function ChatPanel({ prefill = "", routeContext = null }: ChatPanelProps) {
   const { t } = useTranslation("ai");
   const { user } = useAuth();
   const workspace = useBankruptcyWorkspace();
@@ -142,7 +154,14 @@ export function ChatPanel({ prefill = "" }: ChatPanelProps) {
         </span>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-base font-semibold text-heading">{t("chat.title")}</h1>
-          <p className="truncate text-xs text-body">{caseData.clientName}</p>
+          {/* Case first, then the section the user is on when there is one —
+              opened from the global launcher, the assistant otherwise gives no
+              indication of what it is scoped to. */}
+          <p className="truncate text-xs text-body">
+            {routeContext?.section
+              ? t("chat.scopedToSection", { client: caseData.clientName, section: routeContext.section })
+              : caseData.clientName}
+          </p>
         </div>
         <Badge color={aiReady ? "success" : "warning"}>
           {aiReady ? `${t("chat.ready")} (${aiHealth.data?.model})` : t("chat.offline")}
