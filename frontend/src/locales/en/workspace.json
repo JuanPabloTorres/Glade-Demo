@@ -468,5 +468,25 @@
       "description": "The message will appear in the Smart guidance chat seen by the client.",
       "label": "Message"
     }
+  },
+  "timeline": {
+    "statusComplete": "Complete",
+    "statusCurrent": "Current",
+    "statusUpcoming": "Upcoming",
+    "requestStartedTitle": "Request started",
+    "requestStartedDescription": "A private evaluation case was created.",
+    "financialTitle": "Financial template",
+    "financialDescription": "Organize income, expenses, debts and assets.",
+    "evidenceTitle": "Evidence",
+    "evidenceDescription": "Add documents and review what is missing.",
+    "attorneyTitle": "Attorney review",
+    "attorneyDescription": "Submit the request and schedule a consultation.",
+    "submittedTitle": "Request submitted",
+    "submittedDescription": "The attorney can review the information and ask for clarifications.",
+    "statusChangedTitle": "Status updated",
+    "statusChangedDescription": "The case moved to {{status}}.",
+    "welcomeMessage": "Let us start with your goal and your household. Then we will organize every figure with evidence.",
+    "consultationTitle": "Consultation",
+    "consultationDescription": "Schedule a discussion of the alternatives with the attorney."
   }
 }

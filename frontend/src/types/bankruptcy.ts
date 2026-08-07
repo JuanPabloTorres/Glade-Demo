@@ -93,8 +93,27 @@ export interface ChatMessage {
 export interface TimelineEvent {
   id: string;
   stage: string;
+  /**
+   * Literal, already-written text. Kept for two reasons: events persisted by an
+   * earlier build carry it and must keep rendering, and a description the user
+   * typed (an attorney's status note) is their words, not a translatable
+   * string.
+   */
   title: string;
   description: string;
+  /**
+   * Locale keys, preferred over the literals above when present.
+   *
+   * The timeline used to persist Spanish prose generated at creation time, so
+   * an English session saw Spanish entries — and switching language afterwards
+   * left every past event in the language it was created in, because the text
+   * was already frozen in `localStorage`. Persisting the key instead means the
+   * whole history re-labels itself with the language switch.
+   */
+  titleKey?: string;
+  descriptionKey?: string;
+  /** Interpolation values for `descriptionKey`, e.g. the new case status. */
+  descriptionParams?: Record<string, string>;
   status: "complete" | "current" | "upcoming";
   createdAt: string;
 }
