@@ -72,8 +72,8 @@
     "documentsDescription": "The demo stores local metadata, not real files. Every document should support a number you already declared."
   },
   "about": {
-    "title": "About FreshStart",
-    "description": "FreshStart is a preparation platform for bankruptcy consultations. It organizes financial information, identifies gaps, and prepares questions for professional review. It is not a law firm, does not provide legal advice, does not choose a chapter as a legal conclusion, does not determine eligibility, and does not file petitions.",
+    "title": "About Fresh Start",
+    "description": "Fresh Start is a preparation platform for bankruptcy consultations. It organizes financial information, identifies gaps, and prepares questions for professional review. It is not a law firm, does not provide legal advice, does not choose a chapter as a legal conclusion, does not determine eligibility, and does not file petitions.",
     "sections": {
       "privacy": {
         "title": "Privacy",

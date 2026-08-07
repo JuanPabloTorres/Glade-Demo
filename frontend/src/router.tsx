@@ -4,6 +4,7 @@ import { AppShell } from "./components/organisms/AppShell";
 import { ROUTES } from "./config/routes";
 import { AboutPlatformPage } from "./pages/AboutPlatformPage";
 import { CaseWorkspacePage } from "./pages/CaseWorkspacePage";
+import { HelpPage } from "./pages/HelpPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RoleHomePage } from "./pages/RoleHomePage";
 
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
           { index: true, element: <RoleHomePage /> },
           { path: "case/:caseId", element: <CaseWorkspacePage /> },
           { path: "about", element: <AboutPlatformPage /> },
+          { path: "help", element: <HelpPage /> },
         ],
       },
     ],

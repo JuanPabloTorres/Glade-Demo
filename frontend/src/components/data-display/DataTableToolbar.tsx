@@ -30,8 +30,13 @@ export function DataTableToolbar({
   const { t } = useTranslation(["tables", "common"]);
 
   return (
-    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-      <div className="flex-1">
+    // Wraps instead of squeezing. It became a single row at `sm`, where the two
+    // fixed-width selects (256px + 160px) plus the button left the search field
+    // about 22px wide at 768 — present, focusable, and useless. Now the row only
+    // forms at `md`, it wraps, and the search keeps a 12rem floor so it drops to
+    // its own line rather than collapsing.
+    <div className="mb-5 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+      <div className="min-w-48 flex-1">
         <Label htmlFor="table-search" className="sr-only">{t("tables:toolbar.search")}</Label>
         <TextInput
           id="table-search"

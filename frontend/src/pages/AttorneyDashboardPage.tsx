@@ -59,10 +59,14 @@ export function AttorneyDashboardPage() {
   const auth = useAuth();
   const { cases, updateCase, deleteCase, createCase } = useBankruptcyWorkspace();
   const [searchParams, setSearchParams] = useSearchParams();
-  // Initial `view` reads from the URL so sidebar deep links (?view=urgent,
-  // ?view=waiting_client) land on the matching filter instead of always
-  // resetting to "all" — mirrors the `q` search param, already URL-driven.
-  const [view, setView] = useState<ViewKey>(() => (searchParams.get("view") as ViewKey) || "all");
+  // `view` is derived from the URL on every render (not a one-time lazy
+  // useState initializer) so sidebar deep links (?view=urgent,
+  // ?view=waiting_client) re-filter the list even when React Router doesn't
+  // remount this component — e.g. clicking a second sidebar filter link
+  // while already on this route only changes the query string, not the
+  // path, so no remount occurs and a lazy initializer would never re-read
+  // the new `view` param. Mirrors the `q` search param, already URL-driven.
+  const view = useMemo<ViewKey>(() => (searchParams.get("view") as ViewKey) || "all", [searchParams]);
   const [sort, setSort] = useState<SortKey>("urgent-first");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(8);
@@ -122,7 +126,6 @@ export function AttorneyDashboardPage() {
   const pageItems = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const setView_ = (key: ViewKey) => {
-    setView(key);
     setPage(1);
     const next = new URLSearchParams(searchParams);
     if (key === "all") next.delete("view");
@@ -131,7 +134,6 @@ export function AttorneyDashboardPage() {
   };
 
   const clearFilters = () => {
-    setView("all");
     setSort("urgent-first");
     setPage(1);
     setSearchParams({});
@@ -179,7 +181,7 @@ export function AttorneyDashboardPage() {
 
       <Card className="app-card">
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-sm font-semibold uppercase tracking-[0.14em] text-indigo-700">{t("workspace:attorneyDashboard.managementLabel")}</p><h2 className="mt-1 text-2xl font-semibold tracking-[-0.025em] text-[var(--color-text)]">{t("workspace:attorneyDashboard.inboxTitle")}</h2><p className="mt-2 text-sm text-[var(--color-text-muted)]">{t("workspace:attorneyDashboard.inboxDescription")}</p></div>
+          <div><p className="text-sm font-semibold uppercase tracking-[0.14em] text-fg-brand">{t("workspace:attorneyDashboard.managementLabel")}</p><h2 className="mt-1 text-2xl font-semibold tracking-[-0.025em] text-[var(--color-text)]">{t("workspace:attorneyDashboard.inboxTitle")}</h2><p className="mt-2 text-sm text-[var(--color-text-muted)]">{t("workspace:attorneyDashboard.inboxDescription")}</p></div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge color="gray" className="w-fit px-3 py-1.5">{t("workspace:attorneyDashboard.caseCount", { shown: sorted.length, total: cases.length })}</Badge>
             <AppButton className="primary-action" size="sm" onClick={startNewCase} iconLeft="document">

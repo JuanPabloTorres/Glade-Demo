@@ -2,6 +2,73 @@
 @import "flowbite-react/plugin/tailwindcss";
 @source "../.flowbite-react/class-list.json";
 
+/* This app has no dark-mode design (single light palette above, no `.dark`
+   class toggle anywhere). Tailwind v4's `dark:` variant defaults to
+   `@media (prefers-color-scheme: dark)`, which lets flowbite-react's
+   built-in `dark:` classes (Card, Dropdown, Navbar, etc.) silently activate
+   on an OS/browser dark preference — pairing Flowbite's dark surface colors
+   with this app's light-only text tokens and producing illegible dark-on-dark
+   text. Repoint `dark:` to only fire under an explicit `.dark` ancestor
+   (never applied here) so it stays fully inert until a real dark mode ships. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Flowbite v3 semantic token layer.
+   ---------------------------------
+   Flowbite's current component blocks (flowbite.com) are written against a
+   semantic token vocabulary — `bg-neutral-primary-soft`, `border-default`,
+   `text-heading`, `text-fg-brand`, `rounded-base` — that `flowbite-react@0.12.9`
+   does NOT ship (verified: zero matches under node_modules/flowbite-react/dist,
+   which still emits literal `bg-white` / `text-gray-900` / `dark:` classes).
+   Without this block, pasting an upstream Flowbite block renders unstyled.
+
+   Every token below resolves to the FreshStart palette declared in `:root`
+   further down — this is a naming adapter, NOT a second palette. Change a
+   color in `:root` and both vocabularies follow. Suffix ladder, light-only:
+   `-soft` < `-medium` < (base) < `-strong`. */
+@theme {
+  /* Brand — solid fills, hovers and focus rings. */
+  --color-brand: var(--color-primary);
+  --color-brand-strong: var(--color-primary-hover);
+  --color-brand-medium: rgba(37, 99, 235, 0.26);
+  --color-brand-soft: rgba(37, 99, 235, 0.14);
+
+  /* Foreground roles. `text-heading` is strong text, `text-body` is the
+     muted supporting text Flowbite blocks default to. */
+  --color-heading: var(--color-text);
+  --color-body: var(--color-text-muted);
+  --color-fg-brand: var(--color-primary);
+  --color-fg-disabled: #94a3b8;
+  --color-fg-danger: var(--color-danger);
+  --color-fg-danger-strong: #991b1b;
+  --color-fg-success: var(--color-success);
+  --color-fg-warning: var(--color-warning);
+  /* Soft warning surface + its hairline, for advisory notes that must read as
+     a caution without the weight of an Alert. */
+  --color-warning-soft: #fffbeb;
+  --color-warning-subtle: #fde68a;
+
+  /* Neutral surfaces. This app is light-only (`color-scheme: light`), so the
+     `primary` rung collapses to white — the ladder still earns its keep on
+     the `secondary`/`tertiary` rungs used for inputs and hover states. */
+  --color-neutral-primary: var(--color-surface);
+  --color-neutral-primary-soft: var(--color-surface);
+  --color-neutral-primary-medium: var(--color-surface);
+  --color-neutral-secondary-soft: #f8fafc;
+  --color-neutral-secondary-medium: var(--color-surface-muted);
+  --color-neutral-tertiary: #eef2f7;
+  --color-neutral-tertiary-medium: #e2e8f0;
+
+  /* Borders and status surfaces. */
+  --color-default: var(--color-border);
+  --color-default-medium: #c6d0df;
+  --color-danger-subtle: #fecaca;
+  --color-danger-soft: #fef2f2;
+
+  /* `rounded-base` is Flowbite's default corner; matches the 0.75rem already
+     used by .glade-button / .app-input so both vocabularies agree. */
+  --radius-base: 0.75rem;
+}
+
 :root {
   /* FreshStart design-system palette (docs/ux/FLOWBITE-COMPONENT-STANDARDS.md).
      Canonical names per the refactor spec; --glade-* aliases below keep
@@ -121,7 +188,13 @@ html {
   line-height: var(--font-leading-card-title);
 }
 
-.text-body {
+/* Named `.type-body`, not `.text-body`: the Flowbite token layer above owns
+   `text-body` as a *color* utility (--color-body). This rule is the *typography*
+   role — size/weight/leading. Renamed rather than dropped so the documented
+   typography scale stays complete; it had zero call sites at rename time, so
+   nothing needed migrating. The other roles below keep their `.text-*` names
+   because none of them collide with a Flowbite token. */
+.type-body {
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-body);
   line-height: var(--font-leading-body);
@@ -277,25 +350,17 @@ select.app-input:focus {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14) !important;
 }
 
-.workspace-tabs [role="tablist"] {
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: thin;
-  gap: 0.25rem;
-  border: 1px solid var(--glade-border);
-  border-radius: 0.9rem;
-  background: #ffffff;
-  padding: 0.35rem;
-  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.045);
-}
-
-.workspace-tabs [role="tab"] {
-  min-height: 2.6rem;
-  border-radius: 0.65rem !important;
-  white-space: nowrap;
-}
-
-.workspace-tabs [role="tabpanel"] {
+/*
+ * CaseWorkspacePage's stage content used to render inside Flowbite's
+ * uncontrolled `Tabs`/`TabItem` (targeted here via its `[role="tablist"]` /
+ * `[role="tab"]` / `[role="tabpanel"]` internals), driven by an imperative
+ * `tabsRef` synced against `activeStage` — the two-sources-of-truth pattern
+ * `.claude/rules/frontend/feature-architecture.md` prohibits. `Tabs` has
+ * been removed entirely in favor of `CaseStageStepper` (the single stage
+ * nav control) plus content rendered conditionally on `activeStage`, so
+ * this block's selectors no longer match anything in the DOM.
+ */
+.workspace-stage-content {
   padding-top: 1.25rem;
 }
 

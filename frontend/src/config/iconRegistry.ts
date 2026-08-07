@@ -1,6 +1,9 @@
 import {
+  HiArrowLeftOnRectangle,
   HiArrowRight,
   HiBars3,
+  HiChevronDown,
+  HiChevronDoubleLeft,
   HiBuildingLibrary,
   HiCalculator,
   HiChartBar,
@@ -75,6 +78,11 @@ export const iconRegistry = {
   "eye-show": HiEye, // LoginPage password visibility toggle
   "eye-hide": HiEyeSlash, // LoginPage password visibility toggle
   language: HiLanguage, // LanguageSelector trigger
+  // Shell polish (ux-shell-polish-2026-08-06): the avatar dropdown and the
+  // collapsible sidebar needed glyphs the registry didn't carry yet.
+  logout: HiArrowLeftOnRectangle, // avatar dropdown "Cerrar sesión"
+  "chevron-down": HiChevronDown, // accordion disclosure indicator (rotates when open)
+  "collapse-left": HiChevronDoubleLeft, // desktop sidebar collapse toggle (flips when collapsed)
 } as const satisfies Record<string, IconType>;
 
 export type IconRegistryName = keyof typeof iconRegistry;
