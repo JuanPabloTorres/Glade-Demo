@@ -74,7 +74,25 @@ workspace surface.
 class AssistantAction(ApiModel):
     """One actionable suggestion rendered as a Flowbite Button + icon."""
 
-    id: str
+    id: str = ""
+    """Stable key for React's list rendering, filled in by the server.
+
+    Optional in the schema handed to the model, and that is the whole point. A
+    live run against Groq degraded half its turns on one error:
+
+        tool call validation failed: parameters for tool AgentAnswer did not
+        match schema: errors: [`/actions/0`: missing properties: 'id']
+
+    A required field is a field the model must invent, and an identifier is
+    precisely what it has no basis to invent — it carries no meaning the model
+    could know. Providers differ in how strictly they validate structured
+    output, so requiring it made the agent path work or fail depending on which
+    vendor was configured, with the failure showing up as a silent degrade.
+
+    `AgentRuntime` assigns a value when one is missing, so every action still
+    reaches the frontend with a usable key.
+    """
+
     action_type: AssistantActionType
     resource: str
     resource_id: str | None = None

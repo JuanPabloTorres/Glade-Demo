@@ -263,4 +263,13 @@ class AgentRuntime:
                 kept.append(action)
             else:
                 logger.warning("Dropped assistant action for resource %r.", action.resource)
+
+        # Identifiers are assigned here rather than demanded from the model.
+        # `AssistantAction.id` is only a React list key; requiring the model to
+        # supply one made strict providers reject the whole structured output
+        # and degrade the turn. Assigned after filtering so the numbering has no
+        # gaps, and only where absent so a model that did supply one keeps it.
+        for index, action in enumerate(kept):
+            if not action.id.strip():
+                action.id = f"action-{index}"
         return kept

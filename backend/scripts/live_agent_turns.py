@@ -35,14 +35,19 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 # imported: it is `@lru_cache`d, so the first read wins for the process.
 _DB = Path(tempfile.mkdtemp(prefix="freshstart-live-")) / "live.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{_DB.as_posix()}"
-os.environ["AI_PROVIDER"] = "ollama"
+# Provider-agnostic since 4.6.0. Ollama stays the default because it needs no
+# credential and no network, but the OpenAI-compatible path is the one the
+# deployed demo runs, so it has to be capturable here too:
+#
+#     AI_PROVIDER=openai OPENAI_API_KEY=... #     OPENAI_BASE_URL=https://api.groq.com/openai/v1 #     OPENAI_MODEL=llama-3.3-70b-versatile #     backend/.venv/Scripts/python.exe backend/scripts/live_agent_turns.py out.json
+os.environ.setdefault("AI_PROVIDER", "ollama")
 # llama3.1 because the agent path needs native tool calling — llama3 and
 # llama3.2:1b do not have it, and an orchestrator whose specialists are tools
 # has nothing to delegate with. Note the *stock* 8b tag: the `8b-16k` variant
 # crashes this machine's runner outright ("llama runner process has terminated:
 # exit status 2") even on a one-line prompt, so a run against it degrades every
 # turn and proves nothing about the agent layer.
-os.environ["OLLAMA_MODEL"] = os.environ.get("LIVE_MODEL", "llama3.1:8b")
+os.environ.setdefault("OLLAMA_MODEL", os.environ.get("LIVE_MODEL", "llama3.1:8b"))
 os.environ.setdefault("OLLAMA_BASE_URL", "http://localhost:11434")
 os.environ.setdefault("JWT_SECRET_KEY", "live-evidence-run-not-a-deployment-key")
 

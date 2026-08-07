@@ -33,11 +33,17 @@ class AIHealthService:
         )
 
     def _agent_model_id(self, selected_provider: str) -> str:
-        return (
-            self._settings.ollama_model
-            if selected_provider == OLLAMA
-            else self._settings.ai_model_id
-        )
+        """The model actually in use, per provider.
+
+        The OpenAI branch used to report `ai_model_id`, which belongs to the
+        transformers provider and defaults to a HuggingFace repo id. A live run
+        against Groq answered with `llama-3.3-70b-versatile` while this
+        endpoint said `Qwen/Qwen3-0.6B` — and the chat header renders this
+        value, so the screen contradicted the answer underneath it.
+        """
+        if selected_provider == OLLAMA:
+            return self._settings.ollama_model
+        return self._settings.openai_model
 
     def _agent_layer_available(self) -> bool:
         """Report whether the agent layer could actually answer.
