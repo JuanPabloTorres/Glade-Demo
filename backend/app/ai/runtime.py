@@ -35,8 +35,10 @@ from app.ai.contracts.assistant_response import (
     AgentAnswer,
     AssistantAction,
     AssistantActionType,
+    AssistantCard,
     AssistantResponse,
 )
+from app.ai.followups import follow_up_questions, summary_card_data
 from app.ai.guardrails import ResponseGuardrails
 from app.ai.model_factory import AGENT_PROVIDERS, ModelFactory
 from app.ai.providers.base import BaseAIProvider
@@ -120,7 +122,7 @@ class AgentRuntime:
             return self._compose(
                 context=context,
                 draft=draft,
-                answer=self._draft_as_answer(draft, language=context.language),
+                answer=self._draft_as_answer(draft, context=context),
                 degraded=True,
             )
         return self._compose(context=context, draft=draft, answer=answer, degraded=False)
@@ -184,7 +186,7 @@ class AgentRuntime:
 
     # -- composition ------------------------------------------------------
 
-    def _draft_as_answer(self, draft: Any, *, language: str) -> AgentAnswer:
+    def _draft_as_answer(self, draft: Any, *, context: CaseContextDto) -> AgentAnswer:
         """Project the deterministic draft onto the 4.0.0 action contract.
 
         The draft's `focus_section` used to be a top-level response field the
@@ -193,7 +195,21 @@ class AgentRuntime:
         here — without this the degraded path emits only `ask` actions, the
         UI finds nothing navigable, and that affordance silently disappears
         whenever no model is configured (which is the default deployment).
+
+        The `ask` chips are follow-up *questions*, not the draft's
+        `suggested_actions`. Those hold `next_steps`, `warnings` and
+        `discussion_points` — imperatives aimed at the user and statements
+        about the case — while an `ask` label is sent verbatim as the user's
+        next message. A real transcript shows what that produced: the user
+        "said" *"Solicitar los documentos faltantes antes de discutir una
+        estrategia."* The information in those lists is already in the answer's
+        prose; the chips are for what to ask next.
+
+        The card carries the same figures the workspace shows. Without it the
+        degraded path answered in prose alone, so the panel had nothing to look
+        at — and the degraded path is what every default deployment runs.
         """
+        language = context.language
         section = (
             draft.focus_section if draft.focus_section in ALLOWED_ACTION_RESOURCES else "overview"
         )
@@ -216,11 +232,18 @@ class AgentRuntime:
                 # why every one of them shares the same resource rather than
                 # each guessing a target from its own label text.
                 resource=section,
-                label=text,
+                label=question,
             )
-            for index, text in enumerate(draft.suggested_actions)
+            for index, question in enumerate(follow_up_questions(draft.intent, language))
         )
-        return AgentAnswer(message=draft.message, handled_by="deterministic", actions=actions)
+
+        title, data = summary_card_data(context, language)
+        return AgentAnswer(
+            message=draft.message,
+            handled_by="deterministic",
+            actions=actions,
+            cards=[AssistantCard(card_type="case_summary", title=title, data=data)],
+        )
 
     def _compose(
         self,
@@ -263,4 +286,13 @@ class AgentRuntime:
                 kept.append(action)
             else:
                 logger.warning("Dropped assistant action for resource %r.", action.resource)
+
+        # Identifiers are assigned here rather than demanded from the model.
+        # `AssistantAction.id` is only a React list key; requiring the model to
+        # supply one made strict providers reject the whole structured output
+        # and degrade the turn. Assigned after filtering so the numbering has no
+        # gaps, and only where absent so a model that did supply one keeps it.
+        for index, action in enumerate(kept):
+            if not action.id.strip():
+                action.id = f"action-{index}"
         return kept

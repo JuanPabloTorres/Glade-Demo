@@ -181,7 +181,9 @@ class TestTheAssistantHandsBackTheSessionLanguage:
 
         labels = [action.label for action in response.actions]
         assert labels, "the degraded path must still offer actions"
-        # Every label the user can click is in their language. Before 4.2.0 the
-        # `ask` labels came straight from Spanish `next_steps`.
-        assert not any("Completar" in label or "Guardar" in label for label in labels), labels
-        assert any("Complete:" in label for label in labels), labels
+        # Every label the user can click is in their language. The `ask` labels
+        # are follow-up questions now, not `next_steps` — those were imperatives
+        # aimed at the user, and an `ask` label is sent verbatim as the user's
+        # next message.
+        assert not any("¿" in label or "Completar" in label for label in labels), labels
+        assert any(label.endswith("?") for label in labels), labels

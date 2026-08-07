@@ -1,3 +1,98 @@
+# FreshStart 4.7.1
+
+The skills agents load before touching this repository now describe the repository that exists.
+
+## Nineteen contracts instead of nineteen paragraphs
+
+`.claude/skills/*/SKILL.md` was the thinnest layer in the governance system: 281 lines across nineteen files, most of them a title and one paragraph of imperatives. `start-change` said "populate owned/shared paths" without saying that two agents claiming one path is rejected at registration, or that `changes/<task-id>.md` is claimed rather than `changes/**`. An agent loading it learned the step and not the reason, which is how the same collisions kept happening.
+
+Each skill is now an operational contract: what it owns and does not own, when *not* to use it, numbered invariants, the searches to run before editing, a decision framework, the commands that actually validate the work, and worked examples taken from this codebase — including the wrong ones. 6,397 lines, derived by reading the agent scripts, the hooks, the contract registry, the repository protocols, the AI runtime, the component inventory, the locale validator and the test suite, then verifying that every path, command and enum cited exists.
+
+## The corrections matter more than the length
+
+Four skills were confidently describing a system that had moved on, and two of those errors were load-bearing.
+
+`release-readiness-gate` listed absent case ownership and absent login rate limiting as confirmed blockers. Both have been present for several releases — `CaseAccessDep` is wired into the bankruptcy and documents routers, and the rate limiter spans config, security, the auth router and app startup, each with its own test. A gate that repeats a fixed blocker withholds a shippable release, and it costs exactly as much trust as one that waves a broken one through.
+
+`ai-context-audit` searched for `backend/app/ai/providers/ollama_provider.py`, which ADR 0002 removed; Ollama has been a model behind `AgentRuntime` since 4.0.0. It also described RAG as possibly ingestion-only, when `bankruptcy_service.py` calls `CaseDocumentIndex.search` and feeds the result into the case context. Both checks were re-derived against the current layout, and four more added: allow-list mirroring between server and client, role redaction at specialist construction, the bounded agent loop with its lazy `strands` import, and whether injection and cross-case isolation are pinned by tests at all.
+
+`design-system-audit` claimed only colour tokens existed and named icon-registry and hardcoded-copy violations that have since been migrated. Measured against the tree: the typography and spacing scales both exist, icon-registry bypasses are zero, and the hardcoded-copy heuristic returns nothing. What it found instead were four unregistered hex literals in `CaseWorkspacePage` and `LoginPage` — real drift that no mechanical rule covers, because `flowbite-check` enforces four specific rules and hardcoded colours is not one of them. Four checks were added for exactly that gap.
+
+Stale test baselines were replaced with measured ones — 192 backend test functions across 24 modules, 73 frontend unit cases, 21 end-to-end cases — against a checklist still citing 55 and 27. Both audit skills now instruct the reader to re-measure, to compare like with like (pytest collects 219 because parametrized cases expand past the function count), and to say so when the numbers no longer match. A baseline written into a document is a claim with an expiry date.
+
+## Boundaries made explicit
+
+`visual-qa` and `visual-acceptance` had drifted into near-duplicates. They are now separated on the axis that matters: change-scoped and run by the implementer, versus app-wide and run independently before a release verdict. Both files say so, and both say that running one does not satisfy the other.
+
+## Limitations
+
+`.claude/agents/*.md` were not touched. `qa-release-gate.md` still carries the 55/27 baseline and still asks for an Ollama test phrased for the pre-ADR-0002 provider layout; that is a follow-up. `docs/flows/` is referenced by `CLAUDE.md` and by `create-feature-flow` but does not exist yet — the skill states this rather than implying otherwise. No new skills were created; the catalog records which responsibilities have no first-class owner (authentication and JWT, document upload and RAG ingestion as a domain, test authoring) instead of inventing files to complete a taxonomy.
+
+Nothing in this release changes what the application does at runtime.
+
+# FreshStart 4.7.0
+
+Three defects a real transcript exposed. Together they made the assistant look like it was answering at random and showing nothing worth reading — and all three sat on the deterministic path, which is what every default deployment actually runs.
+
+## It answered a question nobody asked
+
+A client typed `2+2` and got *"No hay documentos pendientes en este expediente por ahora"* — the reply to the question before it.
+
+`_detect_topic` inherited the previous turn's topic whenever the current message was four words or fewer. That is not what a follow-up is. Reproduced against the same history, `gracias`, `asdfgh` and `cuanto es 5*3` inherited `documents` too, so the assistant confidently answered something nobody had asked.
+
+Inheritance now requires an explicit continuation — `¿y ahora?`, `otra vez`, `sí`, `what about` — with the length limit kept on top, so *"sí, pero ¿qué pasa con mi carro?"* opens a new subject rather than inheriting one.
+
+## The chips made the user talk to themselves
+
+The suggestions under an answer read *"Solicitar los documentos faltantes antes de discutir una estrategia."* and *"Programar una consulta para comparar alternativas disponibles."*
+
+An `ask` action's label is sent verbatim as the user's next message, and those labels came from `next_steps`, `warnings` and `discussion_points` — imperatives aimed at the user and statements about the case. Clicking one made the user issue an instruction to themselves, which the assistant then had to interpret as a question.
+
+Chips are follow-up questions now, three per intent, in the user's voice and the session's language. The information those lists carried is already in the answer's prose.
+
+## The panel had nothing to look at
+
+Every figure was already in the case context, and the deterministic path showed none of them — it emitted prose and no cards, while the agent path could emit cards. That is backwards.
+
+Every deterministic answer now carries a `case_summary` card: monthly cash flow, total debt, assets, completion and evidence scores, plus pending-document and missing-section counts when there are any. Values come straight off the authorized context, so the card cannot disagree with the workspace behind it.
+
+## Evidence
+
+`test_assistant_usefulness.py` (19 new) is written against the reported transcript: junk inherits nothing while real follow-ups still do, the reported turn no longer repeats the previous answer, every chip ends in a question mark and none begins with an imperative lifted from `next_steps`, and the card reports `$18,000.00` of debt and `$9,000.00` of assets — what the case actually holds.
+
+Backend 219 tests, `ruff` and `mypy` clean.
+
+**Still limited:** an unrecognized message now gets the status-derived default rather than a wrong topic. Better, but not an acknowledgement that it was not understood — saying so would need an out-of-scope detector narrow enough not to fire on legitimate questions the keyword lists do not cover.
+
+# FreshStart 4.6.1
+
+Two defects a live run against Groq exposed. Both were invisible until a strict provider was pointed at this layer, and both made the agent look broken for reasons nothing in the response explained.
+
+## The agent was being asked to invent an identifier
+
+Half the turns degraded on one error:
+
+```
+tool call validation failed: parameters for tool AgentAnswer did not match
+schema: errors: [`/actions/0`: missing properties: 'id']
+```
+
+`AssistantAction.id` was a required field. It is a React list key — it carries no meaning a model could know, so requiring it made the model guess. Providers differ in how strictly they validate structured output, which meant the agent path worked or failed depending on which vendor was configured, and the failure surfaced as a silent degrade rather than an error.
+
+The field is optional now, and `AgentRuntime` assigns it after the allow-list filter, so the numbering has no gaps and a model that did supply one keeps it.
+
+## The header contradicted the answer under it
+
+`/ai/health` reported `ai_model_id` on the OpenAI path — the transformers provider's setting, defaulting to a HuggingFace repo id. The run answered with `llama-3.3-70b-versatile` through Groq while the endpoint said `Qwen/Qwen3-0.6B`, and the chat header renders that value. Same root cause as the `ModelFactory` fix in 4.5.0, in the one place that had been missed.
+
+## Evidence
+
+A real run through the agent layer against Groq (`llama-3.3-70b-versatile`): **4 of 8 turns answered by real specialists** — `documents_agent`, `analysis_agent`, `case_agent` — with `degraded: false`. Every one of the four that degraded failed on the missing-`id` error above.
+
+This is the first time this layer has run against a hosted provider. `docs/evidence/live-agent-turns.json` still records the Ollama run; `live_agent_turns.py` is provider-agnostic now, since it hardcoded the one path the deployed demo does not use.
+
+Backend 200 tests, `ruff` and `mypy` clean.
+
 # FreshStart 4.6.0
 
 The demo runs its agent and keeps its data without a paid account. Two blockers, both one variable away once the code supports them.

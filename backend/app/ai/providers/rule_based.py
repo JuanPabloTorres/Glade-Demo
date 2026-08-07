@@ -98,9 +98,48 @@ _TOPIC_PRIORITY = (
     "greeting",
 )
 
-# A message this short (word count, not character count) is treated as a
-# conversational follow-up ("¿y ahora?", "sí", "otra vez") rather than a
-# fresh topic — see `_detect_topic`'s docstring.
+# Phrases that genuinely continue the previous turn, and nothing else.
+#
+# This used to be a length test — four words or fewer counted as a follow-up —
+# which meant *any* short unrecognized message inherited the last topic. A live
+# transcript caught it: "2+2" was answered with "No hay documentos pendientes en
+# este expediente por ahora", because the previous turn had been about
+# documents. So did "gracias" and "asdfgh". Answering a question nobody asked,
+# confidently, is worse than admitting the message was not understood.
+#
+# Length is still required on top of this: "sí, pero ¿qué pasa con mi carro?"
+# opens a new subject and should not inherit either.
+_FOLLOWUP_MARKERS = (
+    "y ahora",
+    "y luego",
+    "y después",
+    "y despues",
+    "otra vez",
+    "de nuevo",
+    "continúa",
+    "continua",
+    "sigue",
+    "más",
+    "mas",
+    "y eso",
+    "por qué",
+    "por que",
+    "and now",
+    "what about",
+    "go on",
+    "continue",
+    "again",
+    "more",
+    "why",
+)
+"""Checked as substrings, like every other keyword set in this module."""
+
+_FOLLOWUP_EXACT = frozenset(
+    {"sí", "si", "no", "ok", "okay", "vale", "claro", "yes", "sure", "y?", "¿y?"}
+)
+"""Bare acknowledgements. Matched whole, not as substrings — "si" inside
+"situación" is not an acknowledgement."""
+
 _FOLLOWUP_WORD_LIMIT = 4
 
 
@@ -117,24 +156,41 @@ def _detect_topic(folded_message: str, recent_conversation: list[ConversationTur
     core of "different questions get different, relevant replies" instead of
     the same status-derived boilerplate for every message.
 
-    A direct keyword match in the current message always wins. When the
-    message itself is too short/generic to carry a topic (a follow-up like
-    "¿y ahora?" or "otra vez"), the most recent *user* turn in
-    `recent_conversation` is checked instead, so a short follow-up inherits
-    the topic actually being discussed rather than falling back to generic
-    status text. This is the only use `recent_conversation` gets here —
-    still simple substring matching, never sent anywhere as "memory" beyond
-    this one lookup.
+    A direct keyword match in the current message always wins. Failing that,
+    a message that is *explicitly* a continuation — "¿y ahora?", "otra vez",
+    "sí" — inherits the topic of the most recent user turn, so a follow-up
+    keeps discussing what was being discussed.
+
+    Inheritance requires an explicit marker, not merely a short message. The
+    length-only rule this replaces meant "2+2" was answered with "No hay
+    documentos pendientes", because the turn before it had been about
+    documents. This is the only use `recent_conversation` gets here — still
+    substring matching, never sent anywhere as "memory" beyond this lookup.
     """
     topic = _match_topic(folded_message)
     if topic is not None:
         return topic
-    if len(folded_message.split()) > _FOLLOWUP_WORD_LIMIT:
+    if not _is_followup(folded_message):
         return None
     for turn in reversed(recent_conversation):
         if turn.role == "user":
             return _match_topic(turn.message.casefold())
     return None
+
+
+def _is_followup(folded_message: str) -> bool:
+    """Whether this message continues the previous turn rather than opening a
+    subject of its own."""
+    stripped = folded_message.strip().strip("¿?¡!.,;: ")
+    if not stripped:
+        return False
+    if stripped in _FOLLOWUP_EXACT:
+        return True
+    # Length is required on top of the marker: "sí, pero ¿qué pasa con mi
+    # carro?" carries a marker and is plainly a new subject.
+    if len(stripped.split()) > _FOLLOWUP_WORD_LIMIT:
+        return False
+    return any(marker in stripped for marker in _FOLLOWUP_MARKERS)
 
 
 class RuleBasedProvider:

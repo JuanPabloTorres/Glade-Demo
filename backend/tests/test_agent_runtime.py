@@ -276,3 +276,51 @@ class TestHandledByIsNeverBlank:
         # unfilled label would degrade a turn the agent actually handled.
         answer = AgentAnswer(message="Tu flujo mensual es $308.33.", handled_by="")
         assert answer.message == "Tu flujo mensual es $308.33."
+
+
+class TestActionIdsAreServerAssigned:
+    """
+    A live run against Groq degraded half its turns on one error:
+
+        tool call validation failed: parameters for tool AgentAnswer did not
+        match schema: errors: [`/actions/0`: missing properties: 'id']
+
+    A required field is one the model must invent, and an identifier is exactly
+    what it has no basis to invent. Providers differ in how strictly they
+    validate structured output, so requiring it made the agent path work or
+    fail depending on which vendor was configured — with the failure surfacing
+    as a silent degrade rather than an error.
+    """
+
+    def test_an_action_without_an_id_is_accepted_by_the_contract(self) -> None:
+        action = AssistantAction(action_type="open_page", resource="overview", label="Ver")
+        assert action.id == ""
+
+    def test_the_runtime_fills_every_missing_id(self) -> None:
+        filled = AgentRuntime._allowed_actions(
+            [
+                AssistantAction(action_type="open_page", resource="overview", label="Uno"),
+                AssistantAction(action_type="ask", resource="evidence", label="Dos"),
+            ]
+        )
+
+        assert [item.id for item in filled] == ["action-0", "action-1"]
+
+    def test_an_id_the_model_did_supply_is_kept(self) -> None:
+        filled = AgentRuntime._allowed_actions(
+            [AssistantAction(id="chosen", action_type="ask", resource="overview", label="Uno")]
+        )
+
+        assert filled[0].id == "chosen"
+
+    def test_numbering_has_no_gaps_when_an_action_is_dropped(self) -> None:
+        # Assigned after the allow-list filter, so a dropped action cannot
+        # leave a hole in the keys React renders with.
+        filled = AgentRuntime._allowed_actions(
+            [
+                AssistantAction(action_type="ask", resource="billing", label="Fuera"),
+                AssistantAction(action_type="ask", resource="overview", label="Dentro"),
+            ]
+        )
+
+        assert [item.id for item in filled] == ["action-0"]
