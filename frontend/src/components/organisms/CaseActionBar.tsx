@@ -1,17 +1,9 @@
-import {
-  Label,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-  Select,
-  Textarea,
-  TextInput,
-} from "flowbite-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppIcon } from "../atoms/AppIcon";
 import { AppButton } from "../ui/AppButton";
+import { AppModal, AppModalBody, AppModalFooter } from "../overlays/AppModal";
+import { SelectField, TextField, TextareaField } from "../forms/fields";
 import { EVIDENCE_TYPES } from "../../config/bankruptcyOptions";
 import type { BankruptcyCase, CaseAnalysis } from "../../types/bankruptcy";
 import { formatDate } from "../../i18n/format";
@@ -179,93 +171,196 @@ export function CaseActionBar({ caseData, analysis, onUpdate, onMarkUrgent, onOp
         </AppButton>
       </div>
 
-      <Modal show={openAction === "request-document"} onClose={close}>
-        <ModalHeader>{t("workspace:actionBar.requestDocument.title")}</ModalHeader>
-        <ModalBody>
-          <p className="mb-3 text-sm text-[var(--color-text-muted)]">{t("workspace:actionBar.requestDocument.description")}</p>
-          <Label htmlFor="request-evidence-type">{t("workspace:actionBar.requestDocument.documentType")}</Label>
-          <Select id="request-evidence-type" value={evidenceType} onChange={(event) => setEvidenceType(event.target.value)}>
-            {EVIDENCE_TYPES.map((type) => <option key={type} value={type}>{t(`workspace:entryModal.evidenceTypes.${type}`)}</option>)}
-          </Select>
-        </ModalBody>
-        <ModalFooter>
-          <AppButton color="light" onClick={close}><AppIcon name="arrow-right" size={15} className="mr-2 rotate-180" />{t("common:actions.cancel")}</AppButton>
-          <AppButton className="primary-action" onClick={submitRequestDocument}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actionBar.requestDocument.submit")}</AppButton>
-        </ModalFooter>
-      </Modal>
-
-      <Modal show={openAction === "request-clarification" || openAction === "add-note"} onClose={close}>
-        <ModalHeader>{openAction === "request-clarification" ? t("workspace:actions.requestClarification") : t("workspace:actions.addNote")}</ModalHeader>
-        <ModalBody>
-          <Label htmlFor="note-text" className="sr-only">{openAction === "request-clarification" ? t("workspace:actionBar.notes.clarificationRequested") : t("workspace:actionBar.notes.professionalNote")}</Label>
-          <Textarea id="note-text" rows={5} value={noteText} onChange={(event) => setNoteText(event.target.value)} placeholder={openAction === "request-clarification" ? t("workspace:actionBar.placeholders.requestClarification") : t("workspace:actionBar.placeholders.addNote")} />
-        </ModalBody>
-        <ModalFooter>
-          <AppButton color="light" onClick={close}>{t("common:actions.cancel")}</AppButton>
-          <AppButton className="primary-action" onClick={openAction === "request-clarification" ? submitRequestClarification : submitAddNote} disabled={!noteText.trim()}>
-            <AppIcon name="check" size={15} className="mr-2" />{t("common:actions.save")}
+      {/* Every action below composes the shared AppModal. They previously
+          repeated Flowbite's dialog markup with `flex items-center` footers, so
+          their two actions shared one unwrapped row and were squeezed on a
+          phone — the same defect fixed in Add Evidence, and fixed here by the
+          same primitives rather than by a second set of patches. */}
+      <AppModal
+        open={openAction === "request-document"}
+        onClose={close}
+        title={t("workspace:actionBar.requestDocument.title")}
+        description={t("workspace:actionBar.requestDocument.description")}
+        size="lg"
+      >
+        <AppModalBody>
+          <SelectField
+            id="request-evidence-type"
+            label={t("workspace:actionBar.requestDocument.documentType")}
+            value={evidenceType}
+            onChange={(event) => setEvidenceType(event.target.value)}
+          >
+            {EVIDENCE_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {t(`workspace:entryModal.evidenceTypes.${type}`)}
+              </option>
+            ))}
+          </SelectField>
+        </AppModalBody>
+        <AppModalFooter>
+          <AppButton color="light" className="w-full sm:w-auto" onClick={close}>
+            {t("common:actions.cancel")}
           </AppButton>
-        </ModalFooter>
-      </Modal>
+          <AppButton className="primary-action w-full sm:w-auto" iconLeft="check" onClick={submitRequestDocument}>
+            {t("workspace:actionBar.requestDocument.submit")}
+          </AppButton>
+        </AppModalFooter>
+      </AppModal>
 
-      <Modal show={openAction === "schedule-consultation"} onClose={close}>
-        <ModalHeader>{t("workspace:actions.scheduleConsultation")}</ModalHeader>
-        <ModalBody>
-          <Label htmlFor="consultation-date">{t("workspace:actionBar.fields.proposedDate")}</Label>
-          <TextInput id="consultation-date" type="date" value={consultationDate} onChange={(event) => setConsultationDate(event.target.value)} />
-        </ModalBody>
-        <ModalFooter>
-          <AppButton color="light" onClick={close}>{t("common:actions.cancel")}</AppButton>
-          <AppButton className="primary-action" onClick={submitScheduleConsultation}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actions.scheduleConsultation")}</AppButton>
-        </ModalFooter>
-      </Modal>
-
-      <Modal show={openAction === "assign-attorney"} onClose={close}>
-        <ModalHeader>{t("workspace:actions.assignAttorney")}</ModalHeader>
-        <ModalBody>
-          <Label htmlFor="assign-attorney-name">{t("workspace:actionBar.fields.attorneyName")}</Label>
-          <TextInput id="assign-attorney-name" value={attorneyName} onChange={(event) => setAttorneyName(event.target.value)} placeholder={t("workspace:actionBar.placeholders.attorneyName")} />
-        </ModalBody>
-        <ModalFooter>
-          <AppButton color="light" onClick={close}>{t("common:actions.cancel")}</AppButton>
-          <AppButton className="primary-action" onClick={submitAssignAttorney}><AppIcon name="check" size={15} className="mr-2" />{t("workspace:actions.assignAttorney")}</AppButton>
-        </ModalFooter>
-      </Modal>
-
-      <Modal show={openAction === "generate-summary"} onClose={close} size="2xl">
-        <ModalHeader>{t("workspace:actionBar.summary.title")}</ModalHeader>
-        <ModalBody>
-          <p className="mb-3 rounded-lg bg-warning-soft p-3 text-xs font-medium text-fg-warning">{t("workspace:actionBar.summary.disclaimer")}</p>
-          <Textarea rows={14} value={summaryDraft} onChange={(event) => setSummaryDraft(event.target.value)} className="font-mono text-xs" />
-        </ModalBody>
-        <ModalFooter>
-          <AppButton color="light" onClick={close}>{t("common:actions.close")}</AppButton>
+      <AppModal
+        open={openAction === "request-clarification" || openAction === "add-note"}
+        onClose={close}
+        title={openAction === "request-clarification" ? t("workspace:actions.requestClarification") : t("workspace:actions.addNote")}
+        size="lg"
+      >
+        <AppModalBody>
+          {/* The label used to be `sr-only`. A visible label is the governed
+              pattern for a critical control, and the accessible name is
+              unchanged, so nothing that queried it by name is affected. */}
+          <TextareaField
+            id="note-text"
+            label={openAction === "request-clarification" ? t("workspace:actionBar.notes.clarificationRequested") : t("workspace:actionBar.notes.professionalNote")}
+            rows={5}
+            value={noteText}
+            onChange={(event) => setNoteText(event.target.value)}
+            placeholder={openAction === "request-clarification" ? t("workspace:actionBar.placeholders.requestClarification") : t("workspace:actionBar.placeholders.addNote")}
+          />
+        </AppModalBody>
+        <AppModalFooter>
+          <AppButton color="light" className="w-full sm:w-auto" onClick={close}>
+            {t("common:actions.cancel")}
+          </AppButton>
           <AppButton
-            className="primary-action"
+            className="primary-action w-full sm:w-auto"
+            iconLeft="check"
+            onClick={openAction === "request-clarification" ? submitRequestClarification : submitAddNote}
+            disabled={!noteText.trim()}
+          >
+            {t("common:actions.save")}
+          </AppButton>
+        </AppModalFooter>
+      </AppModal>
+
+      <AppModal
+        open={openAction === "schedule-consultation"}
+        onClose={close}
+        title={t("workspace:actions.scheduleConsultation")}
+        size="lg"
+      >
+        <AppModalBody>
+          <TextField
+            id="consultation-date"
+            label={t("workspace:actionBar.fields.proposedDate")}
+            type="date"
+            value={consultationDate}
+            onChange={(event) => setConsultationDate(event.target.value)}
+          />
+        </AppModalBody>
+        <AppModalFooter>
+          <AppButton color="light" className="w-full sm:w-auto" onClick={close}>
+            {t("common:actions.cancel")}
+          </AppButton>
+          <AppButton className="primary-action w-full sm:w-auto" iconLeft="check" onClick={submitScheduleConsultation}>
+            {t("workspace:actions.scheduleConsultation")}
+          </AppButton>
+        </AppModalFooter>
+      </AppModal>
+
+      <AppModal
+        open={openAction === "assign-attorney"}
+        onClose={close}
+        title={t("workspace:actions.assignAttorney")}
+        size="lg"
+      >
+        <AppModalBody>
+          <TextField
+            id="assign-attorney-name"
+            label={t("workspace:actionBar.fields.attorneyName")}
+            value={attorneyName}
+            onChange={(event) => setAttorneyName(event.target.value)}
+            placeholder={t("workspace:actionBar.placeholders.attorneyName")}
+          />
+        </AppModalBody>
+        <AppModalFooter>
+          <AppButton color="light" className="w-full sm:w-auto" onClick={close}>
+            {t("common:actions.cancel")}
+          </AppButton>
+          <AppButton className="primary-action w-full sm:w-auto" iconLeft="check" onClick={submitAssignAttorney}>
+            {t("workspace:actions.assignAttorney")}
+          </AppButton>
+        </AppModalFooter>
+      </AppModal>
+
+      <AppModal
+        open={openAction === "generate-summary"}
+        onClose={close}
+        title={t("workspace:actionBar.summary.title")}
+        size="2xl"
+      >
+        <AppModalBody>
+          <p className="rounded-lg bg-warning-soft p-3 text-xs font-medium text-fg-warning">
+            {t("workspace:actionBar.summary.disclaimer")}
+          </p>
+          <TextareaField
+            id="summary-draft"
+            label={t("workspace:actionBar.summary.title")}
+            rows={14}
+            value={summaryDraft}
+            onChange={(event) => setSummaryDraft(event.target.value)}
+            controlClassName="font-mono text-xs"
+          />
+        </AppModalBody>
+        <AppModalFooter>
+          <AppButton color="light" className="w-full sm:w-auto" onClick={close}>
+            {t("common:actions.close")}
+          </AppButton>
+          <AppButton
+            className="primary-action w-full sm:w-auto"
+            iconLeft="check"
             onClick={() => {
               appendNote(timestampNote(t("workspace:actionBar.notes.summaryGenerated"), summaryDraft));
               close();
             }}
           >
-            <AppIcon name="check" size={15} className="mr-2" />{t("workspace:actionBar.summary.saveInNotes")}
+            {t("workspace:actionBar.summary.saveInNotes")}
           </AppButton>
-        </ModalFooter>
-      </Modal>
+        </AppModalFooter>
+      </AppModal>
 
-      <Modal show={openAction === "message-client"} onClose={close}>
-        <ModalHeader>{t("workspace:actions.messageClient")}</ModalHeader>
-        <ModalBody>
-          <p className="mb-3 text-sm text-[var(--color-text-muted)]">{t("workspace:actionBar.messageClient.description")}</p>
-          <Label htmlFor="client-message" className="sr-only">{t("workspace:actionBar.messageClient.label")}</Label>
-          <Textarea id="client-message" rows={4} value={clientMessage} onChange={(event) => setClientMessage(event.target.value)} />
-        </ModalBody>
-        <ModalFooter>
-          <AppButton color="light" onClick={close}>{t("common:actions.cancel")}</AppButton>
-          <AppButton className="primary-action" disabled={busy || !clientMessage.trim()} onClick={() => { setBusy(true); submitMessageClient(); setBusy(false); }}>
-            <AppIcon name="chat" size={15} className="mr-2" />{t("common:actions.send")}
+      <AppModal
+        open={openAction === "message-client"}
+        onClose={close}
+        title={t("workspace:actions.messageClient")}
+        description={t("workspace:actionBar.messageClient.description")}
+        size="lg"
+      >
+        <AppModalBody>
+          <TextareaField
+            id="client-message"
+            label={t("workspace:actionBar.messageClient.label")}
+            rows={4}
+            value={clientMessage}
+            onChange={(event) => setClientMessage(event.target.value)}
+          />
+        </AppModalBody>
+        <AppModalFooter>
+          <AppButton color="light" className="w-full sm:w-auto" onClick={close}>
+            {t("common:actions.cancel")}
           </AppButton>
-        </ModalFooter>
-      </Modal>
+          <AppButton
+            className="primary-action w-full sm:w-auto"
+            iconLeft="chat"
+            disabled={busy || !clientMessage.trim()}
+            onClick={() => {
+              setBusy(true);
+              submitMessageClient();
+              setBusy(false);
+            }}
+          >
+            {t("common:actions.send")}
+          </AppButton>
+        </AppModalFooter>
+      </AppModal>
     </>
   );
 }

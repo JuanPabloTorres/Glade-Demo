@@ -23,7 +23,8 @@
     "send": "Send",
     "submit": "Submit",
     "start": "Start",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "saving": "Saving..."
   },
   "labels": {
     "language": "Language",
@@ -63,5 +64,15 @@
     "loading": "Loading...",
     "loadError": "Unable to load this information.",
     "restoringSession": "Restoring your secure workspace"
+  },
+  "validation": {
+    "required": "This field is required.",
+    "submitFailed": "We could not save this information. Check the details and try again."
+  },
+  "fileField": {
+    "prompt": "Choose a file",
+    "dropHint": "or drag it here",
+    "replace": "Replace file",
+    "remove": "Remove file"
   }
 }

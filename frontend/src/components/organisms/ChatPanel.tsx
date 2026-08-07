@@ -1,4 +1,5 @@
-import { Alert, Badge, Modal, ModalBody, ModalHeader, Spinner, Tooltip } from "flowbite-react";
+import { Alert, Badge, Spinner, Tooltip } from "flowbite-react";
+import { AppModal, AppModalBody } from "../overlays/AppModal";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
@@ -172,15 +173,19 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
         {guidance ? <p className="mt-2 text-xs text-[#777]">{guidance.disclaimer}</p> : null}
       </div>
 
-      <Modal show={uploadNoticeOpen} onClose={() => setUploadNoticeOpen(false)}>
-        <ModalHeader>{t("chat.uploadTitle")}</ModalHeader>
-        <ModalBody>
+      <AppModal
+        open={uploadNoticeOpen}
+        onClose={() => setUploadNoticeOpen(false)}
+        title={t("chat.uploadTitle")}
+        size="md"
+      >
+        <AppModalBody>
           <Badge color="gray" className="mb-3 w-fit">{t("chat.comingSoon")}</Badge>
           <p className="text-sm leading-6 text-(--color-text-muted)">
             {t("chat.uploadHint")}
           </p>
-        </ModalBody>
-      </Modal>
+        </AppModalBody>
+      </AppModal>
     </div>
   );
 }
