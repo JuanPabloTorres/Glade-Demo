@@ -34,15 +34,24 @@ T = TypeVar("T")
 def _text_of(messages: list[Any]) -> str:
     """Flatten a Strands message list to the text a model would actually read.
 
-    Used to assert what reached the prompt — notably whether a follow-up turn
-    was given the earlier turns it needs to resolve its own pronouns.
+    Two sources, and the second is the point. Plain `text` blocks carry the
+    prompt — used to assert whether a follow-up turn was given the earlier turns
+    it needs to resolve its own pronouns. `toolResult` blocks carry what a tool
+    returned, which is how a retrieved document actually reaches a model: the
+    search tool runs, its excerpts come back as a tool result, and the next
+    stream call sees them. Asserting on this is the difference between "the
+    index contains the document" and "the model was told about it".
     """
     parts: list[str] = []
     for message in messages or []:
         content = message.get("content", []) if isinstance(message, dict) else []
         for block in content:
-            if isinstance(block, dict) and "text" in block:
+            if not isinstance(block, dict):
+                continue
+            if "text" in block:
                 parts.append(str(block["text"]))
+            if "toolResult" in block:
+                parts.append(json.dumps(block["toolResult"], ensure_ascii=False, default=str))
     return "\n".join(parts)
 
 
@@ -78,6 +87,17 @@ class FakeProviderModel(Model):
         self.invoked_tools: list[str] = []
         self.offered_tools: list[list[str]] = []
         self.prompts: list[str] = []
+
+    @property
+    def transcript(self) -> str:
+        """Everything this model was shown, across every turn.
+
+        Prompts and tool results together — i.e. the model's whole view of the
+        case. Assert an uploaded document appears here to show retrieval
+        reached the model, and assert another case's document does not to show
+        it stayed out.
+        """
+        return "\n".join(self.prompts)
 
     @property
     def data_tools_invoked(self) -> list[str]:
