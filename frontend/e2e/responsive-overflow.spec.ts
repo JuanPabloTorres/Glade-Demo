@@ -1,6 +1,17 @@
 import { expect, test, type Page } from "@playwright/test";
 
 /**
+ * This suite asserts Spanish copy, so it declares the locale it needs.
+ *
+ * The config used to pin `es-PR` globally, which made Spanish the invisible
+ * default and left the English first-visit path untested — that is how an
+ * English UI shipped around a Spanish case file. A spec that depends on a
+ * language now says so where the dependency is.
+ */
+test.use({ locale: "es-PR" });
+
+
+/**
  * Responsive regression gate for the whole authenticated product.
  *
  * `index.css` clips horizontal overflow at the document level, which is the

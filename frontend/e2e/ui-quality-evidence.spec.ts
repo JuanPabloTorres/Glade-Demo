@@ -166,28 +166,64 @@ test("the footer reports the version this tree was built from", async ({ page })
   expect(footer).toContain(`v${REPO_VERSION}`);
 });
 
-test.describe("the demo seed follows the UI, not its own default", () => {
-  // An English browser with nothing stored: what a first-time visitor to the
-  // deployed demo arrives with, and the combination that produced the defect.
-  // The rest of this file runs under the config's `es-PR`, which is why the
-  // mismatch survived a green suite.
+/**
+ * First visit: no stored preference, one browser locale, both directions.
+ *
+ * This is the case that shipped broken. The UI and the seeded demo content each
+ * resolved the language their own way — the UI through `resolveLanguage`
+ * (profile → persisted → browser → default), the seed through a private rule
+ * that fell back to Spanish — and production rendered an English UI around a
+ * Spanish case file for anyone arriving with nothing stored.
+ *
+ * It survived a green suite because the Playwright config pinned every run to
+ * `es-PR`, so no test ever arrived the way a first-time visitor does. Both
+ * directions are asserted now, and neither inherits a locale from the config.
+ */
+/**
+ * A first visit is defined by what this function does *not* do: it never calls
+ * `addInitScript` to seed `freshstart.language`, which is what every other test
+ * in this file does and exactly the step that hid the defect.
+ *
+ * It cannot be asserted at runtime that storage is empty — `LanguageProvider`
+ * persists the resolved language in its first effect, so by the time any page
+ * has rendered the preference exists. An earlier version of this helper checked
+ * for `null` and failed against a perfectly correct app. What the caller asserts
+ * instead is that the *persisted* value matches the browser's locale, which is
+ * the observable proof that resolution went through the browser step.
+ */
+async function firstVisitAsClient(page: Page) {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/login");
+  await page.getByRole("button", { name: /Entrar como cliente|Sign in as client/i }).click();
+  await expect(page.getByRole("banner")).toBeVisible();
+}
+
+test.describe("first visit in an English browser", () => {
   test.use({ locale: "en-US" });
 
-  test("an English session gets an English case file", async ({ page }) => {
-    // The seed is generated in a `useState` initializer from its own reading of
-    // the language. That reading fell back to Spanish while the app's rule
-    // falls back to VITE_DEFAULT_LANGUAGE and consults the browser first, so
-    // production rendered an English UI around a Spanish case file. Both go
-    // through `resolveLanguage` now.
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/login");
-    await page.getByRole("button", { name: /Entrar como cliente|Sign in as client/i }).click();
-    await expect(page.getByRole("banner")).toBeVisible();
+  test("the UI and the seeded case file are both English", async ({ page }) => {
+    await firstVisitAsClient(page);
 
     expect(await page.evaluate(() => localStorage.getItem("freshstart.language"))).toBe("en");
     const main = await page.locator("main").innerText();
     expect(main).toContain("Organize my finances");
     expect(main).not.toContain("Organizar mis finanzas");
+    // The chrome resolved the same way, from the same rule.
+    await expect(page.getByRole("navigation").first()).toContainText(/Home|My case/);
+  });
+});
+
+test.describe("first visit in a Spanish browser", () => {
+  test.use({ locale: "es-PR" });
+
+  test("the UI and the seeded case file are both Spanish", async ({ page }) => {
+    await firstVisitAsClient(page);
+
+    expect(await page.evaluate(() => localStorage.getItem("freshstart.language"))).toBe("es");
+    const main = await page.locator("main").innerText();
+    expect(main).toContain("Organizar mis finanzas");
+    expect(main).not.toContain("Organize my finances");
+    await expect(page.getByRole("navigation").first()).toContainText(/Inicio|Mi caso/);
   });
 });
 

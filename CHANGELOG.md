@@ -115,6 +115,16 @@ On `integration/demo-close` since the 4.9.0 release commit. No version bump yet.
   the operation that was impossible before.
 - Pinned the footer version badge to the tree's `VERSION`, so a build a release behind fails
   a suite rather than being spotted on a screen.
+- Made release gates pass only on `exit 0`. `npm run release:verify` runs twelve gates, parses no
+  output and reports each one's real exit code — the rule tested against the failure it exists
+  for: a command printing "Tests 143 passed (143)" and exiting 1 is recorded failing.
+  (`changes/release-gate-exit-codes.md`, 4.13.0)
+- Isolated release regression from other checkouts: `reuseExistingServer` off, OS-assigned ports,
+  a per-port e2e database, and a global setup that refuses to run unless `/api/v1/health` reports
+  this checkout's version. Refusal verified by making it fire.
+- Removed the global `es-PR` Playwright locale. Six suites declare the locale they assert, and
+  first-visit acceptance covers `en-US` and `es-PR` with no stored preference, checking that the
+  UI and the seeded case file resolve through the same `resolveLanguage` path.
 - Gave the assistant the facts an evidence answer needs. `CaseContextDto` now carries held
   documents, evidence requirements and their satisfaction; `get_evidence_status` returns all
   three. The four document questions produce four different grounded answers, and a covered
