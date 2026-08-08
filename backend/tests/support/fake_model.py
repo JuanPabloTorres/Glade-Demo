@@ -31,6 +31,21 @@ from strands.models.model import Model
 T = TypeVar("T")
 
 
+def _text_of(messages: list[Any]) -> str:
+    """Flatten a Strands message list to the text a model would actually read.
+
+    Used to assert what reached the prompt — notably whether a follow-up turn
+    was given the earlier turns it needs to resolve its own pronouns.
+    """
+    parts: list[str] = []
+    for message in messages or []:
+        content = message.get("content", []) if isinstance(message, dict) else []
+        for block in content:
+            if isinstance(block, dict) and "text" in block:
+                parts.append(str(block["text"]))
+    return "\n".join(parts)
+
+
 class ToolNeverInvokedError(AssertionError):
     """Raised when a final answer is requested before any tool ran.
 
@@ -62,6 +77,7 @@ class FakeProviderModel(Model):
         self._structured_tool = structured_tool
         self.invoked_tools: list[str] = []
         self.offered_tools: list[list[str]] = []
+        self.prompts: list[str] = []
 
     @property
     def data_tools_invoked(self) -> list[str]:
@@ -89,6 +105,7 @@ class FakeProviderModel(Model):
     ) -> AsyncIterable[dict[str, Any]]:
         available = [spec["name"] for spec in (tool_specs or [])]
         self.offered_tools.append(available)
+        self.prompts.append(_text_of(messages))
 
         target = next(
             (
