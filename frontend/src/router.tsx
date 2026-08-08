@@ -28,10 +28,11 @@ export const router = createBrowserRouter([
           { index: true, element: <RoleHomePage /> },
           { path: "case/:caseId", element: <CaseWorkspacePage /> },
           { path: "case/:caseId/:section", element: <CaseWorkspacePage /> },
+          // Legacy destination — redirects into the assistant panel, carrying
+          // its `?prompt=` through. See AssistantPage's docblock.
           { path: "assistant", element: <AssistantPage /> },
           { path: "help", element: <HelpPage /> },
           { path: "about", element: <AboutPlatformPage /> },
-          { path: "help", element: <HelpPage /> },
         ],
       },
     ],

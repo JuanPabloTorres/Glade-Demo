@@ -35,9 +35,12 @@ interface ChatBubbleProps {
  * never a tinted background paired with same-hue text.
  */
 export function ChatBubble({ message }: ChatBubbleProps) {
-  const { t } = useTranslation("ai");
+  const { t } = useTranslation(["ai", "workspace"]);
   const { locale } = useLanguage();
   const isUser = message.role === "user";
+  // Keyed only for the product's own opening greeting, which is written before
+  // anyone has spoken; everything a person or the model said renders verbatim.
+  const body = message.contentKey ? t(message.contentKey) : message.content;
   const [copied, setCopied] = useState(false);
   // The "copied" confirmation reverts on a timer. Held in a ref and cancelled
   // on unmount because otherwise the callback runs against a component that no
@@ -56,7 +59,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(message.content);
+      await navigator.clipboard.writeText(body);
       setCopied(true);
       if (revertTimer.current) clearTimeout(revertTimer.current);
       revertTimer.current = setTimeout(() => setCopied(false), 1500);
@@ -71,7 +74,9 @@ export function ChatBubble({ message }: ChatBubbleProps) {
       <Avatar
         rounded
         size="xs"
-        placeholderInitials={isUser ? "Tú" : "IA"}
+        // Translated: these were literal "Tú"/"IA", so an English session read
+        // "IA" beside every answer the assistant gave.
+        placeholderInitials={isUser ? t("ai:chat.initialsYou") : t("ai:chat.initialsAssistant")}
         className={isUser ? "shrink-0" : "shrink-0 [&>div]:bg-brand [&>div]:text-white"}
       />
 
@@ -82,13 +87,13 @@ export function ChatBubble({ message }: ChatBubbleProps) {
       >
         <div className="flex items-center gap-1.5">
           <span className={`text-sm font-semibold ${isUser ? "text-white" : "text-heading"}`}>
-            {isUser ? t("chat.senderYou") : t("chat.senderAssistant")}
+            {isUser ? t("ai:chat.senderYou") : t("ai:chat.senderAssistant")}
           </span>
           <span className={`text-sm ${isUser ? "text-white/75" : "text-body"}`}>
             {formatTime(message.createdAt, locale)}
           </span>
         </div>
-        <p className={`py-2.5 text-sm leading-6 ${isUser ? "text-white" : "text-body"}`}>{message.content}</p>
+        <p className={`py-2.5 text-sm leading-6 ${isUser ? "text-white" : "text-body"}`}>{body}</p>
       </div>
 
       <AppTooltip content={copied ? t("chat.copied") : t("chat.copy")}>

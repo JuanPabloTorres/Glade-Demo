@@ -10,9 +10,12 @@ import { ChatPanel } from "../organisms/ChatPanel";
  * Two shapes, one component, chosen by breakpoint rather than by a JS width
  * check so there is no resize flicker and no second source of truth:
  *
- * - below `md` it is a bottom sheet that claims the dynamic viewport minus the
- *   top safe area. `dvh`, not `vh`, because a phone browser's toolbars change
- *   the visible height and `vh` would push the composer underneath them;
+ * - below `md` it takes the whole viewport. Not a partial sheet: a phone has
+ *   nothing to spare, and a conversation squeezed into the bottom two thirds of
+ *   a 320px screen shows about three lines of an answer. It sits above the
+ *   bottom bar and outside the page's content column entirely — `fixed inset-0`
+ *   with the safe areas as padding, so the header and composer clear the notch
+ *   and the home indicator while the surface itself still reaches the edges;
  * - from `md` up it is a right-hand side panel of fixed width. It deliberately
  *   does not cover the page: no scrim, and the sidebar and header stay visible
  *   and usable, so the assistant can be read against the screen it is about.
@@ -23,9 +26,11 @@ import { ChatPanel } from "../organisms/ChatPanel";
  * would silently discard them. The transcript itself is case state and lives
  * in the workspace, so it survives regardless.
  *
- * `ChatPanel` is reused exactly as the `/assistant` route uses it. The route
- * still exists and still works — this is a second way in, not a replacement,
- * and neither one owns a private copy of the conversation.
+ * This is now the assistant's only surface. `/assistant` used to render the
+ * same `ChatPanel` as a page, which meant two ways in that behaved differently
+ * — one navigated away from what you were asking about, the other did not. The
+ * route redirects here instead, carrying its `?prompt=` through, so nothing
+ * that linked to it breaks.
  */
 export function AiPanel() {
   const { t } = useTranslation(["ai", "common"]);
@@ -63,8 +68,8 @@ export function AiPanel() {
       // and out of the accessibility tree and the tab order at the same time.
       hidden={!open}
       className="fixed z-drawer flex flex-col overflow-hidden border-default bg-neutral-primary-soft shadow-[0_-8px_40px_rgba(15,23,42,0.22)] outline-none
-        inset-x-0 bottom-0 top-[env(safe-area-inset-top)] rounded-t-2xl border-t
-        md:inset-y-0 md:left-auto md:right-0 md:top-0 md:h-dvh md:w-[26rem] md:rounded-none md:border-s md:border-t-0 md:shadow-[-8px_0_40px_rgba(15,23,42,0.16)]"
+        inset-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]
+        md:inset-y-0 md:left-auto md:right-0 md:h-dvh md:w-104 md:p-0 md:border-s md:shadow-[-8px_0_40px_rgba(15,23,42,0.16)]"
     >
       <div className="flex shrink-0 items-center gap-2 border-b border-default px-4 py-3">
         <h2 id={headingId} className="min-w-0 flex-1 truncate text-sm font-semibold text-heading">

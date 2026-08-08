@@ -202,8 +202,10 @@
     "nextStepsTitle": "Próximos pasos",
     "nextStepsFallback": "Completa la plantilla para recibir orientación.",
     "warningsTitle": "Alertas para revisar",
+    "attorneyPreparationTitle": "Prepara tu consulta",
     "discussionPointsTitle": "Puntos para discutir con el abogado",
-    "chapterComparisonTitle": "Chapter 7 y Chapter 13",
+    "discussionPointsEmpty": "Completa la plantilla y aquí aparecerán los puntos que debes plantear.",
+    "chapterComparisonTitle": "Capítulo 7 y Capítulo 13",
     "chapterComparisonDescription": "Estas son preguntas de preparación, no una recomendación automática.",
     "chapter7": "Capítulo 7",
     "chapter13": "Capítulo 13",
@@ -211,12 +213,12 @@
       "maritalStatus": "Estado civil",
       "housingStatus": "Situación de vivienda"
     },
-    "householdExample": "Ej. Casado/a, 3 personas en el hogar, vivienda alquilada.",
-    "incomeExample": "Ej. Salario quincenal de $1,200 brutos.",
-    "expenseExample": "Ej. Renta $650/mes, marcado como necesario.",
-    "debtExample": "Ej. Tarjeta de crédito, balance $3,200, sin demanda.",
-    "assetExample": "Ej. Vehículo 2018, valor estimado $9,000, gravamen $4,200.",
-    "documentsExample": "Ej. Talón de pago más reciente respalda tu ingreso declarado.",
+    "householdExample": "Casado/a, 3 personas en el hogar, vivienda alquilada.",
+    "incomeExample": "Salario quincenal de $1,200 brutos.",
+    "expenseExample": "Renta $650/mes, marcado como necesario.",
+    "debtExample": "Tarjeta de crédito, balance $3,200, sin demanda.",
+    "assetExample": "Vehículo 2018, valor estimado $9,000, gravamen $4,200.",
+    "documentsExample": "Talón de pago más reciente respalda tu ingreso declarado.",
     "chatPrompts": {
       "household": "No sé qué poner en la sección de hogar",
       "income": "¿Qué cuenta como ingreso?",
@@ -288,6 +290,12 @@
     },
     "evidenceChecklistTitle": "Lista inteligente de evidencia",
     "evidenceChecklistDescription": "La lista se adapta a deudas garantizadas, cobros, empleo propio y transferencias.",
+    "evidenceChecklistProgress": "{{satisfied}} de {{total}} con respaldo",
+    "evidenceChecklistReceived": "Recibido",
+    "evidenceChecklistPending": "Pendiente",
+    "attachedDocumentsTitle": "Documentos en el expediente",
+    "attachedDocumentsCount_one": "{{count}} documento",
+    "attachedDocumentsCount_other": "{{count}} documentos",
     "review": {
       "title": "Revisa antes de enviar",
       "description": "Confirma que cada sección esté completa. Puedes regresar a cualquier sección sin perder lo que ya escribiste.",
@@ -488,5 +496,39 @@
     "welcomeMessage": "Comencemos por tu meta y la composición del hogar. Luego organizaremos cada cifra con evidencia.",
     "consultationTitle": "Consulta",
     "consultationDescription": "Programar discusión de alternativas con el abogado."
+  },
+  "insights": {
+    "moreItems_one": "{{count}} punto más",
+    "moreItems_other": "{{count}} puntos más"
+  },
+  "demoSeed": {
+    "elena": {
+      "goal": "Organizar mis finanzas y saber qué debo discutir con un abogado de quiebras.",
+      "welcome": "Te ayudaré a organizar ingresos, gastos, deudas, bienes y documentos para preparar una consulta informada con un abogado."
+    },
+    "miguel": {
+      "goal": "Revisar atrasos de vivienda y deudas médicas antes de una consulta.",
+      "welcome": "La solicitud fue enviada. El abogado revisará las alertas y documentos pendientes."
+    },
+    "expenses": {
+      "rent": "Alquiler",
+      "mortgage": "Hipoteca",
+      "groceries": "Alimentos",
+      "groceriesAndHousehold": "Alimentos y artículos del hogar",
+      "utilities": "Agua, luz, teléfono e internet",
+      "fuelAndMaintenance": "Gasolina y mantenimiento",
+      "vehiclesAndFuel": "Vehículos y gasolina",
+      "medicalCopays": "Medicinas y copagos"
+    },
+    "debts": {
+      "creditCard": "Tarjeta de crédito",
+      "vehicleLoan": "Préstamo de vehículo",
+      "residentialMortgage": "Hipoteca residencial",
+      "medicalServices": "Servicios médicos"
+    },
+    "collateral": {
+      "sedan": "Sedán 2018",
+      "primaryResidence": "Residencia principal"
+    }
   }
 }

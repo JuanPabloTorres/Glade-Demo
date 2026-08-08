@@ -106,6 +106,26 @@ class CaseAnalysisRequestDto(ApiModel):
     case: BankruptcyCaseDto
 
 
+class EvidenceRequirementDto(ApiModel):
+    """One line of the evidence checklist, already resolved server-side.
+
+    `required_evidence` (plain labels) is kept beside this for the callers that
+    only render text, but the tick beside each line is a business rule — which
+    uploaded document type satisfies which requirement — and it belongs here
+    rather than being re-derived by every client. Both the workspace and the
+    backend used to fuzzy-match the requirement's words against the evidence
+    type's label independently, and they disagreed with each other and with
+    `evidence_score`.
+
+    `key` is the stable catalogue key (`evidence.pay_stubs`), so a client can
+    branch on a requirement without matching prose in either language.
+    """
+
+    key: str
+    label: str
+    satisfied: bool
+
+
 class CaseAnalysisDto(ApiModel):
     monthly_gross_income: float
     monthly_net_income: float
@@ -125,6 +145,9 @@ class CaseAnalysisDto(ApiModel):
     chapter_7_questions: list[str]
     chapter_13_questions: list[str]
     required_evidence: list[str]
+    # Additive: existing clients keep reading `required_evidence`. Defaulted so
+    # a stored or hand-built DTO from before this field stays constructible.
+    evidence_requirements: list[EvidenceRequirementDto] = Field(default_factory=list)
     next_steps: list[str]
 
 

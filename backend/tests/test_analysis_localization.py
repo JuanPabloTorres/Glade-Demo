@@ -14,12 +14,16 @@ from app.ai.providers.rule_based import _section_for_missing
 from app.schemas.bankruptcy import (
     BankruptcyCaseDto,
     DebtEntryDto,
+    EvidenceItemDto,
     ExpenseEntryDto,
     HouseholdDto,
     IncomeEntryDto,
 )
 from app.services.analysis_copy import _COPY
-from app.services.bankruptcy_service import BankruptcyAnalysisService
+from app.services.bankruptcy_service import (
+    EVIDENCE_REQUIREMENT_TYPES,
+    BankruptcyAnalysisService,
+)
 
 
 def _populated_case() -> BankruptcyCaseDto:
@@ -118,6 +122,76 @@ class TestGeneratedCopyFollowsTheSession:
         assert spanish.total_debt == english.total_debt
         assert spanish.completion_score == english.completion_score
         assert spanish.evidence_score == english.evidence_score
+
+
+class TestTheEvidenceChecklistFollowsTheSession:
+    """
+    `required_evidence` was the one generated list left untranslated, because
+    satisfaction used to be decided by intersecting the requirement's Spanish
+    words with the evidence type's Spanish label. `EVIDENCE_REQUIREMENT_TYPES`
+    decides it on canonical slugs now, so the labels are free to travel.
+    """
+
+    def _case_with_evidence(self) -> BankruptcyCaseDto:
+        case = _populated_case()
+        return case.model_copy(
+            update={
+                "evidence": [
+                    EvidenceItemDto(id="ev-1", evidence_type="pay-stubs", name="stub.pdf"),
+                    EvidenceItemDto(id="ev-2", evidence_type="bank-statement", name="bank.pdf"),
+                ]
+            }
+        )
+
+    def test_the_checklist_is_english_for_an_english_session(self) -> None:
+        analysis = BankruptcyAnalysisService().analyze(_populated_case(), language="en")
+
+        assert "Valid photo ID" in analysis.required_evidence
+        assert "Identificación vigente" not in analysis.required_evidence
+
+    def test_satisfaction_is_identical_in_both_languages(self) -> None:
+        case = self._case_with_evidence()
+        spanish = BankruptcyAnalysisService().analyze(case, language="es")
+        english = BankruptcyAnalysisService().analyze(case, language="en")
+
+        assert spanish.evidence_score == english.evidence_score
+        assert [item.key for item in spanish.evidence_requirements] == [
+            item.key for item in english.evidence_requirements
+        ]
+        assert [item.satisfied for item in spanish.evidence_requirements] == [
+            item.satisfied for item in english.evidence_requirements
+        ]
+
+    def test_a_document_satisfies_its_own_requirement_and_not_another(self) -> None:
+        # The word matching this replaced had "Estado bancario" satisfying the
+        # housing requirement (shared word "estado") while leaving the banking
+        # one unticked. Both directions are asserted so neither can come back.
+        analysis = BankruptcyAnalysisService().analyze(self._case_with_evidence(), language="es")
+        satisfied = {item.key for item in analysis.evidence_requirements if item.satisfied}
+
+        assert "evidence.bank_statements" in satisfied
+        assert "evidence.pay_stubs" in satisfied
+        assert "evidence.housing_document" not in satisfied
+        assert "evidence.government_id" not in satisfied
+
+    def test_the_score_agrees_with_the_per_line_ticks(self) -> None:
+        # The workspace renders the ticks and the score side by side; they are
+        # read off one list precisely so they cannot contradict each other.
+        analysis = BankruptcyAnalysisService().analyze(self._case_with_evidence(), language="en")
+        ticked = sum(1 for item in analysis.evidence_requirements if item.satisfied)
+
+        assert analysis.required_evidence == [
+            item.label for item in analysis.evidence_requirements
+        ]
+        assert analysis.evidence_score == round(
+            (ticked / len(analysis.evidence_requirements)) * 100
+        )
+
+    def test_every_requirement_the_service_can_emit_has_a_match_rule(self) -> None:
+        # A key without an entry in EVIDENCE_REQUIREMENT_TYPES raises at
+        # analysis time rather than silently never ticking.
+        for key in EVIDENCE_REQUIREMENT_TYPES:
+            assert key in _COPY, f"{key} has a match rule but no label"
 
 
 class TestSectionRoutingSurvivesTranslation:

@@ -72,12 +72,10 @@ export function SidebarItem({ item, onNavigate, collapsed = false }: SidebarItem
 
   const active = isNavItemActive(item.to, location.pathname, location.search);
 
-  // The assistant is the primary action, so when it is not the current page it
-  // still reads as an action rather than a peer link — an outlined brand pill,
-  // one step below the solid active treatment so the two never compete.
-  const idle = item.primaryAction
-    ? "border border-brand-medium text-fg-brand hover:bg-brand-soft"
-    : "text-body hover:bg-neutral-tertiary hover:text-fg-brand";
+  // Every entry is a peer. The outlined "primary action" treatment existed for
+  // the assistant, which is not a navigation destination any more — it has one
+  // entry point, the floating launcher (see config/navigation.ts).
+  const idle = "text-body hover:bg-neutral-tertiary hover:text-fg-brand";
 
   const link = (
     <Link
@@ -92,7 +90,7 @@ export function SidebarItem({ item, onNavigate, collapsed = false }: SidebarItem
       <AppIcon
         name={item.icon}
         size={18}
-        className={active || item.primaryAction ? "shrink-0" : "shrink-0 transition duration-75 group-hover:text-fg-brand"}
+        className={active ? "shrink-0" : "shrink-0 transition duration-75 group-hover:text-fg-brand"}
       />
       {collapsed ? null : <span className="truncate">{label}</span>}
     </Link>

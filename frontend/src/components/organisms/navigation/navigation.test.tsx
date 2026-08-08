@@ -62,10 +62,18 @@ describe("Sidebar", () => {
 
     renderAt(<Sidebar />, "/");
 
-    ["Inicio", "Mi caso", "Documentos", "Tareas", "Actividad", "Asistente", "Ayuda"].forEach((label) => {
+    ["Inicio", "Mi caso", "Documentos", "Tareas", "Actividad", "Ayuda"].forEach((label) => {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     });
     expect(screen.getAllByRole("link", { name: /Inicio/ })[0]).toHaveAttribute("aria-current", "page");
+  });
+
+  it("carries no assistant entry — the floating launcher is its only entry point", () => {
+    asClient([makeCase({ ownerUserId: "client-1" })]);
+
+    renderAt(<Sidebar />, "/");
+
+    expect(screen.queryByText("Asistente")).toBeNull();
   });
 
   it("shows the product name, so the sidebar carries the branding at tablet and desktop widths", () => {
@@ -118,7 +126,7 @@ describe("Sidebar", () => {
 });
 
 describe("BottomNavigation", () => {
-  it("renders exactly five slots — the cap that keeps a 320px viewport tappable", () => {
+  it("renders at most five slots — the cap that keeps a 320px viewport tappable", () => {
     asClient([makeCase({ ownerUserId: "client-1" })]);
 
     renderAt(<BottomNavigation />, "/");
@@ -126,13 +134,33 @@ describe("BottomNavigation", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(5);
   });
 
-  it("puts the assistant in the centre slot, whatever order the configuration lists it in", () => {
+  it("renders the configuration in order, with 'Mi caso' in the slot the assistant vacated", () => {
     asClient([makeCase({ ownerUserId: "client-1" })]);
 
     renderAt(<BottomNavigation />, "/");
 
     const labels = screen.getAllByRole("listitem").map((item) => item.textContent);
-    expect(labels[2]).toBe("Asistente");
+    expect(labels).toEqual(["Inicio", "Mi caso", "Documentos", "Tareas", "Actividad"]);
+  });
+
+  it("carries no assistant slot — a phone reaches the assistant through the launcher", () => {
+    asClient([makeCase({ ownerUserId: "client-1" })]);
+
+    renderAt(<BottomNavigation />, "/");
+
+    expect(screen.queryByText("Asistente")).toBeNull();
+  });
+
+  it("sizes its columns to the destinations the role actually has", () => {
+    // The attorney has four and the client five; a fixed `grid-cols-5` left the
+    // attorney's bar with an empty cell once the assistant stopped being one.
+    mockUseAuth.mockReturnValue({ user: ATTORNEY });
+    mockUseBankruptcyWorkspace.mockReturnValue({ cases: [] });
+
+    const { container } = renderAt(<BottomNavigation />, "/");
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(4);
+    expect(container.querySelector("ul")?.className).toContain("grid-cols-4");
   });
 
   it("reaches the same destinations as the sidebar, because both read one configuration", () => {

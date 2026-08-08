@@ -14,6 +14,7 @@ from app.repositories.protocols import AIConversationRepositoryProtocol, CaseRep
 from app.schemas.bankruptcy import (
     BankruptcyCaseDto,
     CaseAnalysisDto,
+    EvidenceRequirementDto,
     GuidanceRequestDto,
 )
 from app.services.analysis_copy import copy
@@ -36,35 +37,50 @@ FREQUENCY_MULTIPLIERS = {
     "annual": 1 / 12,
 }
 
-COMMON_EVIDENCE = (
-    "Identificación vigente",
-    "Talones de pago de los últimos 60 días",
-    "Estados bancarios recientes",
-    "Planillas o transcripciones contributivas recientes",
-    "Estados de cuenta de acreedores",
-    "Contrato de arrendamiento o estado hipotecario",
-    "Estado de préstamo de vehículo, si aplica",
-    "Certificado de orientación crediticia, cuando corresponda",
+COMMON_EVIDENCE_KEYS = (
+    "evidence.government_id",
+    "evidence.pay_stubs",
+    "evidence.bank_statements",
+    "evidence.tax_returns",
+    "evidence.creditor_statements",
+    "evidence.housing_document",
+    "evidence.vehicle_loan",
+    "evidence.credit_counseling",
 )
 
-# BankruptcyCaseDto.evidence[].evidence_type carries the canonical slug from
-# frontend EVIDENCE_TYPES (config/bankruptcyOptions.ts), not display text.
-# _evidence_matches keyword-matches against required_evidence's Spanish
-# prose, so it needs the Spanish label back — kept in sync with
-# frontend/src/locales/es/workspace.json's entryModal.evidenceTypes.
-EVIDENCE_TYPE_LABELS = {
-    "government-id": "Identificación vigente",
-    "pay-stubs": "Talones de pago",
-    "bank-statement": "Estado bancario",
-    "tax-return-or-transcript": "Planilla o transcripción contributiva",
-    "creditor-statement": "Estado de cuenta de acreedor",
-    "lease-agreement": "Contrato de arrendamiento",
-    "mortgage-statement": "Estado hipotecario",
-    "vehicle-loan-statement": "Estado de préstamo de vehículo",
-    "collection-or-lawsuit-notice": "Demanda, embargo o notificación de cobro",
-    "property-or-valuation-document": "Documento de propiedad o valoración",
-    "credit-counseling-certificate": "Certificado de orientación crediticia",
-    "other-document": "Otro documento",
+# Which uploaded document satisfies which requirement.
+#
+# `BankruptcyCaseDto.evidence[].evidence_type` carries the canonical slug from
+# frontend EVIDENCE_TYPES (config/bankruptcyOptions.ts). Matching on those
+# slugs is what allows `required_evidence` to be translated at all: the
+# previous implementation intersected the requirement's Spanish words with the
+# evidence type's Spanish label, so translating either side broke
+# `evidence_score` — and it was wrong in Spanish too ("Estados bancarios
+# recientes" never matched "Estado bancario", while "…o estado hipotecario"
+# matched it on the word "estado").
+#
+# A requirement maps to every slug that legitimately satisfies it; a document
+# may satisfy more than one requirement, which is why this is a set per
+# requirement rather than one slug per document.
+EVIDENCE_REQUIREMENT_TYPES: dict[str, frozenset[str]] = {
+    "evidence.government_id": frozenset({"government-id"}),
+    "evidence.pay_stubs": frozenset({"pay-stubs"}),
+    "evidence.bank_statements": frozenset({"bank-statement"}),
+    "evidence.tax_returns": frozenset({"tax-return-or-transcript"}),
+    "evidence.creditor_statements": frozenset({"creditor-statement"}),
+    "evidence.housing_document": frozenset({"lease-agreement", "mortgage-statement"}),
+    "evidence.vehicle_loan": frozenset({"vehicle-loan-statement"}),
+    "evidence.credit_counseling": frozenset({"credit-counseling-certificate"}),
+    # Self-employment bookkeeping has no dedicated slug in EVIDENCE_TYPES, so
+    # the catch-all is what a client can actually upload against it. Without
+    # this the requirement would be permanently unsatisfiable and would cap
+    # `evidence_score` below 100 for every self-employed case.
+    "evidence.business_records": frozenset({"other-document"}),
+    "evidence.lien_documents": frozenset(
+        {"property-or-valuation-document", "mortgage-statement", "vehicle-loan-statement"}
+    ),
+    "evidence.collection_notice": frozenset({"collection-or-lawsuit-notice"}),
+    "evidence.recent_transfers": frozenset({"property-or-valuation-document"}),
 }
 
 
@@ -156,14 +172,25 @@ class BankruptcyAnalysisService:
             )
 
         missing_items = self._missing_items(case, language)
-        required_evidence = self._required_evidence(case)
+        required_evidence_keys = self._required_evidence_keys(case)
         evidence_types = [item.evidence_type for item in case.evidence if item.status != "missing"]
-        matched_evidence = sum(
-            1
-            for requirement in required_evidence
-            if self._evidence_matches(requirement, evidence_types)
-        )
-        evidence_score = round((matched_evidence / max(len(required_evidence), 1)) * 100)
+        # Resolved once, then both the score and the per-line ticks are read
+        # off the same list — the two cannot disagree, which is exactly what
+        # they used to do when the client re-derived the ticks from prose.
+        evidence_requirements = [
+            EvidenceRequirementDto(
+                key=key,
+                # Translated only on the way out, after satisfaction has been
+                # decided from the keys, so the figure is identical in both
+                # languages.
+                label=copy(key, language),
+                satisfied=self._evidence_matches(key, evidence_types),
+            )
+            for key in required_evidence_keys
+        ]
+        matched_evidence = sum(1 for item in evidence_requirements if item.satisfied)
+        evidence_score = round((matched_evidence / max(len(evidence_requirements), 1)) * 100)
+        required_evidence = [item.label for item in evidence_requirements]
 
         completed_sections = [
             bool(case.client_name and case.client_email),
@@ -200,6 +227,7 @@ class BankruptcyAnalysisService:
             chapter_7_questions=self._chapter_7_questions(case, monthly_cash_flow, language),
             chapter_13_questions=self._chapter_13_questions(case, monthly_cash_flow, language),
             required_evidence=required_evidence,
+            evidence_requirements=evidence_requirements,
             next_steps=next_steps,
         )
 
@@ -223,25 +251,24 @@ class BankruptcyAnalysisService:
             missing.append(copy("missing.goal", language))
         return missing
 
-    def _required_evidence(self, case: BankruptcyCaseDto) -> list[str]:
-        required = list(COMMON_EVIDENCE)
+    def _required_evidence_keys(self, case: BankruptcyCaseDto) -> list[str]:
+        """The catalogue keys, not the labels — the checklist adapts to the
+        case, and which requirements apply must not depend on the language the
+        session happens to be in."""
+        required = list(COMMON_EVIDENCE_KEYS)
         if any(item.category.casefold() == "self-employment" for item in case.incomes):
-            required.append("Registro de ingresos y gastos del negocio")
+            required.append("evidence.business_records")
         if any(item.debt_type == "secured" for item in case.debts):
-            required.append("Documentos de gravámenes y garantías")
+            required.append("evidence.lien_documents")
         if any(item.collection_lawsuit for item in case.debts):
-            required.append("Demanda, embargo o notificación de cobro")
+            required.append("evidence.collection_notice")
         if case.household.recent_property_transfer:
-            required.append("Documentos de transferencias recientes de propiedad")
+            required.append("evidence.recent_transfers")
         return required
 
-    def _evidence_matches(self, requirement: str, evidence_types: list[str]) -> bool:
-        key_words = {word for word in requirement.casefold().split() if len(word) > 4}
-        labels = (EVIDENCE_TYPE_LABELS.get(evidence, evidence) for evidence in evidence_types)
-        return any(
-            key_words.intersection(label.casefold().split())
-            for label in labels
-        )
+    def _evidence_matches(self, requirement_key: str, evidence_types: list[str]) -> bool:
+        accepted = EVIDENCE_REQUIREMENT_TYPES[requirement_key]
+        return any(evidence_type in accepted for evidence_type in evidence_types)
 
     def _warnings(
         self,

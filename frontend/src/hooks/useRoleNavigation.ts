@@ -34,7 +34,7 @@ export function useRoleNavigation(): RoleNavigation {
     : (workspace.cases.find((item) => item.ownerUserId === auth.user?.id)?.id ?? null);
 
   return {
-    items: isAttorney ? buildAttorneyNavItems(activeCaseId) : buildClientNavItems(activeCaseId),
+    items: isAttorney ? buildAttorneyNavItems() : buildClientNavItems(activeCaseId),
     groupLabel: isAttorney ? t("navigation:sidebar.groupAttorney") : t("navigation:sidebar.groupClient"),
     isAttorney,
     activeCaseId,

@@ -32,7 +32,8 @@ function readCollapsedPreference(): boolean {
  *
  * The width toggle is a preference, not a navigation mechanism: both states are
  * always visible and always navigable, and the collapsed rail keeps every label
- * in the accessibility tree via per-item tooltips and aria-labels.
+ * in the accessibility tree via per-item tooltips and aria-labels. It sits on
+ * the brand row rather than on a row of its own — see the comment there.
  *
  * Collapse is hand-rolled rather than adopting flowbite-react's `Sidebar`
  * `collapsed` prop: that component's `SidebarItem` is a leaf-only
@@ -70,21 +71,33 @@ export function Sidebar() {
         collapsed ? "w-20" : "w-64"
       }`}
     >
-      {/* The sidebar is the persistent chrome from 768px up, so this is where
-          the product name lives on those widths. The mobile header carries it
-          below that. */}
-      <AppLogo markOnly={collapsed} size="sm" className={collapsed ? "mb-4" : "mb-4 px-1"} />
+      {/*
+        Brand and collapse toggle on one row.
 
-      <div className={`mb-3 flex ${collapsed ? "justify-center" : "justify-end"}`}>
+        The toggle used to sit on a row of its own under the logo, right-aligned
+        — a full-width band of empty space between the product name and the
+        first navigation item, which read as a gap in the rail rather than as a
+        control. It belongs beside the thing it resizes.
+
+        Expanded, it is a quiet trailing affordance next to the name. Collapsed,
+        the row has no room for two things, so the rail shows the toggle alone
+        (the mark is still one click away as the header's logo, and the toggle
+        is what a 5rem rail actually needs). Colour is inherited rather than
+        branded: this is a preference, and it must not compete with the primary
+        action below it.
+      */}
+      <div className={`mb-4 flex items-center ${collapsed ? "justify-center" : "gap-1"}`}>
+        {collapsed ? null : <AppLogo size="sm" className="min-w-0 flex-1 px-1" />}
         <AppTooltip content={toggleLabel} side="right">
           <IconButton
             onClick={() => setCollapsed((value) => !value)}
             icon="collapse-left"
-            iconClassName={collapsed ? "rotate-180" : undefined}
+            iconClassName={`transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`}
             label={toggleLabel}
             aria-expanded={!collapsed}
             size="sm"
-            iconSize={18}
+            iconSize={16}
+            className="text-body/70 hover:text-heading"
           />
         </AppTooltip>
       </div>

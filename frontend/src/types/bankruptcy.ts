@@ -99,6 +99,18 @@ export interface ChatMessage {
   id: string;
   role: "assistant" | "user";
   content: string;
+  /**
+   * Locale key, preferred over `content` when present.
+   *
+   * Only the product's own opening line carries one — the greeting that exists
+   * before anyone has said anything. It used to be written in Spanish at
+   * creation time, so an English session's first message was Spanish and the
+   * language switch could not reach it.
+   *
+   * Nothing a person or the model produced is ever keyed: re-labelling a real
+   * turn on a language switch would rewrite what was said.
+   */
+  contentKey?: string;
   createdAt: string;
 }
 
@@ -154,6 +166,22 @@ export interface BankruptcyCase {
   timeline: TimelineEvent[];
 }
 
+/**
+ * One line of the evidence checklist, already resolved by the backend.
+ *
+ * `satisfied` arrives from the server rather than being re-derived here. Both
+ * sides used to fuzzy-match the requirement's words against the evidence type's
+ * translated label, and the two matchers disagreed with each other and with
+ * `evidence_score` — and neither worked once the labels were translated, since
+ * an English requirement shares no words with a Spanish one.
+ */
+export interface EvidenceRequirement {
+  /** Stable catalogue key (`evidence.pay_stubs`) — safe to branch on. */
+  key: string;
+  label: string;
+  satisfied: boolean;
+}
+
 export interface CaseAnalysis {
   monthly_gross_income: number;
   monthly_net_income: number;
@@ -173,6 +201,8 @@ export interface CaseAnalysis {
   chapter_7_questions: string[];
   chapter_13_questions: string[];
   required_evidence: string[];
+  /** Optional: a response from a backend older than 4.11.0 will not carry it. */
+  evidence_requirements?: EvidenceRequirement[];
   next_steps: string[];
 }
 

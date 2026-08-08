@@ -1,3 +1,60 @@
+# FreshStart 4.11.0
+
+The demo was bilingual in the worst sense: an English session read its case
+history, its evidence checklist, its demo case file and the assistant's opening
+line in Spanish. Four separate causes, and not one of them a missing
+translation.
+
+The checklist was the interesting one. `required_evidence` had been deliberately
+left out of the copy catalogue, because whether a requirement was satisfied was
+decided by intersecting its Spanish words with the evidence type's Spanish label
+— translating either side would have zeroed `evidence_score`. That matching was
+also wrong in Spanish: *"Estados bancarios recientes"* never matched *"Estado
+bancario"*, plural against singular, while *"Contrato de arrendamiento o estado
+hipotecario"* matched it on the stray word *"estado"*. A bank statement
+satisfied the housing requirement and left the banking one unticked. Matching
+now runs on canonical evidence-type slugs, the labels are translated, and the
+per-line tick arrives from the server as `evidence_requirements` instead of
+being re-derived by a second matcher that disagreed with the first.
+
+The rest: case-history entries persisted as prose before locale keys existed are
+migrated on read, recovering the key from the entry's `stage`. The assistant's
+greeting is keyed — it is the one message nobody said, so it is the one message
+that re-labels on a language switch. The demo seed reads through a translator
+pinned to the stored preference, because it is built in a `useState` initializer
+that runs before the language context's effect has applied it.
+
+## One way into the assistant
+
+There were three controls across two surfaces: a sidebar entry and a raised
+bottom-bar slot, both navigating to `/assistant`, and a floating launcher
+opening a panel over the current page. The launcher was hidden on phones,
+because lifted clear of the bottom bar it landed on top of the page's own cards.
+
+The launcher is now the only entry point, on every breakpoint, offset above the
+bar. The panel takes the whole viewport below `md` rather than a partial sheet
+showing three lines of an answer. `/assistant` redirects into it and carries its
+`?prompt=` through. A navigating suggestion minimizes the panel instead of
+covering the section it just opened. "My case" took the bar slot the assistant
+vacated.
+
+## Screens that spend their space on the case
+
+The overview opened with twenty bullet lines and pushed the figures off the
+first screen; the Chapter 7 and Chapter 13 questions are a disclosure now,
+because they are reference material for a conversation that has not happened
+yet. The documents screen leads with the checklist rather than an empty
+inventory. The sidebar's collapse toggle moved onto the brand row, where it
+reads as a control rather than a gap.
+
+Six reusable components under `components/case/` replace the hand-written
+`<Card>` in every panel of the workspace and both dashboards — three metric
+grids had already drifted into three different number sizes.
+
+`CaseAnalysisDto.evidence_requirements` is additive; no operation or route
+changed. `evidence_score` can move for an existing case, which is the fix rather
+than a side effect of it.
+
 # FreshStart 4.10.1
 
 The client's demo case had nothing missing.

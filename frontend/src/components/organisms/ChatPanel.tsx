@@ -67,7 +67,7 @@ export function ChatPanel({ prefill = "", routeContext = null, variant = "page" 
   const { user } = useAuth();
   const workspace = useBankruptcyWorkspace();
   const navigate = useNavigate();
-  const { caseData, assistantScope } = useChatPanel();
+  const { caseData, assistantScope, minimizePanel } = useChatPanel();
   const aiHealth = useAiHealth();
   const [message, setMessage] = useState(prefill);
   const [guidance, setGuidance] = useState<AssistantResponse | null>(null);
@@ -159,6 +159,11 @@ export function ChatPanel({ prefill = "", routeContext = null, variant = "page" 
     const href = assistantActionHref(caseData.id, action);
     if (!href) return;
     navigate(href);
+    // Minimized, not closed: the user asked to be taken somewhere, and the
+    // panel would otherwise sit on top of the section it just opened — the
+    // whole of it on a phone. Minimizing keeps the conversation and the
+    // composer draft one tap away in the launcher.
+    minimizePanel();
   };
 
   const aiReady = aiHealth.data?.available === true;

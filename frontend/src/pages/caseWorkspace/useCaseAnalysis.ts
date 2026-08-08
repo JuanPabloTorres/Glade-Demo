@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { bankruptcyApi } from "../../api/bankruptcyApi";
-import type { BankruptcyCase, CaseAnalysis } from "../../types/bankruptcy";
+import type { BankruptcyCase, CaseAnalysis, EvidenceRequirement } from "../../types/bankruptcy";
 import { localCompletion } from "../../workspace/caseMetrics";
 
 export interface CaseAnalysisState {
@@ -9,15 +9,14 @@ export interface CaseAnalysisState {
   error: string | null;
   /** Server score when the call succeeded, local estimate otherwise. */
   completion: number;
-  requiredEvidence: string[];
-  missingEvidenceCount: number;
   /**
-   * Whether a given free-text requirement is already covered by an attached
-   * document. Exposed as well as counted because the documents stage renders a
-   * per-requirement tick, and re-deriving the same match in the page would make
-   * the list and the count able to disagree.
+   * The evidence checklist with each line's tick already decided server-side.
+   * The documents stage renders these and nothing else derives the same answer
+   * a second time, so the ticks, the count and `evidence_score` agree by
+   * construction.
    */
-  requiredEvidencePresent: (requirement: string) => boolean;
+  evidenceRequirements: EvidenceRequirement[];
+  missingEvidenceCount: number;
 }
 
 /**
@@ -50,31 +49,24 @@ export function useCaseAnalysis(caseData: BankruptcyCase | undefined): CaseAnaly
     };
   }, [caseData, t]);
 
-  // `required_evidence` is free-text guidance from the backend ("Talones de pago
-  // de los últimos 60 días"), while `evidence.evidenceType` stores the canonical
-  // slug ("pay-stubs"). The comparison therefore runs against the *translated
-  // label*, not the slug — matching the slug makes every requirement read as
-  // missing. Words of five characters or fewer are skipped so that articles and
-  // prepositions cannot produce a match on their own.
-  const requiredEvidencePresent = (requirement: string) =>
-    Boolean(
-      caseData?.evidence.some((item) => {
-        const label = t(`workspace:entryModal.evidenceTypes.${item.evidenceType}`).toLowerCase();
-        return requirement
-          .toLowerCase()
-          .split(" ")
-          .some((word) => word.length > 5 && label.includes(word));
-      }),
-    );
-
-  const requiredEvidence = analysis?.required_evidence ?? [];
+  // Which document type satisfies which requirement is a business rule, and it
+  // lives on the server (`EVIDENCE_REQUIREMENT_TYPES`). This used to intersect
+  // the requirement's words with the evidence type's translated label, which
+  // disagreed with the server's own matching in Spanish and stopped working
+  // altogether once the requirements were translated — an English requirement
+  // shares no words with a Spanish label.
+  //
+  // `required_evidence` is the fallback for a backend older than 4.11.0: the
+  // lines still render, with no tick, rather than the checklist disappearing.
+  const evidenceRequirements: EvidenceRequirement[] =
+    analysis?.evidence_requirements ??
+    (analysis?.required_evidence ?? []).map((label) => ({ key: label, label, satisfied: false }));
 
   return {
     analysis,
     error,
     completion: analysis?.completion_score ?? (caseData ? localCompletion(caseData) : 0),
-    requiredEvidence,
-    missingEvidenceCount: requiredEvidence.filter((item) => !requiredEvidencePresent(item)).length,
-    requiredEvidencePresent,
+    evidenceRequirements,
+    missingEvidenceCount: evidenceRequirements.filter((item) => !item.satisfied).length,
   };
 }
