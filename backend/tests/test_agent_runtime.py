@@ -20,6 +20,7 @@ from app.ai.contracts.assistant_response import (
     AssistantAction,
     AssistantCard,
 )
+from app.ai.model_factory import OPENAI
 from app.ai.runtime import AgentRuntime
 from app.core.config import Settings, get_settings
 from app.schemas.assistant import CaseContextDto
@@ -27,6 +28,22 @@ from app.schemas.bankruptcy import BankruptcyCaseDto, UserRole
 from app.services.bankruptcy_service import BankruptcyAnalysisService
 from app.services.case_context_builder import CaseContextBuilder
 from app.services.documents.index import CaseDocumentIndex
+
+AGENTIC_PROVIDER = OPENAI
+"""The provider these tests use to mean "the agent path is enabled".
+
+It used to be `"ollama"`, which was fine while any Strands provider enabled the
+path. It no longer is: `AgentRuntime._agents_enabled` now refuses a provider
+that cannot be forced to return structured output, so an Ollama-configured
+runtime degrades before a model is built — and these tests would have kept
+passing while asserting the deterministic answer in the belief that they were
+exercising the agent.
+
+`OPENAI` is the capable provider, and no credential is needed here because every
+test below patches `_run_agents` or its collaborators, so `ModelFactory.create`,
+where the key is read, is never reached. The one test that *does* care about a
+missing key sets `ai_provider="openai", openai_api_key=None` explicitly.
+"""
 
 
 def _context(role: UserRole = "client", locale: str = "es-PR") -> CaseContextDto:
@@ -123,7 +140,7 @@ class TestDeterministicFloor:
             "_run_agents",
             lambda self, **_kwargs: (_ for _ in ()).throw(RuntimeError("model exploded")),
         )
-        response = _runtime(ai_provider="ollama").execute(
+        response = _runtime(ai_provider=AGENTIC_PROVIDER).execute(
             context=_context(), message="¿qué me falta?"
         )
         assert response.degraded is True
@@ -142,7 +159,7 @@ class TestAgentPathComposition:
                 cards=[AssistantCard(card_type="pending_documents", title="Pendientes")],
             ),
         )
-        response = _runtime(ai_provider="ollama").execute(
+        response = _runtime(ai_provider=AGENTIC_PROVIDER).execute(
             context=_context(), message="¿qué documentos faltan?"
         )
         assert response.degraded is False
@@ -154,14 +171,14 @@ class TestAgentPathComposition:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _patch_agent_layer(monkeypatch, AgentAnswer(message="Todo bien."))
-        response = _runtime(ai_provider="ollama").execute(context=_context(), message="hola")
+        response = _runtime(ai_provider=AGENTIC_PROVIDER).execute(context=_context(), message="hola")
         assert "no es asesoramiento legal" in response.disclaimer
 
     def test_english_locale_gets_the_english_disclaimer(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _patch_agent_layer(monkeypatch, AgentAnswer(message="All good."))
-        response = _runtime(ai_provider="ollama").execute(
+        response = _runtime(ai_provider=AGENTIC_PROVIDER).execute(
             context=_context(locale="en-US"), message="hi"
         )
         assert response.language == "en"
@@ -177,7 +194,7 @@ class TestAgentPathComposition:
         calling a tool that enforces case binding.
         """
         captured = _patch_agent_layer(monkeypatch, AgentAnswer(message="ok"))
-        _runtime(ai_provider="ollama").execute(context=_context(), message="¿cuánto debo?")
+        _runtime(ai_provider=AGENTIC_PROVIDER).execute(context=_context(), message="¿cuánto debo?")
         prompt = AgentRuntime._build_prompt(context=captured["context"], message=captured["message"])
         assert "Elena Rivera" not in prompt
         assert "¿cuánto debo?" in prompt
@@ -189,7 +206,7 @@ class TestGuardrailsAndAllowList:
             monkeypatch,
             AgentAnswer(message="Usted califica para el descargo y debe presentar de inmediato."),
         )
-        response = _runtime(ai_provider="ollama").execute(context=_context(), message="¿califico?")
+        response = _runtime(ai_provider=AGENTIC_PROVIDER).execute(context=_context(), message="¿califico?")
         assert "usted califica" not in response.message.casefold()
         assert response.requires_attorney_review is True
 
@@ -200,7 +217,7 @@ class TestGuardrailsAndAllowList:
         results. An attorney-role draft always sets it; a bland agent message
         must not clear it."""
         _patch_agent_layer(monkeypatch, AgentAnswer(message="Todo en orden, sin observaciones."))
-        response = _runtime(ai_provider="ollama").execute(
+        response = _runtime(ai_provider=AGENTIC_PROVIDER).execute(
             context=_context(role="attorney"), message="resumen"
         )
         assert response.requires_attorney_review is True
@@ -228,7 +245,7 @@ class TestGuardrailsAndAllowList:
                 ],
             ),
         )
-        response = _runtime(ai_provider="ollama").execute(context=_context(), message="hola")
+        response = _runtime(ai_provider=AGENTIC_PROVIDER).execute(context=_context(), message="hola")
         assert [action.id for action in response.actions] == ["ok"]
 
     def test_empty_agent_message_falls_back(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -237,7 +254,7 @@ class TestGuardrailsAndAllowList:
             "_run_agents",
             lambda self, **_kwargs: None,
         )
-        response = _runtime(ai_provider="ollama").execute(context=_context(), message="hola")
+        response = _runtime(ai_provider=AGENTIC_PROVIDER).execute(context=_context(), message="hola")
         assert response.degraded is True
         assert response.message.strip()
 

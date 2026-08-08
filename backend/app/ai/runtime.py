@@ -40,7 +40,11 @@ from app.ai.contracts.assistant_response import (
 )
 from app.ai.followups import follow_up_questions, summary_card_data
 from app.ai.guardrails import ResponseGuardrails
-from app.ai.model_factory import AGENT_PROVIDERS, ModelFactory
+from app.ai.model_factory import (
+    AGENT_PROVIDERS,
+    ModelFactory,
+    supports_forced_structured_output,
+)
 from app.ai.providers.base import BaseAIProvider
 from app.ai.providers.rule_based import RuleBasedProvider
 
@@ -130,7 +134,33 @@ class AgentRuntime:
     # -- agent path ------------------------------------------------------
 
     def _agents_enabled(self) -> bool:
-        return self._settings.ai_provider.strip().lower() in AGENT_PROVIDERS
+        """Whether this request should attempt the agent path at all.
+
+        Two conditions, and the second one is what stops a configuration from
+        failing mysteriously. A provider that routes through Strands but cannot
+        be forced to return the `AgentAnswer` schema will always produce an
+        answer this runtime discards — so it is refused here, before a model is
+        built and a request is sent, rather than after a round trip that was
+        never going to be usable (measured at 1–24s depending on the model).
+
+        This does not weaken the fallback; it reaches the same deterministic
+        answer sooner and says why in the log. The guardrails, the action
+        allow-list and the `requires_attorney_review` floor are untouched.
+        """
+        provider = self._settings.ai_provider.strip().lower()
+        if provider not in AGENT_PROVIDERS:
+            return False
+        if not supports_forced_structured_output(provider):
+            logger.warning(
+                "AI_PROVIDER=%s routes through Strands but cannot be forced to "
+                "return structured output, so every agent answer would be "
+                "discarded. Answering deterministically. Use an "
+                "OpenAI-compatible provider (set OPENAI_BASE_URL, e.g. Groq) for "
+                "the agentic path. See docs/audits/STRANDS-ACCEPTANCE-AUDIT.md.",
+                provider,
+            )
+            return False
+        return True
 
     def _run_agents(self, *, context: CaseContextDto, message: str) -> AgentAnswer | None:
         try:
