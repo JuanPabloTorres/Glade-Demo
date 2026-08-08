@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import i18n from "i18next";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BankruptcyCase } from "../../types/bankruptcy";
 import {
   ANALYSIS_CASH_FLOW_TURN,
@@ -342,5 +343,89 @@ describe("assistant scope", () => {
     // it may see, which is the server's decision and nobody else's.
     expect(typeof mockGuide.mock.calls[0][3]).toBe("string");
     expect(["case", "portfolio"]).toContain(mockGuide.mock.calls[0][3]);
+  });
+});
+
+/**
+ * The same three answer states, in English.
+ *
+ * Every assertion above reads Spanish copy, so all of them would still pass if
+ * the AI states had a Spanish string baked into the component — and an English
+ * user hitting a failed turn would read Spanish at the exact moment something
+ * went wrong. Mixed-language application text is a release blocker, and the
+ * failure path is the least-exercised place for it to hide.
+ *
+ * `i18n:check` guarantees the two bundles have the same keys. It cannot
+ * guarantee the component reads a key at all rather than holding a literal,
+ * which is what these render.
+ */
+describe("the answer states in English", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({ user: { id: "client-1", name: "Elena Rivera", role: "client" } });
+    mockUseBankruptcyWorkspace.mockReturnValue({ cases: [makeCase()], updateCase: vi.fn() });
+    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "case" });
+    mockUseAiHealth.mockReturnValue({
+      data: { available: true, model: "llama3.1:8b" },
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+    await i18n.changeLanguage("en");
+  });
+
+  // Restored so the locale does not leak into whatever file runs next — the
+  // i18next instance is a module singleton shared across the whole run, and
+  // `isolate: false` means it is not rebuilt per file.
+  afterEach(async () => {
+    await i18n.changeLanguage("es");
+  });
+
+  /** Same as `ask`, in the language under test. */
+  async function askInEnglish(question: string) {
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: question } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  }
+
+  it("renders a model answer with English chrome around it", async () => {
+    mockGuide.mockResolvedValue(ANALYSIS_CASH_FLOW_TURN);
+    render(<ChatPanel />);
+
+    await askInEnglish("How much is left each month?");
+
+    await waitFor(() => expect(mockGuide).toHaveBeenCalled());
+    expect(screen.getByRole("heading", { name: "Preparation assistant" })).toBeInTheDocument();
+  });
+
+  it("says an answer is deterministic in English, not in Spanish", async () => {
+    mockGuide.mockResolvedValue(ELIGIBILITY_DEGRADED_TURN);
+    render(<ChatPanel />);
+
+    await askInEnglish("Do I qualify for chapter 7?");
+
+    expect(
+      await screen.findByText(/This answer comes from deterministic guidance/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/guía determinística/)).toBeNull();
+  });
+
+  it("reports a failed turn in English and still resends the same question", async () => {
+    mockGuide
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce(ANALYSIS_CASH_FLOW_TURN);
+    render(<ChatPanel />);
+
+    await askInEnglish("How much do I owe in total?");
+
+    expect(
+      await screen.findByText("The assistant did not respond. Try again in a moment."),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    await waitFor(() => expect(mockGuide).toHaveBeenCalledTimes(2));
+    // Retry resends the question, not the empty composer: the message was
+    // cleared on send, so a retry that read state would send "".
+    expect(mockGuide.mock.calls[1]?.[1]).toBe("How much do I owe in total?");
   });
 });
