@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.core.security import get_demo_accounts
-from app.domain.value_objects import UserRole
+from app.domain.value_objects import TimelineEventType, UserRole
 from app.repositories.database import get_sessionmaker, init_db
 from app.repositories.orm_models import (
     AIConversationModel,
@@ -50,10 +50,32 @@ creates a missing case only for the owning *client*; an attorney gets 404 by
 design. So any case the UI shows to an attorney has to exist server-side
 already, and it can only do that if both seeds agree on the identifier.
 
-Known remaining gap: `case-miguel-demo`, the case the attorney queue opens, has
-no server-side fixture at all, so `POST /api/v1/bankruptcy/analyze` still
-returns 404 for it. See `changes/demo-close-integration.md`.
+The attorney-facing case is `ATTORNEY_REVIEW_CASE_ID` below.
 """
+
+ATTORNEY_REVIEW_CASE_ID = "case-miguel-demo"
+"""The submitted case the attorney queue opens, and the reason it must exist here.
+
+`CaseAccessService.authorize_for_submission` creates a missing case only for its
+owning *client*; an attorney correctly gets 404 rather than being able to conjure
+one. Demo cases are seeded in the browser, so a case only reaches the database
+once its own client analyzes it — and this case belongs to a client nobody logs
+in as. Without a server-side fixture the attorney opened the case and every
+`analyze` call returned 404, so the review workspace rendered with no cash flow,
+no debt composition and no missing items: the whole professional half of the
+demo, failing silently.
+
+Its owner is a user row, not a demo account. Miguel is the subject of a case the
+attorney reviews, not a persona anyone signs in as, and `cases.owner_user_id`
+has a foreign key to `users.id` — the row exists to satisfy that relationship and
+to keep ownership checks meaningful, not to add a third login.
+
+The figures mirror `frontend/src/workspace/BankruptcyWorkspaceContext.tsx`'s
+`case-miguel-demo`, so the workspace shows the same case whether it is read from
+the browser seed or from here.
+"""
+
+ATTORNEY_REVIEW_CLIENT_ID = "client-miguel-demo"
 
 
 def _wipe_all(session: Session) -> None:
@@ -171,7 +193,142 @@ def reset_demo_data(settings: Settings) -> None:
                 message="Caso de demostracion inicializado.",
             )
         )
+
+        _seed_attorney_review_case(session, settings)
         session.commit()
+
+
+def _seed_attorney_review_case(session: Session, settings: Settings) -> None:
+    """A second, already-submitted case, so the attorney queue opens something real.
+
+    Kept in its own function rather than inlined: the two fixtures are read for
+    different reasons — one is the client's in-progress workspace, this one is
+    what professional review looks like — and a single 150-line block made it
+    hard to see that they are different stories rather than duplicated data.
+    """
+    session.add(
+        UserModel(
+            id=ATTORNEY_REVIEW_CLIENT_ID,
+            email="miguel@example.demo",
+            name="Miguel Santos",
+            role=UserRole.CLIENT.value,
+            preferred_language="es",
+        )
+    )
+
+    case = CaseModel(
+        id=ATTORNEY_REVIEW_CASE_ID,
+        owner_user_id=ATTORNEY_REVIEW_CLIENT_ID,
+        client_name="Miguel Santos",
+        client_email="miguel@example.demo",
+        client_phone="939-555-0138",
+        preferred_language="es",
+        # Submitted, not collecting: the attorney's queue is a review surface,
+        # and a case still being filled in would not belong in it.
+        status="submitted",
+        client_goal="Revisar atrasos de vivienda y deudas medicas antes de una consulta.",
+    )
+    session.add(case)
+    session.flush()
+
+    session.add(
+        CaseHouseholdModel(
+            case_id=case.id,
+            marital_status="married",
+            household_size=4,
+            dependents=2,
+            housing_status="own",
+            municipality="Caguas",
+            # The one fact in this fixture that drives an urgency signal, and the
+            # reason this case is worth putting in front of an attorney at all.
+            urgent_collection_action=True,
+        )
+    )
+    session.add(
+        CaseIncomeModel(
+            case_id=case.id,
+            category="wages",
+            source="Island Manufacturing",
+            gross_amount=3400,
+            net_amount=2750,
+            frequency="monthly",
+        )
+    )
+    for category, description, amount in (
+        ("housing", "Hipoteca", 1250),
+        ("food", "Alimentos", 850),
+        ("transportation", "Vehiculos y gasolina", 760),
+        ("medical", "Medicinas y copagos", 240),
+    ):
+        session.add(
+            CaseExpenseModel(
+                case_id=case.id,
+                category=category,
+                description=description,
+                monthly_amount=amount,
+                essential=True,
+            )
+        )
+
+    session.add(
+        CaseDebtModel(
+            case_id=case.id,
+            creditor="Example Mortgage",
+            debt_type="secured",
+            description="Hipoteca residencial",
+            balance=148000,
+            monthly_payment=1250,
+            delinquent_amount=7500,
+            collateral="Residencia principal",
+            collection_lawsuit=True,
+        )
+    )
+    session.add(
+        CaseDebtModel(
+            case_id=case.id,
+            creditor="Regional Medical",
+            debt_type="unsecured",
+            description="Servicios medicos",
+            balance=24000,
+            monthly_payment=200,
+        )
+    )
+    session.add(
+        CaseAssetModel(
+            case_id=case.id,
+            category="real-estate",
+            description="Residencia principal",
+            estimated_value=165000,
+            loan_balance=148000,
+            jointly_owned=True,
+        )
+    )
+    session.add(
+        CaseTaskModel(
+            case_id=case.id,
+            title="Revisar atrasos hipotecarios y demanda de cobro",
+            status="open",
+        )
+    )
+    session.add(
+        CaseNoteModel(
+            case_id=case.id,
+            author_user_id=settings.demo_attorney_id,
+            body="Confirmar el estado de la demanda de cobro antes de la consulta.",
+        )
+    )
+    # `TimelineEventType` is the vocabulary — there is no "case_submitted"
+    # member, and inventing one as a bare string is the magic-string pattern the
+    # repository forbids. Submission is a status change, so it is recorded as an
+    # update; adding a member to the enum would be a domain change, not a seed
+    # fixture's business.
+    session.add(
+        CaseTimelineModel(
+            case_id=case.id,
+            event_type=TimelineEventType.CASE_UPDATED.value,
+            message="Expediente enviado para revision del abogado.",
+        )
+    )
 
 
 def seed_demo_data_if_absent(settings: Settings) -> bool:
