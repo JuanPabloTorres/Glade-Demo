@@ -14,6 +14,7 @@ from app.domain.entities import (
     AIConversationMessageEntity,
     CaseDocumentEntity,
     CaseEntity,
+    CasePortfolioEntry,
     TimelineEventEntity,
     UserEntity,
 )
@@ -47,6 +48,20 @@ class CaseRepositoryProtocol(Protocol):
         ...
 
     def add_note(self, case_id: str, author_user_id: str, body: str) -> None: ...
+
+    def list_portfolio(self) -> list[CasePortfolioEntry]:
+        """Triage-shaped summaries of every persisted case, cheapest form.
+
+        Deliberately not `list[CaseEntity]`: a portfolio question needs to rank
+        cases, not read them, and hydrating every income, expense, debt, asset
+        and evidence row for a list view would put a client's full finances in
+        memory — and, once an agent tool is layered on top, in a model's
+        context — to answer "which of these needs attention".
+
+        Authorization is NOT performed here. The caller resolves who may see
+        what; this returns what exists. See `CaseAccessService.attorney_portfolio`.
+        """
+        ...
 
 
 class DocumentRepositoryProtocol(Protocol):

@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.domain.entities import (
@@ -17,6 +17,7 @@ from app.domain.entities import (
     CaseDocumentEntity,
     CaseEntity,
     CaseNoteEntity,
+    CasePortfolioEntry,
     CaseTaskEntity,
     DebtEntryEntity,
     ExpenseEntryEntity,
@@ -63,6 +64,57 @@ class SqlAlchemyCaseRepository:
     def get_owner_user_id(self, case_id: str) -> str | None:
         row = self._session.get(CaseModel, case_id)
         return row.owner_user_id if row is not None else None
+
+    def list_portfolio(self) -> list[CasePortfolioEntry]:
+        """Counts computed in SQL, not by loading rows.
+
+        `func.count` over left joins rather than `selectinload`: the point of
+        this query is to avoid materialising a client's finances to answer a
+        list question. Left joins so a case with no debts still appears — an
+        empty case is precisely one an attorney may need to chase.
+        """
+        counts = {
+            "income_count": func.count(func.distinct(CaseIncomeModel.id)),
+            "expense_count": func.count(func.distinct(CaseExpenseModel.id)),
+            "debt_count": func.count(func.distinct(CaseDebtModel.id)),
+            "asset_count": func.count(func.distinct(CaseAssetModel.id)),
+            "evidence_count": func.count(func.distinct(CaseDocumentModel.id)),
+        }
+        stmt = (
+            select(
+                CaseModel,
+                CaseHouseholdModel.urgent_collection_action,
+                func.max(
+                    case((CaseDebtModel.collection_lawsuit.is_(True), 1), else_=0)
+                ).label("has_lawsuit"),
+                *[expression.label(name) for name, expression in counts.items()],
+            )
+            .outerjoin(CaseHouseholdModel, CaseHouseholdModel.case_id == CaseModel.id)
+            .outerjoin(CaseIncomeModel, CaseIncomeModel.case_id == CaseModel.id)
+            .outerjoin(CaseExpenseModel, CaseExpenseModel.case_id == CaseModel.id)
+            .outerjoin(CaseDebtModel, CaseDebtModel.case_id == CaseModel.id)
+            .outerjoin(CaseAssetModel, CaseAssetModel.case_id == CaseModel.id)
+            .outerjoin(CaseDocumentModel, CaseDocumentModel.case_id == CaseModel.id)
+            .group_by(CaseModel.id, CaseHouseholdModel.urgent_collection_action)
+            .order_by(CaseModel.updated_at.desc())
+        )
+        return [
+            CasePortfolioEntry(
+                case_id=row.CaseModel.id,
+                client_name=row.CaseModel.client_name,
+                status=CaseStatus(row.CaseModel.status),
+                owner_user_id=row.CaseModel.owner_user_id,
+                urgent_collection_action=bool(row.urgent_collection_action),
+                has_collection_lawsuit=bool(row.has_lawsuit),
+                income_count=row.income_count,
+                expense_count=row.expense_count,
+                debt_count=row.debt_count,
+                asset_count=row.asset_count,
+                evidence_count=row.evidence_count,
+                updated_at=row.CaseModel.updated_at,
+            )
+            for row in self._session.execute(stmt).all()
+        ]
 
     def get(self, case_id: str) -> CaseEntity | None:
         stmt = (

@@ -77,6 +77,17 @@ the browser seed or from here.
 
 ATTORNEY_REVIEW_CLIENT_ID = "client-miguel-demo"
 
+INCOMPLETE_CASE_ID = "case-rosa-demo"
+INCOMPLETE_CLIENT_ID = "client-rosa-demo"
+"""A third case, deliberately thin.
+
+The portfolio only demonstrates triage if the cases differ in the signals triage
+uses. Elena is collecting information with no urgency; Miguel is submitted with a
+collection lawsuit and an urgent flag; Rosa is barely started with nothing
+attached. A queue of three healthy cases would let a ranking answer look correct
+while ranking on nothing.
+"""
+
 
 def _wipe_all(session: Session) -> None:
     # Children first (no ON DELETE CASCADE is configured at the SQLite
@@ -195,6 +206,7 @@ def reset_demo_data(settings: Settings) -> None:
         )
 
         _seed_attorney_review_case(session, settings)
+        _seed_incomplete_case(session)
         session.commit()
 
 
@@ -362,3 +374,50 @@ def seed_demo_data_if_absent(settings: Settings) -> bool:
         return False
     reset_demo_data(settings)
     return True
+
+
+def _seed_incomplete_case(session: Session) -> None:
+    """The case that needs chasing rather than reviewing.
+
+    Household only: no income, no expenses, no debts, no assets, no evidence.
+    That is the point — an attorney asking which cases need attention should be
+    able to separate "waiting on me" from "waiting on the client", and this is
+    the second kind.
+    """
+    session.add(
+        UserModel(
+            id=INCOMPLETE_CLIENT_ID,
+            email="rosa@example.demo",
+            name="Rosa Mendez",
+            role=UserRole.CLIENT.value,
+            preferred_language="es",
+        )
+    )
+    case = CaseModel(
+        id=INCOMPLETE_CASE_ID,
+        owner_user_id=INCOMPLETE_CLIENT_ID,
+        client_name="Rosa Mendez",
+        client_email="rosa@example.demo",
+        preferred_language="es",
+        status="collecting_information",
+        client_goal="Entender mis opciones antes de decidir.",
+    )
+    session.add(case)
+    session.flush()
+    session.add(
+        CaseHouseholdModel(
+            case_id=case.id,
+            marital_status="single",
+            household_size=1,
+            dependents=0,
+            housing_status="rent",
+            municipality="Bayamon",
+        )
+    )
+    session.add(
+        CaseTimelineModel(
+            case_id=case.id,
+            event_type=TimelineEventType.CASE_CREATED.value,
+            message="Expediente iniciado; falta informacion financiera.",
+        )
+    )
