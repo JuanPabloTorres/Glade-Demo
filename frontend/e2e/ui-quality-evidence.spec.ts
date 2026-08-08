@@ -1,4 +1,10 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
+
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_VERSION = readFileSync(resolve(REPO_ROOT, "VERSION"), "utf8").trim();
 
 /**
  * Visual and language evidence for the UI quality pass.
@@ -145,6 +151,44 @@ test("the assistant has exactly one entry point, and its panel fills a phone", a
   await expect(launcher).toHaveCount(0);
 
   await page.screenshot({ path: `${EVIDENCE_DIR}/mobile-es-assistant.png` });
+});
+
+test("the footer reports the version this tree was built from", async ({ page }) => {
+  // Reported as "the front says 4.10.1 while the API says 4.11.0". It was a
+  // browser holding a page from before the deploy — production rendered
+  // v4.11.0 and served the HTML with `max-age=0, must-revalidate`. Pinned here
+  // anyway, because "the build is a release behind" is the kind of thing that
+  // should fail a suite rather than be noticed on a screen.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signIn(page, "es", "client");
+
+  const footer = await page.locator("footer").innerText();
+  expect(footer).toContain(`v${REPO_VERSION}`);
+});
+
+test.describe("the demo seed follows the UI, not its own default", () => {
+  // An English browser with nothing stored: what a first-time visitor to the
+  // deployed demo arrives with, and the combination that produced the defect.
+  // The rest of this file runs under the config's `es-PR`, which is why the
+  // mismatch survived a green suite.
+  test.use({ locale: "en-US" });
+
+  test("an English session gets an English case file", async ({ page }) => {
+    // The seed is generated in a `useState` initializer from its own reading of
+    // the language. That reading fell back to Spanish while the app's rule
+    // falls back to VITE_DEFAULT_LANGUAGE and consults the browser first, so
+    // production rendered an English UI around a Spanish case file. Both go
+    // through `resolveLanguage` now.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/login");
+    await page.getByRole("button", { name: /Entrar como cliente|Sign in as client/i }).click();
+    await expect(page.getByRole("banner")).toBeVisible();
+
+    expect(await page.evaluate(() => localStorage.getItem("freshstart.language"))).toBe("en");
+    const main = await page.locator("main").innerText();
+    expect(main).toContain("Organize my finances");
+    expect(main).not.toContain("Organizar mis finanzas");
+  });
 });
 
 test("attorney home is clean at desktop", async ({ page }) => {

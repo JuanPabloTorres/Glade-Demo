@@ -101,6 +101,24 @@ On `integration/demo-close` since the 4.9.0 release commit. No version bump yet.
 - Added six reusable case components (`frontend/src/components/case/`) and composed the
   workspace and both dashboards from them, replacing per-page `<Card>` markup.
   `caseComponents.test.tsx`: 8 passed.
+- Fixed an English UI rendering a Spanish demo case file: `activeLanguage()` now calls
+  `resolveLanguage`, the same rule the UI uses. Gated by
+  `the demo seed follows the UI, not its own default`, which runs under `en-US` with nothing
+  persisted and was **verified to fail against the old code**.
+  (`changes/delivery-guardrails.md`, 4.11.1)
+- Ignored `.env*.local`. `.gitignore` had `.env`, which matches only that exact name, so the
+  checkout's untracked `.env.production.local` was one non-selective `git add` from being
+  committed. `git check-ignore -v` now resolves it.
+- Unblocked governed integration on `main`: `git pull --ff-only` and
+  `git merge --no-ff <active task's branch>` are permitted, authoring still is not. Nine
+  hook cases recorded; used for real to fast-forward `main` from `46f641e` to `dff9efc`,
+  the operation that was impossible before.
+- Pinned the footer version badge to the tree's `VERSION`, so a build a release behind fails
+  a suite rather than being spotted on a screen.
+- Made the frontend unit suite exit 0 again. On the 4.11.0 tree it exited 1 while printing
+  "143 passed": `ChatPanel` began calling `minimizePanel` and the six `useChatPanel` mocks
+  were literals without it, so the click threw into Vitest's unhandled-error channel. One
+  factory now builds that mock, and the navigating-suggestion test asserts the call.
 - Moved the sidebar collapse control onto the brand row. **Still `UNVERIFIED` end to end**
   — it is driven at 390 and 1440 by the evidence spec but not at each governed breakpoint,
   so the 3.2.0 ledger item stays open.

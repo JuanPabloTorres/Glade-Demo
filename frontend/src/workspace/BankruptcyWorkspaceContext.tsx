@@ -9,7 +9,11 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n/i18n";
-import { LANGUAGE_STORAGE_KEY } from "../i18n/languages";
+import {
+  LANGUAGE_STORAGE_KEY,
+  resolveLanguage,
+  type AppLanguage,
+} from "../i18n/languages";
 import type { AuthUserDto } from "../types/api";
 import type {
   BankruptcyCase,
@@ -419,9 +423,27 @@ function readState(t: SeedTranslator): WorkspaceState {
   }
 }
 
-function activeLanguage(): string {
-  const value = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  return value === "en" ? "en" : "es";
+/**
+ * The language the session is about to render in.
+ *
+ * It must agree with `LanguageProvider`'s first render, because that is the
+ * moment the seed is built. This used to read the stored preference and fall
+ * back to Spanish, which was harmless while it only chose a timeline label and
+ * wrong the moment the demo case file started being generated from it: a
+ * deployment with `VITE_DEFAULT_LANGUAGE=en` and a browser with nothing stored
+ * yet rendered an English UI around a Spanish case file — observed in
+ * production at 4.11.0.
+ *
+ * `resolveLanguage` is that rule, so it is called rather than restated. The
+ * profile is deliberately absent: the workspace mounts before the session is
+ * resolved, and `LanguageProvider` persists its choice on first render, so
+ * persisted → browser → default is exactly what the UI will have picked.
+ */
+function activeLanguage(): AppLanguage {
+  return resolveLanguage({
+    persistedLanguage: localStorage.getItem(LANGUAGE_STORAGE_KEY),
+    browserLanguage: typeof navigator === "undefined" ? null : navigator.language,
+  });
 }
 
 interface WorkspaceContextValue {
