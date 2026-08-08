@@ -1,3 +1,64 @@
+# FreshStart 4.10.0
+
+Closes the demo. Every gate runs from one integrated tree, and the two release
+journeys work in Spanish and English on a phone and a desktop. No contract change.
+
+## The assistant now remembers the conversation it is in
+
+`AgentRuntime._build_prompt` sent the language, the role and the current message.
+`recent_conversation` reached `CaseContextDto` and stopped there — only the
+deterministic providers ever read it. So on the agentic path a follow-up had
+nothing to resolve against: the "y" in *"¿Y cuánto pago al mes?"* referred to
+nothing, and *"Why the first one?"* had no first one.
+
+Prior turns now reach the prompt as an `EARLIER TURNS` block, framed as data
+rather than instructions. Case facts still arrive through tools; the block is
+omitted entirely on a first turn. What is stored is the guarded message, so a
+later turn cannot read back a phrasing the guardrails removed.
+
+Four two-turn conversations cover the release contract — client in Spanish and
+English, attorney across the portfolio and inside one case — each asserting that
+turn two was handed turn one. Removing the change fails exactly those four.
+
+## The demo cases carry the evidence their triage depends on
+
+No seeded case had a single document. The client's evidence screen was never
+empty, because the browser workspace seeds it, but the server's record was — and
+two things read that record. `evidence_count` was zero for every case, so the
+attorney tool that separates "waiting on me" from "waiting on the client"
+matched all three. And the retrieval index was empty on a fresh database, so
+document intelligence only worked for a document uploaded in that same process.
+
+Evidence is now distributed by what each case has to show: Elena has two
+documents and an open request for more, Miguel has the three a review needs,
+Rosa deliberately has none.
+
+## One icon button, and a checkbox that was already built
+
+Five standalone icon-only buttons agreed on what they were and disagreed on
+everything else — three hover treatments, two focus rings, two spellings of a
+square, and an accessible name that was right at all five only because five
+authors each remembered it. `IconButton` requires the label in its type. The
+login "remember me" control was a raw checkbox input in a codebase that already
+had `CheckboxField`.
+
+`ActionGroup`'s menu trigger and `FileField`'s two controls were classified and
+deliberately left alone; both are recorded in `docs/POST-DEMO-BACKLOG.md`.
+
+## Verification
+
+351 backend tests, 132 frontend tests, 95 Playwright tests, all green from one
+tree. Lint, typecheck, build, i18n, contracts and governance all pass.
+
+The first end-to-end run reported three failures and was thrown away: Playwright's
+`reuseExistingServer` had adopted another checkout's dev server, so all 95 results
+described code that was not under test. The re-run with reuse disabled, against a
+server verified to be serving this tree, passes completely. The mechanism is
+recorded, because it fails toward green just as easily.
+
+Live AI against a real provider and deployment smoke tests are not included: no
+OpenAI-compatible credential exists in this environment.
+
 # FreshStart 4.9.0
 
 Consolidates seven delivered branches into one verified state and drives both
