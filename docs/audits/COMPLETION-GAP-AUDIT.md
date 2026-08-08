@@ -121,9 +121,28 @@ I do not create that file: writing a secret to disk is the owner's action.
 
 These have implementations and lack evidence.
 
+**The E2E suite was run while this was being written: 80 passed, exit 0, 2.5
+minutes.** It is larger than the spec-file count suggested — the responsive
+specs are parameterized per viewport — and it already covers the login page, the
+client journey, the attorney journey and the static pages across five widths,
+plus a mobile shell contract asserting the sidebar reserves no width below `md`,
+the bottom navigation is the only nav and is thumb-reachable, and the sidebar
+returns at desktop. Tests 1–60 cover the assistant page, the documents evidence
+flow, the matter workflow and shell overlays with language switching.
+
+That removes item 1 from the critical path and shrinks the list below.
+
+**One real gap it exposed:** the suite sweeps **412 / 430 / 768 / 1024 / 1440**,
+but `frontend/CLAUDE.md` governs **320 / 390 / 768 / 1024 / 1440**. The two
+narrowest governed widths are not in the committed suite. They were verified by
+hand in this session's journey runs (no overflow at either), but hand
+verification is not a gate — and 320px is where the login card was clipped
+earlier today.
+
 | Item | What is missing | Cost |
 | --- | --- | --- |
-| E2E suite | 38 tests across 5 specs, never run in these sessions | one run |
+| ~~E2E suite~~ | **done — 80 passed** | — |
+| E2E viewport set | add 320 and 390 to the responsive sweep | ~15 min |
 | Sidebar collapse | expand → collapse → layout → expand, at each breakpoint | ~1h browser |
 | Login centering | centred at all five widths without scroll | ~1h browser |
 | Rendered-DOM i18n | ES/EN residue across every listed surface | ~2h browser |
@@ -155,17 +174,20 @@ holding.
 
 Ordered by what unblocks what, not by the addenda's numbering:
 
-1. **Run the E2E suite** — one command, and it either removes an unknown or
-   surfaces real defects. Cheapest information available.
-2. **B2 observability** — independent of everything, few hours, and it is what
+1. ~~Run the E2E suite~~ — **done, 80 passed.**
+2. **Add 320 and 390 to the responsive sweep** — 15 minutes, and it closes the
+   gap between what the suite checks and what the project governs.
+3. **B2 observability** — independent of everything, few hours, and it is what
    makes the agentic story demonstrable in a demo.
-3. **B1 cross-case tools** — the largest item, independent of the credential;
+4. **B1 cross-case tools** — the largest item, independent of the credential;
    its authorization tests do not need a model.
-4. **Section D verification sweep** — browser work, independent of AI.
-5. **Credential arrives → live gate → B3 multi-turn matrix.**
+5. **Remaining section D verification** — collapse, login centring, rendered-DOM
+   i18n, AI failure states, document intelligence. Browser work, independent
+   of AI, and smaller than it was now that E2E covers the journeys.
+6. **Credential arrives → live gate → B3 multi-turn matrix.**
 
-Items 1–4 are roughly one to two days and need nothing from outside. Item 5 is
-minutes of work once the key exists.
+Items 2–5 are roughly one day and need nothing from outside. Item 6 is minutes
+of work once the key exists.
 
 **The honest summary: nothing on the critical path is blocked except the live
 provider gate, and that is one file with three lines.**

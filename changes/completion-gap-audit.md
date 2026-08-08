@@ -59,9 +59,12 @@ no assignment method on `CaseRepositoryProtocol`; no correlation id in
 
 # Risks / limitations
 
-**The E2E suite was still running when this was written.** It is item 1 of the
-critical path precisely because it is the cheapest unknown left, and its result
-is not in this document.
+**The E2E suite finished while this was being written: 80 passed, exit 0, in
+2.5 minutes.** The document was corrected rather than left stale. It also
+surfaced a real gap: the suite sweeps 412/430/768/1024/1440 while
+`frontend/CLAUDE.md` governs 320/390/768/1024/1440, so the two narrowest
+governed widths are not gated — and 320px is where the login card was clipped
+earlier today.
 
 **Effort estimates are judgement, not measurement.** The gap list is measured;
 the hours attached to each item are not.
