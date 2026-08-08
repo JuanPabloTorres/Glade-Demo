@@ -144,7 +144,10 @@ export function LoginPage() {
 
         <section className="flex min-w-0 items-center justify-center lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center lg:justify-end">
           <Card className="w-full max-w-120 overflow-hidden border border-white/40 bg-white/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
-            <form className="space-y-6" onSubmit={submit}>
+            {/* `space-y-4` below `sm`: at 320x720 the six-gap rhythm put the sign-in
+                  button 84px below the fold, so a phone user had to scroll past the
+                  form to submit it. Gated by e2e/governed-viewports.spec.ts. */}
+            <form className="space-y-4 sm:space-y-6" onSubmit={submit}>
               {/* Header follows Flowbite's authentication-modal block: title on a
                   ruled row, no badge stack above it. The "demo" badge that used
                   to sit here is gone — the disclaimer at the foot of this form
@@ -159,7 +162,7 @@ export function LoginPage() {
                   <AppButton type="button" size="lg" className="primary-action w-full" disabled={busy} iconLeft="client" onClick={() => openSession(CLIENT)}>
                     {t("auth:login.asClient")}
                   </AppButton>
-                  <p className="mt-1.5 text-xs leading-4 text-body">
+                  <p className="mt-1.5 hidden text-xs leading-4 text-body sm:block">
                     {t("auth:login.clientHint")}
                   </p>
                 </div>
@@ -167,7 +170,7 @@ export function LoginPage() {
                   <AppButton type="button" size="lg" color="light" className="secondary-action w-full" disabled={busy} iconLeft="attorney" onClick={() => openSession(ATTORNEY)}>
                     {t("auth:login.asAttorney")}
                   </AppButton>
-                  <p className="mt-1.5 text-xs leading-4 text-body">
+                  <p className="mt-1.5 hidden text-xs leading-4 text-body sm:block">
                     {t("auth:login.attorneyHint")}
                   </p>
                 </div>
@@ -184,7 +187,7 @@ export function LoginPage() {
               {/* Floating-label fields (Flowbite's floating form block). The label
                   doubles as the field's resting placeholder, so the form loses a
                   stacked label row per field without losing the label itself. */}
-              <div className="space-y-7">
+              <div className="space-y-5 sm:space-y-7">
                 <FloatingField
                   id="login-email"
                   type="email"
