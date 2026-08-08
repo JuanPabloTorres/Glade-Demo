@@ -77,7 +77,13 @@ def _patch_agent_layer(monkeypatch: pytest.MonkeyPatch, result: Any) -> dict[str
     """
     captured: dict[str, Any] = {}
 
-    def fake_run(self: AgentRuntime, *, context: CaseContextDto, message: str) -> Any:
+    # `**_rest` absorbs the execution trace the runtime now threads through.
+    # Named loosely on purpose: this stub stands in for the agent layer, and it
+    # should not have to be edited every time the runtime gains a collaborator
+    # it passes down — only when the two arguments these tests assert on change.
+    def fake_run(
+        self: AgentRuntime, *, context: CaseContextDto, message: str, **_rest: Any
+    ) -> Any:
         captured["message"] = message
         captured["context"] = context
         if isinstance(result, Exception):

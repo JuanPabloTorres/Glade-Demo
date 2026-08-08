@@ -47,6 +47,7 @@ from app.ai.model_factory import (
 )
 from app.ai.providers.base import BaseAIProvider
 from app.ai.providers.rule_based import RuleBasedProvider
+from app.ai.tracing import AgentExecutionTrace, FallbackReason
 
 if TYPE_CHECKING:
     from app.core.config import Settings
@@ -107,12 +108,27 @@ class AgentRuntime:
     # -- public ----------------------------------------------------------
 
     def execute(self, *, context: CaseContextDto, message: str) -> AssistantResponse:
+        trace = AgentExecutionTrace(
+            provider=self._settings.ai_provider.strip().lower(),
+            role=context.role,
+            language=context.language,
+        )
+        try:
+            return self._execute(context=context, message=message, trace=trace)
+        finally:
+            # In `finally` so a turn is never unobservable: even a path that
+            # raises past every handler leaves a record saying so.
+            trace.emit()
+
+    def _execute(
+        self, *, context: CaseContextDto, message: str, trace: AgentExecutionTrace
+    ) -> AssistantResponse:
         draft = self._fallback.generate(context=context, message=message)
         answer: AgentAnswer | None = None
 
-        if self._agents_enabled():
+        if self._agents_enabled(trace):
             try:
-                answer = self._run_agents(context=context, message=message)
+                answer = self._run_agents(context=context, message=message, trace=trace)
             except Exception:  # noqa: BLE001 - the no-5xx guarantee lives here
                 # `_run_agents` already catches its own failures. This second
                 # net makes "a model problem never fails the request" a
@@ -120,6 +136,7 @@ class AgentRuntime:
                 # — so it still holds if that method is later refactored,
                 # subclassed, or grows a code path outside its own try.
                 logger.warning("Agent path raised past its own handler", exc_info=True)
+                trace.mark_degraded(FallbackReason.AGENT_RAISED)
                 answer = None
 
         if answer is None:
@@ -129,11 +146,12 @@ class AgentRuntime:
                 answer=self._draft_as_answer(draft, context=context),
                 degraded=True,
             )
+        trace.mark_agentic(answer.handled_by)
         return self._compose(context=context, draft=draft, answer=answer, degraded=False)
 
     # -- agent path ------------------------------------------------------
 
-    def _agents_enabled(self) -> bool:
+    def _agents_enabled(self, trace: AgentExecutionTrace) -> bool:
         """Whether this request should attempt the agent path at all.
 
         Two conditions, and the second one is what stops a configuration from
@@ -149,8 +167,10 @@ class AgentRuntime:
         """
         provider = self._settings.ai_provider.strip().lower()
         if provider not in AGENT_PROVIDERS:
+            trace.mark_degraded(FallbackReason.PROVIDER_NOT_AGENTIC)
             return False
         if not supports_forced_structured_output(provider):
+            trace.mark_degraded(FallbackReason.PROVIDER_CANNOT_FORCE_STRUCTURE)
             logger.warning(
                 "AI_PROVIDER=%s routes through Strands but cannot be forced to "
                 "return structured output, so every agent answer would be "
@@ -162,7 +182,9 @@ class AgentRuntime:
             return False
         return True
 
-    def _run_agents(self, *, context: CaseContextDto, message: str) -> AgentAnswer | None:
+    def _run_agents(
+        self, *, context: CaseContextDto, message: str, trace: AgentExecutionTrace
+    ) -> AgentAnswer | None:
         try:
             # Imported here, not at module scope: `strands` is optional and
             # this is the only code path that requires it.
@@ -172,6 +194,10 @@ class AgentRuntime:
             from app.ai.tools.case_tools import CaseTools
 
             model = ModelFactory(self._settings).create()
+            trace.model = getattr(model, "model_id", "") or getattr(
+                model, "config", {}
+            ).get("model_id", "")
+            trace.agent = "orchestrator"
             orchestrator = AgentFactory(
                 model=model,
                 tools=CaseTools(context=context, document_index=self._document_index),
@@ -190,14 +216,17 @@ class AgentRuntime:
                 "'freshstart-bankruptcy-api[agents]'). Answering deterministically.",
                 self._settings.ai_provider,
             )
+            trace.mark_degraded(FallbackReason.AGENTS_EXTRA_MISSING)
             return None
         except Exception:  # noqa: BLE001 - every model failure degrades, never 500s
             logger.warning("Agent layer unavailable, using deterministic draft", exc_info=True)
+            trace.mark_degraded(FallbackReason.MODEL_UNAVAILABLE)
             return None
 
         answer = getattr(result, "structured_output", None)
         if not isinstance(answer, AgentAnswer) or not answer.message.strip():
             logger.warning("Agent returned no usable structured output; using deterministic draft.")
+            trace.mark_degraded(FallbackReason.NO_STRUCTURED_OUTPUT)
             return None
         return answer
 
