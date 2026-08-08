@@ -27,6 +27,36 @@ vi.mock("../../hooks/useAiHealth", () => ({ useAiHealth: () => mockUseAiHealth()
 vi.mock("../../api/bankruptcyApi", () => ({ bankruptcyApi: { guide: (...args: unknown[]) => mockGuide(...args) } }));
 vi.mock("react-router", () => ({ useNavigate: () => mockNavigate }));
 
+const mockMinimizePanel = vi.fn();
+
+/**
+ * The `useChatPanel` value, built in one place.
+ *
+ * Six call sites used to spell this out as an object literal carrying only the
+ * two fields each test happened to read. When `ChatPanel` started calling
+ * `minimizePanel` — so a navigating suggestion stops covering the section it
+ * opens — every one of them handed back an object without it, and the click
+ * threw `minimizePanel is not a function`. Vitest reported it as an unhandled
+ * error and exited non-zero while still printing "143 passed", which is exactly
+ * how it shipped unnoticed.
+ *
+ * A factory means the next field added to the context is added once.
+ */
+function chatPanel(overrides: Record<string, unknown> = {}) {
+  return {
+    caseData: makeCase(),
+    assistantScope: "case",
+    minimizePanel: mockMinimizePanel,
+    openPanel: vi.fn(),
+    closePanel: vi.fn(),
+    openAssistant: vi.fn(),
+    status: "open",
+    panelPrefill: "",
+    routeContext: null,
+    ...overrides,
+  };
+}
+
 function makeCase(overrides: Partial<BankruptcyCase> = {}): BankruptcyCase {
   return {
     id: "case-1",
@@ -74,7 +104,7 @@ describe("ChatPanel", () => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: { id: "client-1", name: "Elena Rivera", role: "client" } });
     mockUseBankruptcyWorkspace.mockReturnValue({ cases: [makeCase()], updateCase: vi.fn() });
-    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "case" });
+    mockUseChatPanel.mockReturnValue(chatPanel());
     mockUseAiHealth.mockReturnValue({
       data: { available: true, model: "llama3.1:8b" },
       loading: false,
@@ -94,7 +124,7 @@ describe("ChatPanel", () => {
     });
 
     it("asks for a case when none is resolvable, rather than rendering an assistant with nothing to reason about", () => {
-      mockUseChatPanel.mockReturnValue({ caseData: null });
+      mockUseChatPanel.mockReturnValue(chatPanel({ caseData: null }));
       renderChat();
 
       expect(screen.getByText("Abre un expediente para conversar con el asistente.")).toBeInTheDocument();
@@ -227,6 +257,12 @@ describe("ChatPanel", () => {
       fireEvent.click(await screen.findByRole("button", { name: "Abrir la sección recomendada" }));
 
       expect(mockNavigate).toHaveBeenCalledWith("/case/case-1/overview");
+      // And the panel gets out of the way of the section it just opened —
+      // minimized, not closed, so the conversation and the composer draft are
+      // one tap away in the launcher. This call had no coverage when it was
+      // added, which is why a mock missing `minimizePanel` could throw for a
+      // whole release without failing a named test.
+      expect(mockMinimizePanel).toHaveBeenCalledTimes(1);
       // The removed button carried this label from the frontend's locale file.
       // Nothing should render it any more: the only navigable control is the
       // chip above, whose label comes from the backend action.
@@ -312,7 +348,7 @@ describe("assistant scope", () => {
   });
 
   it("sends the case scope a case workspace resolves to", async () => {
-    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "case" });
+    mockUseChatPanel.mockReturnValue(chatPanel());
     renderChat();
 
     await ask("¿Cuánto debo?");
@@ -323,7 +359,7 @@ describe("assistant scope", () => {
 
   it("sends the portfolio scope the attorney queue resolves to", async () => {
     mockUseAuth.mockReturnValue({ user: { id: "attorney-1", name: "Andrea", role: "attorney" } });
-    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "portfolio" });
+    mockUseChatPanel.mockReturnValue(chatPanel({ assistantScope: "portfolio" }));
     renderChat();
 
     await ask("¿Cuáles de mis casos requieren atención?");
@@ -333,7 +369,7 @@ describe("assistant scope", () => {
   });
 
   it("carries no identity and no case identifiers of its own", async () => {
-    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "portfolio" });
+    mockUseChatPanel.mockReturnValue(chatPanel({ assistantScope: "portfolio" }));
     renderChat();
 
     await ask("¿Qué me falta?");
@@ -364,7 +400,7 @@ describe("the answer states in English", () => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: { id: "client-1", name: "Elena Rivera", role: "client" } });
     mockUseBankruptcyWorkspace.mockReturnValue({ cases: [makeCase()], updateCase: vi.fn() });
-    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "case" });
+    mockUseChatPanel.mockReturnValue(chatPanel());
     mockUseAiHealth.mockReturnValue({
       data: { available: true, model: "llama3.1:8b" },
       loading: false,

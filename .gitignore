@@ -21,7 +21,13 @@ frontend/.env
 # Runtime
 coverage.xml
 htmlcov/
+# `.env` on its own matches a file called exactly that and nothing else, so
+# `.env.production.local` — which this checkout had, untracked and holding a
+# deployment's configuration — was one `git add -A` away from the repository.
+# The glob covers every local override Vite and the tooling actually write
+# (`.env.local`, `.env.production.local`, `.env.development.local`).
 .env
+.env*.local
 
 # Tooling caches
 frontend/.eslintcache

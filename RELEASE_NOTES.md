@@ -1,3 +1,33 @@
+# FreshStart 4.11.1
+
+Three things that delivering 4.11.0 exposed, one of which users could see.
+
+**An English visitor got a Spanish case file.** The demo seed read the session
+language with a rule of its own that fell back to Spanish, while the app falls
+back to `VITE_DEFAULT_LANGUAGE` and consults the browser first. On the deployed
+demo those disagreed, so a first-time visitor with nothing stored read *"Hi,
+Elena. Here is your case progress."* over *"Organizar mis finanzas…"*. Both go
+through `resolveLanguage` now.
+
+The suite was green through all of it, and that is the more useful finding:
+`playwright.config.ts` pins `locale: "es-PR"`, so no test ever arrived the way a
+new visitor does. The regression test runs under `en-US` with nothing persisted,
+and was checked the only way a gate can be — it fails against the old code.
+
+**`.env.production.local` was not ignored.** `.gitignore` listed `.env`, which
+matches a file called exactly that. The file sat untracked in the checkout, one
+non-selective `git add` from being committed. `.env*.local` covers it.
+
+**The governance hook denied integration as if it were authoring.** After a pull
+request merged, a checkout could not fast-forward its own `main` — `git pull
+--ff-only` was refused. A guard that forbids the supported path is one people
+route around. Authoring on `main` stays denied; `git pull --ff-only` and
+`git merge --no-ff <the active task's branch>` are now allowed, and nine cases
+covering both sides are recorded in `changes/delivery-guardrails.md`.
+
+Also pinned: the footer badge must equal the tree's `VERSION`, so a build that
+is a release behind fails a suite instead of being noticed on a screen.
+
 # FreshStart 4.11.0
 
 The demo was bilingual in the worst sense: an English session read its case
