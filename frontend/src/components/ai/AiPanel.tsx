@@ -98,7 +98,14 @@ export function AiPanel() {
           attorney switches to a different one. `routeContext` is what tells the
           assistant which section the user is looking at.
         */}
-        <ChatPanel key={caseData?.id ?? "no-case"} prefill={panelPrefill} routeContext={routeContext} />
+        <ChatPanel
+          key={caseData?.id ?? "no-case"}
+          prefill={panelPrefill}
+          routeContext={routeContext}
+          // This sheet already has a header carrying the same title and the
+          // window controls; the page variant stacked a second one under it.
+          variant="embedded"
+        />
       </div>
     </div>
   );
