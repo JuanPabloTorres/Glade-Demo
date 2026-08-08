@@ -29,10 +29,14 @@ from strands import Agent
 
 from app.ai.prompts import load_prompt
 from app.ai.tools.case_tools import CaseTools
+from app.ai.tools.portfolio_tools import PortfolioTools
 
 logger = logging.getLogger(__name__)
 
 ATTORNEY_AGENT = "attorney_agent"
+
+
+PORTFOLIO_AGENT = "portfolio_agent"
 
 
 @dataclass(frozen=True)
@@ -42,6 +46,14 @@ class SpecialistSpec:
     tool_names: tuple[str, ...]
     description: str
     attorney_only: bool = False
+    tool_source: str = "case"
+    """Which tool holder `tool_names` resolve against.
+
+    Two holders, two closed authorization scopes: `case` is bound to one
+    authorized case, `portfolio` to the collection the access service already
+    filtered. Naming the source per specialist keeps that grant reviewable in
+    the same table as the tool names — the property this file exists to make
+    checkable in one screen."""
 
 
 SPECIALISTS: tuple[SpecialistSpec, ...] = (
@@ -91,15 +103,40 @@ SPECIALISTS: tuple[SpecialistSpec, ...] = (
         ),
         attorney_only=True,
     ),
+    SpecialistSpec(
+        name=PORTFOLIO_AGENT,
+        prompt="portfolio_agent",
+        tool_names=(
+            "list_assigned_cases",
+            "list_cases_needing_attention",
+            "list_incomplete_cases",
+        ),
+        description=(
+            "Reasons across the attorney's authorized cases: which exist, which "
+            "carry urgency signals, which are still waiting on the client. Use "
+            "for portfolio questions, never for one case's detail. Attorney "
+            "sessions only."
+        ),
+        attorney_only=True,
+        tool_source="portfolio",
+    ),
 )
 
 
 class AgentFactory:
-    def __init__(self, model: Any, tools: CaseTools, language: str, role: str) -> None:
+    def __init__(
+        self,
+        model: Any,
+        tools: CaseTools,
+        language: str,
+        role: str,
+        portfolio_tools: PortfolioTools | None = None,
+    ) -> None:
         self._model = model
         self._tools = tools
         self._language = language
         self._role = role
+        self._portfolio_tools = portfolio_tools
 
     def create_orchestrator(self) -> Agent:
         specialists = [
@@ -110,7 +147,7 @@ class AgentFactory:
             # wording or model decision can reach attorney-only tools. The
             # tool itself re-checks (CaseTools.get_attorney_review_notes) so
             # a mistake here fails loudly rather than silently disclosing.
-            if not spec.attorney_only or self._role == "attorney"
+            if self._is_grantable(spec)
         ]
         return Agent(
             model=self._model,
@@ -121,9 +158,24 @@ class AgentFactory:
             ],
         )
 
+    def _is_grantable(self, spec: SpecialistSpec) -> bool:
+        """Whether this runtime can build the specialist at all.
+
+        A portfolio specialist without a portfolio is not a degraded specialist,
+        it is one whose tools would raise on first call — so it is never
+        constructed, and the orchestrator has nothing to route to. Same
+        construction-time gating the attorney role already uses.
+        """
+        if spec.attorney_only and self._role != "attorney":
+            return False
+        if spec.tool_source == "portfolio" and self._portfolio_tools is None:
+            return False
+        return True
+
     def _create_specialist(self, spec: SpecialistSpec) -> tuple[SpecialistSpec, Agent]:
+        holder: Any = self._tools if spec.tool_source == "case" else self._portfolio_tools
         return spec, Agent(
             model=self._model,
             system_prompt=load_prompt(spec.prompt, self._language),
-            tools=[getattr(self._tools, name) for name in spec.tool_names],
+            tools=[getattr(holder, name) for name in spec.tool_names],
         )

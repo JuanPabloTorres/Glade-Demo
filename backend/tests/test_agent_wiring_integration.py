@@ -20,8 +20,14 @@ from typing import Any
 
 import pytest
 
-from app.ai.agents.factory import ATTORNEY_AGENT, SPECIALISTS, AgentFactory
+from app.ai.agents.factory import (
+    ATTORNEY_AGENT,
+    PORTFOLIO_AGENT,
+    SPECIALISTS,
+    AgentFactory,
+)
 from app.ai.tools.case_tools import CaseTools
+from app.ai.tools.portfolio_tools import PortfolioTools
 from app.schemas.assistant import CaseContextDto
 from app.schemas.bankruptcy import BankruptcyCaseDto, UserRole
 from app.services.bankruptcy_service import BankruptcyAnalysisService
@@ -44,7 +50,18 @@ def _context(role: UserRole = "client") -> CaseContextDto:
     return CaseContextBuilder().build(case, analysis, role, "es-PR")
 
 
-def _factory(role: UserRole, index: CaseDocumentIndex | None = None) -> AgentFactory:
+def _factory(
+    role: UserRole,
+    index: CaseDocumentIndex | None = None,
+    *,
+    with_portfolio: bool = True,
+) -> AgentFactory:
+    """`with_portfolio` defaults on so the tool-surface tests cover every spec.
+
+    A factory built without one does not construct the portfolio specialist at
+    all — that is the capability's own gate, asserted separately below rather
+    than silently skipping specs here.
+    """
     context = _context(role)
     return AgentFactory(
         # model=None is accepted by strands at construction; nothing here ever
@@ -53,6 +70,7 @@ def _factory(role: UserRole, index: CaseDocumentIndex | None = None) -> AgentFac
         tools=CaseTools(context=context, document_index=index or CaseDocumentIndex()),
         language=context.language,
         role=role,
+        portfolio_tools=PortfolioTools([]) if with_portfolio else None,
     )
 
 
@@ -72,6 +90,19 @@ class TestOrchestratorConstruction:
         orchestrator = _factory("attorney").create_orchestrator()
         assert ATTORNEY_AGENT in orchestrator.tool_names
         assert set(orchestrator.tool_names) == {spec.name for spec in SPECIALISTS}
+
+    def test_an_attorney_without_a_portfolio_gets_no_portfolio_specialist(self) -> None:
+        """A portfolio specialist with no portfolio is not a degraded
+        specialist — its tools would raise on first call. So it is never
+        constructed and the orchestrator has nothing to route to, which is the
+        same construction-time gating the attorney role already uses."""
+        orchestrator = _factory("attorney", with_portfolio=False).create_orchestrator()
+        assert PORTFOLIO_AGENT not in orchestrator.tool_names
+        assert ATTORNEY_AGENT in orchestrator.tool_names
+
+    def test_a_client_never_gets_the_portfolio_specialist(self) -> None:
+        orchestrator = _factory("client").create_orchestrator()
+        assert PORTFOLIO_AGENT not in orchestrator.tool_names
 
     def test_orchestrator_holds_no_case_data_tool_of_its_own(self) -> None:
         """Every fact must arrive through a specialist. If a data tool ever

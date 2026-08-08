@@ -27,6 +27,7 @@ answer — deterministically.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -51,6 +52,7 @@ from app.ai.tracing import AgentExecutionTrace, FallbackReason
 
 if TYPE_CHECKING:
     from app.core.config import Settings
+    from app.domain.entities import CasePortfolioEntry
     from app.schemas.assistant import CaseContextDto
     from app.services.documents.index import CaseDocumentIndex
 
@@ -107,28 +109,43 @@ class AgentRuntime:
 
     # -- public ----------------------------------------------------------
 
-    def execute(self, *, context: CaseContextDto, message: str) -> AssistantResponse:
+    def execute(
+        self,
+        *,
+        context: CaseContextDto,
+        message: str,
+        portfolio: Sequence[CasePortfolioEntry] = (),
+    ) -> AssistantResponse:
         trace = AgentExecutionTrace(
             provider=self._settings.ai_provider.strip().lower(),
             role=context.role,
             language=context.language,
         )
         try:
-            return self._execute(context=context, message=message, trace=trace)
+            return self._execute(
+                context=context, message=message, trace=trace, portfolio=portfolio
+            )
         finally:
             # In `finally` so a turn is never unobservable: even a path that
             # raises past every handler leaves a record saying so.
             trace.emit()
 
     def _execute(
-        self, *, context: CaseContextDto, message: str, trace: AgentExecutionTrace
+        self,
+        *,
+        context: CaseContextDto,
+        message: str,
+        trace: AgentExecutionTrace,
+        portfolio: Sequence[CasePortfolioEntry] = (),
     ) -> AssistantResponse:
         draft = self._fallback.generate(context=context, message=message)
         answer: AgentAnswer | None = None
 
         if self._agents_enabled(trace):
             try:
-                answer = self._run_agents(context=context, message=message, trace=trace)
+                answer = self._run_agents(
+                    context=context, message=message, trace=trace, portfolio=portfolio
+                )
             except Exception:  # noqa: BLE001 - the no-5xx guarantee lives here
                 # `_run_agents` already catches its own failures. This second
                 # net makes "a model problem never fails the request" a
@@ -183,7 +200,12 @@ class AgentRuntime:
         return True
 
     def _run_agents(
-        self, *, context: CaseContextDto, message: str, trace: AgentExecutionTrace
+        self,
+        *,
+        context: CaseContextDto,
+        message: str,
+        trace: AgentExecutionTrace,
+        portfolio: Sequence[CasePortfolioEntry] = (),
     ) -> AgentAnswer | None:
         try:
             # Imported here, not at module scope: `strands` is optional and
@@ -192,6 +214,7 @@ class AgentRuntime:
 
             from app.ai.agents.factory import AgentFactory
             from app.ai.tools.case_tools import CaseTools
+            from app.ai.tools.portfolio_tools import PortfolioTools
 
             model = ModelFactory(self._settings).create()
             trace.model = getattr(model, "model_id", "") or getattr(
@@ -203,6 +226,11 @@ class AgentRuntime:
                 tools=CaseTools(context=context, document_index=self._document_index),
                 language=context.language,
                 role=context.role,
+                # Only when the caller supplied one. An empty portfolio means
+                # "not a portfolio request", and the specialist is not built —
+                # so a case-level turn never carries cross-case tools it has no
+                # use for.
+                portfolio_tools=PortfolioTools(list(portfolio)) if portfolio else None,
             ).create_orchestrator()
 
             result = orchestrator(
