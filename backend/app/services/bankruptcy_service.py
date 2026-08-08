@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 
 import pandas as pd  # type: ignore[import-untyped]
 
@@ -8,6 +8,7 @@ from app.ai.contracts.assistant_response import AssistantResponse
 from app.ai.runtime import AgentRuntime
 from app.core.config import Settings
 from app.core.i18n import Language, resolve_language, resolve_locale
+from app.domain.entities import CasePortfolioEntry
 from app.domain.value_objects import ConversationRole
 from app.repositories.protocols import AIConversationRepositoryProtocol, CaseRepositoryProtocol
 from app.schemas.bankruptcy import (
@@ -387,7 +388,20 @@ class BankruptcyGuidanceService:
             settings=settings, document_index=self._document_index
         )
 
-    def guide(self, request: GuidanceRequestDto) -> AssistantResponse:
+    def guide(
+        self,
+        request: GuidanceRequestDto,
+        *,
+        portfolio: Sequence[CasePortfolioEntry] = (),
+    ) -> AssistantResponse:
+        """`portfolio` is passed in, never fetched here.
+
+        The service has a case repository and could read every case itself —
+        which is exactly why it does not. Authorization for a *collection* is
+        the router's decision, made against the authenticated session, and a
+        service that could widen its own scope would put that decision two
+        layers away from the identity it depends on.
+        """
         # Resolved before the analysis, not after: the analysis generates the
         # prose the assistant hands back as suggested-action labels and
         # warnings, so it has to be produced in the session's language rather
@@ -426,7 +440,9 @@ class BankruptcyGuidanceService:
         # Guardrails, action allow-listing, the mandatory disclaimer and the
         # deterministic fallback all live inside the runtime — see
         # AgentRuntime.execute's docstring for the order they apply in.
-        response = self._runtime.execute(context=context, message=request.message)
+        response = self._runtime.execute(
+            context=context, message=request.message, portfolio=portfolio
+        )
 
         if self._conversations is not None:
             # Persisted as two turns (schema is case_id/role/message/
