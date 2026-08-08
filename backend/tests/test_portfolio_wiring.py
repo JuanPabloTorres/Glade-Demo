@@ -24,8 +24,9 @@ from app.repositories.seed import reset_demo_data
 from app.services.bankruptcy_service import BankruptcyGuidanceService
 
 
-def _payload(role: str, case_id: str) -> dict[str, Any]:
+def _payload(role: str, case_id: str, scope: str = "portfolio") -> dict[str, Any]:
     return {
+        "assistant_scope": scope,
         "case": {
             "id": case_id,
             "owner_user_id": "client-demo",
@@ -92,6 +93,34 @@ class TestTheAttorneyRequestCarriesAnAuthorizedPortfolio:
         assert not hasattr(entry, "incomes"), "a full case reached the portfolio path"
 
 
+class TestScopeIsAProductDecisionNotAnAuthorization:
+    def test_an_attorney_inside_a_case_carries_no_portfolio(
+        self, attorney_client: TestClient, captured: dict[str, Any]
+    ) -> None:
+        """An attorney asking about the case they have open does not need every
+        other case in context. Attaching one would widen the data surface and
+        the ambiguity of the answer for nothing."""
+        response = attorney_client.post(
+            "/api/v1/bankruptcy/guide",
+            json=_payload("attorney", "case-elena-demo", scope="case"),
+        )
+
+        assert response.status_code == 200, response.text
+        assert captured["portfolio"] == []
+
+    def test_the_default_scope_is_case(
+        self, attorney_client: TestClient, captured: dict[str, Any]
+    ) -> None:
+        """An older client that sends no scope keeps its current behaviour and
+        never accidentally opens the wider surface."""
+        payload = _payload("attorney", "case-elena-demo")
+        payload.pop("assistant_scope")
+
+        attorney_client.post("/api/v1/bankruptcy/guide", json=payload)
+
+        assert captured["portfolio"] == []
+
+
 class TestAClientNeverCarriesOne:
     def test_a_client_guide_call_supplies_no_portfolio(
         self, client: TestClient, captured: dict[str, Any]
@@ -104,8 +133,11 @@ class TestAClientNeverCarriesOne:
         constructed, because construction is gated on the portfolio being
         present.
         """
+        # Asks for portfolio scope explicitly. The role is what refuses it, so
+        # a client that learns the field name gains nothing.
         response = client.post(
-            "/api/v1/bankruptcy/guide", json=_payload("client", "case-elena-demo")
+            "/api/v1/bankruptcy/guide",
+            json=_payload("client", "case-elena-demo", scope="portfolio"),
         )
 
         assert response.status_code == 200, response.text

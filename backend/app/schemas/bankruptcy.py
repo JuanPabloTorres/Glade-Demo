@@ -128,8 +128,26 @@ class CaseAnalysisDto(ApiModel):
     next_steps: list[str]
 
 
+AssistantScope = Literal["case", "portfolio"]
+"""Which surface the question was asked from — a hint, never an authorization.
+
+The UI already knows whether the user is in the attorney dashboard or inside a
+case workspace, and that is cheaper and far more reliable than classifying every
+sentence with keyword heuristics. So the client says where it is.
+
+What it cannot do is grant itself anything. The server pairs this with the
+authenticated role: `portfolio` from a client session is ignored, and the
+collection itself is always resolved server-side from the session identity. The
+hint chooses *which* authorized scope to build, never *what* is in it.
+
+Defaults to `case`, so an older client that sends nothing keeps its current
+behaviour and never accidentally opens a wider surface.
+"""
+
+
 class GuidanceRequestDto(ApiModel):
     case: BankruptcyCaseDto
     message: str
     role: UserRole
     locale: str = "es"
+    assistant_scope: AssistantScope = "case"

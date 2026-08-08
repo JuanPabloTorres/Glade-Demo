@@ -86,17 +86,21 @@ def guide_case(
     # never checked at all before this task.
     case = case_access.authorize_for_submission(body.case, current_user)
     authorized_body = body.model_copy(update={"case": case})
-    # The attorney's portfolio is resolved here, from the authenticated
-    # session, and handed down already filtered. Two consequences worth being
-    # explicit about: a client never carries one, so the cross-case specialist
-    # is never even constructed for them; and the collection reaching the agent
-    # was authorized before any model saw the request, which is the property
-    # `PortfolioTools` is built to preserve.
-    portfolio = (
-        case_access.attorney_portfolio(current_user)
-        if current_user.role == "attorney"
-        else []
+    # Two independent conditions, and both must hold.
+    #
+    # The role is the authorization: a client never carries a portfolio
+    # whatever it sends, so the cross-case specialist is never even constructed
+    # for them. The scope is the product decision: an attorney asking about the
+    # case they have open does not need every other case in context, and
+    # attaching one would widen the data surface and the ambiguity of the answer
+    # for nothing.
+    #
+    # The collection is still resolved here, from the session — the hint chooses
+    # which authorized scope to build, never what is in it.
+    wants_portfolio = (
+        current_user.role == "attorney" and body.assistant_scope == "portfolio"
     )
+    portfolio = case_access.attorney_portfolio(current_user) if wants_portfolio else []
     response = BankruptcyGuidanceService(
         settings, case_repository=cases, conversation_repository=conversations
     ).guide(authorized_body, portfolio=portfolio)
