@@ -6,6 +6,8 @@ import { Navigate, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthContext";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { AppButton } from "../components/ui/AppButton";
+import { IconButton } from "../components/ui/IconButton";
+import { CheckboxField } from "../components/forms/fields";
 import { FloatingField } from "../components/molecules/FloatingField";
 import { LanguageSwitcher } from "../components/molecules/LanguageSwitcher";
 import { ROUTES } from "../config/routes";
@@ -206,30 +208,27 @@ export function LoginPage() {
                   autoComplete="current-password"
                   required
                   trailing={
-                    <button
-                      type="button"
-                      aria-label={showPassword ? t("auth:login.hidePassword") : t("auth:login.showPassword")}
-                      className="flex h-11 w-11 items-center justify-center text-body hover:text-fg-brand"
+                    <IconButton
+                      icon={showPassword ? "eye-hide" : "eye-show"}
+                      label={showPassword ? t("auth:login.hidePassword") : t("auth:login.showPassword")}
                       onClick={() => setShowPassword((value) => !value)}
-                    >
-                      <AppIcon name={showPassword ? "eye-hide" : "eye-show"} size={18} />
-                    </button>
+                    />
                   }
                 />
               </div>
 
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <div className="flex items-center">
-                  <input
+                {/* `min-w-0` because CheckboxField is full-width by design and
+                    this row is a flex container: without it the label's text
+                    inflates the item's automatic minimum size and pushes the
+                    forgot-password note off a 320px screen. */}
+                <div className="min-w-0">
+                  <CheckboxField
                     id="login-remember"
-                    type="checkbox"
+                    label={t("auth:login.rememberMe")}
                     checked={rememberMe}
-                    onChange={(event) => setRememberMe(event.target.checked)}
-                    className="h-4 w-4 rounded-xs border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
+                    onChange={setRememberMe}
                   />
-                  <label htmlFor="login-remember" className="ms-2 text-sm font-medium text-heading">
-                    {t("auth:login.rememberMe")}
-                  </label>
                 </div>
                 <span className="ms-auto text-xs text-body">{t("auth:login.forgotPassword")}</span>
               </div>

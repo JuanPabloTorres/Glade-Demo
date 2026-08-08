@@ -318,7 +318,7 @@ describe("assistant scope", () => {
     await ask("¿Cuánto debo?");
 
     await waitFor(() => expect(mockGuide).toHaveBeenCalled());
-    expect(mockGuide.mock.calls[0][3]).toBe("case");
+    expect(mockGuide.mock.calls[0]?.[3]).toBe("case");
   });
 
   it("sends the portfolio scope the attorney queue resolves to", async () => {
@@ -329,7 +329,7 @@ describe("assistant scope", () => {
     await ask("¿Cuáles de mis casos requieren atención?");
 
     await waitFor(() => expect(mockGuide).toHaveBeenCalled());
-    expect(mockGuide.mock.calls[0][3]).toBe("portfolio");
+    expect(mockGuide.mock.calls[0]?.[3]).toBe("portfolio");
   });
 
   it("carries no identity and no case identifiers of its own", async () => {
@@ -341,8 +341,8 @@ describe("assistant scope", () => {
     await waitFor(() => expect(mockGuide).toHaveBeenCalled());
     // A scope is a word. Anything richer would be the frontend asserting what
     // it may see, which is the server's decision and nobody else's.
-    expect(typeof mockGuide.mock.calls[0][3]).toBe("string");
-    expect(["case", "portfolio"]).toContain(mockGuide.mock.calls[0][3]);
+    expect(typeof mockGuide.mock.calls[0]?.[3]).toBe("string");
+    expect(["case", "portfolio"]).toContain(mockGuide.mock.calls[0]?.[3]);
   });
 });
 

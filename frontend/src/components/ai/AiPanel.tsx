@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useChatPanel } from "../../chat/ChatPanelContext";
-import { AppIcon } from "../atoms/AppIcon";
+import { IconButton } from "../ui/IconButton";
 import { ChatPanel } from "../organisms/ChatPanel";
 
 /**
@@ -71,24 +71,19 @@ export function AiPanel() {
           {t("ai:chat.title")}
         </h2>
 
-        <button
-          type="button"
+        <IconButton
           onClick={minimizePanel}
-          aria-label={t("ai:launcher.minimize")}
+          icon="collapse-left"
+          iconClassName="-rotate-90"
+          label={t("ai:launcher.minimize")}
           title={t("ai:launcher.minimize")}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-base text-body outline-none transition-colors hover:bg-neutral-tertiary hover:text-heading focus-visible:ring-4 focus-visible:ring-brand-soft"
-        >
-          <AppIcon name="collapse-left" size={18} className="-rotate-90" />
-        </button>
-        <button
-          type="button"
+        />
+        <IconButton
           onClick={closePanel}
-          aria-label={t("common:actions.close")}
+          icon="close"
+          label={t("common:actions.close")}
           title={t("common:actions.close")}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-base text-body outline-none transition-colors hover:bg-neutral-tertiary hover:text-heading focus-visible:ring-4 focus-visible:ring-brand-soft"
-        >
-          <AppIcon name="close" size={18} />
-        </button>
+        />
       </div>
 
       <div className="min-h-0 flex-1">
