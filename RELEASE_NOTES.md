@@ -1,3 +1,24 @@
+# FreshStart 4.10.1
+
+The client's demo case had nothing missing.
+
+`completion_score` and `missing_items` are computed from the same eight section
+booleans, so a case with every section filled reports 100% and an empty missing
+list — and *"¿Qué me falta?"*, the question this product exists to answer, came
+back with nothing to say. Every suite asserts the completion score is *visible*,
+never what it says, so nothing failed. A screenshot of the running application
+showed a progress bar at 100% next to an assistant with nothing to report.
+
+Elena now records no assets, and only assets: the realistic section to leave open,
+and the one the attorney's triage does not read, so the queue keeps its three-way
+split. Completion reads 86% and the dashboard surfaces *"Próxima acción —
+Completar: Bienes y activos."*
+
+Also covered: a topic change on the agentic path, asserted on the half that is
+ours — the prompt keeps earlier turns available while presenting only the new
+question as the current one — and a retrieval miss, where a case with nothing
+indexed still answers agentically instead of degrading.
+
 # FreshStart 4.10.0
 
 Closes the demo. Every gate runs from one integrated tree, and the two release

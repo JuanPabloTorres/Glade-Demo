@@ -9,7 +9,7 @@ after all Phase 1 work was committed, not from a mix of branches.
 |---|---|
 | Branch | `integration/demo-close` |
 | Base | `main` |
-| Version | 4.9.0 (bump owed at integration) |
+| Version | **4.10.1** |
 
 ## Gates
 
@@ -17,7 +17,7 @@ after all Phase 1 work was committed, not from a mix of branches.
 |---|---|---|
 | Backend lint | `uv run ruff check .` | pass |
 | Backend typecheck | `uv run mypy app` | pass — 71 source files |
-| Backend tests | `uv run pytest` | **351 passed** |
+| Backend tests | `uv run pytest` | **355 passed** |
 | Frontend lint | `npm run lint` | **0 errors**, 6 warnings (all pre-existing) |
 | Frontend tests | `npm run test -- --run` | **132 passed**, 19 files |
 | Frontend build | `npm run build` | pass — `tsc -b` clean, 464 modules |
@@ -26,7 +26,18 @@ after all Phase 1 work was committed, not from a mix of branches.
 | Governance | `npm run agent:validate` | pass — architecture + Flowbite checks |
 | E2E | `npx playwright test` | **95 passed**, 0 failed (2.3m) |
 
-Test totals moved 333 → 351 backend and 121 → 132 frontend across this close-out.
+Test totals moved 333 → 355 backend and 121 → 132 frontend across this close-out.
+
+## What automation could not see
+
+One release defect was found by looking at the running product, not by any suite: the
+client's demo case reported **100% complete** with an empty missing list, so the
+assistant's flagship question had no answer. Every suite asserts the completion score is
+*visible*; none asserts what it says. It took a screenshot.
+
+That is the argument for the visual pass being a real step rather than a formality. The
+walkthrough captured both journeys at 390 and 1440 in Spanish, plus login in English, and
+this is what it caught.
 
 ## The first E2E run was invalid, and why that is recorded here
 
