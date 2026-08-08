@@ -1,5 +1,5 @@
 import type { AppIconName } from "../components/atoms/AppIcon";
-import { assistantUrl, attorneyViewUrl, CASE_SECTION, ROUTES } from "./routes";
+import { attorneyViewUrl, CASE_SECTION, ROUTES } from "./routes";
 
 /**
  * Where a navigation entry is allowed to appear. Every surface reads the same
@@ -22,11 +22,6 @@ export interface AppNavItem {
   bottom: boolean;
   /** Appears in the tablet/desktop sidebar. */
   sidebar: boolean;
-  /**
-   * Rendered as the raised centre action of the bottom bar and given emphasis
-   * in the sidebar. Exactly one item may carry this.
-   */
-  primaryAction?: boolean;
   /**
    * `support` entries sink to the bottom of the sidebar, away from the primary
    * journey. Help lives here: it matters, but never at the cost of one of the
@@ -69,10 +64,18 @@ export function isNavItemActive(to: string, pathname: string, search: string): b
 }
 
 /**
- * Client navigation. The five bottom-bar entries are Home, Documents, the
- * assistant (centre), Tasks and Activity; "My case" and Help are sidebar-only,
- * because the sidebar has room to be complete while the bar has to be
- * ruthless.
+ * Client navigation: Home, My case, Documents, Tasks, Activity, and Help in the
+ * support group.
+ *
+ * **The assistant is deliberately not here.** It had an entry in the sidebar,
+ * the raised centre slot of the bottom bar, and a floating launcher on top of
+ * both — three controls for one capability, two of which navigated to a page
+ * while the third opened a panel over the page you were already on. It now has
+ * exactly one entry point, `AiLauncher`, on every breakpoint; `/assistant`
+ * still resolves so existing links keep working, and redirects into the panel.
+ *
+ * "My case" took the slot that freed up in the bar, so the bar stays at five
+ * and the phone gains the destination the sidebar always had.
  *
  * Case-scoped entries render disabled until the client has created their first
  * request. They stay visible rather than disappearing — a navigation that
@@ -96,6 +99,19 @@ export function buildClientNavItems(activeCaseId: string | null): AppNavItem[] {
       sidebar: true,
     },
     {
+      id: "my-case",
+      labelKey: "navigation:sidebar.client.myCase",
+      icon: "folder",
+      // The overview section, not the bare `/case/:id`. Two reasons: that bare
+      // path redirects to this one anyway, and an entry pointing at a path
+      // that is a prefix of every section would stay highlighted while the
+      // user is on Documents or Tasks.
+      to: sectionOrNull(CASE_SECTION.overview),
+      disabledReasonKey,
+      bottom: true,
+      sidebar: true,
+    },
+    {
       id: "documents",
       labelKey: "navigation:sidebar.client.documents",
       icon: "document",
@@ -103,15 +119,6 @@ export function buildClientNavItems(activeCaseId: string | null): AppNavItem[] {
       disabledReasonKey,
       bottom: true,
       sidebar: true,
-    },
-    {
-      id: "assistant",
-      labelKey: "navigation:sidebar.assistant",
-      icon: "assistant",
-      to: ROUTES.assistant,
-      bottom: true,
-      sidebar: true,
-      primaryAction: true,
     },
     {
       id: "tasks",
@@ -132,19 +139,6 @@ export function buildClientNavItems(activeCaseId: string | null): AppNavItem[] {
       sidebar: true,
     },
     {
-      id: "my-case",
-      labelKey: "navigation:sidebar.client.myCase",
-      icon: "folder",
-      // The overview section, not the bare `/case/:id`. Two reasons: that bare
-      // path redirects to this one anyway, and an entry pointing at a path
-      // that is a prefix of every section would stay highlighted while the
-      // user is on Documents or Tasks.
-      to: sectionOrNull(CASE_SECTION.overview),
-      disabledReasonKey,
-      bottom: false,
-      sidebar: true,
-    },
-    {
       id: "help",
       labelKey: "navigation:sidebar.client.help",
       icon: "help",
@@ -160,8 +154,14 @@ export function buildClientNavItems(activeCaseId: string | null): AppNavItem[] {
  * Attorney navigation. "Actividad" has no cross-case activity feed today —
  * CaseTimeline only renders a single case's events — so it renders disabled
  * with an honest explanation rather than pointing at a fabricated destination.
+ *
+ * The assistant is absent here for the same reason it is absent from the client
+ * list: `AiLauncher` is its one entry point. The attorney's version used to
+ * carry `?case=` so the assistant arrived with the open case in context — the
+ * panel gets that from the route it is opened over, which is strictly more
+ * accurate than a link built when the navigation last rendered.
  */
-export function buildAttorneyNavItems(openCaseId: string | null): AppNavItem[] {
+export function buildAttorneyNavItems(): AppNavItem[] {
   return [
     {
       id: "queue",
@@ -178,19 +178,6 @@ export function buildAttorneyNavItems(openCaseId: string | null): AppNavItem[] {
       to: attorneyViewUrl("urgent"),
       bottom: true,
       sidebar: true,
-    },
-    {
-      id: "assistant",
-      labelKey: "navigation:sidebar.assistant",
-      icon: "assistant",
-      // Carries the case the attorney currently has open, so the assistant
-      // keeps its context across the navigation instead of arriving with
-      // nothing to reason about. A client's case is resolved from their
-      // account and never needs this.
-      to: assistantUrl(undefined, openCaseId),
-      bottom: true,
-      sidebar: true,
-      primaryAction: true,
     },
     {
       id: "requested-documents",
@@ -222,20 +209,17 @@ export function buildAttorneyNavItems(openCaseId: string | null): AppNavItem[] {
 }
 
 /**
- * The bottom bar's entries, in render order, with the primary action forced
- * into the middle slot so the raised button is always centred regardless of how
- * the list above is ordered.
+ * The bottom bar's entries, in render order.
+ *
+ * Configuration order is render order now. The re-ordering that used to happen
+ * here existed to force the assistant into the centre slot so its raised
+ * circle stayed centred whatever order the list was written in; with the
+ * assistant out of the bar there is no slot that has to be in a particular
+ * place, and a bar that renders its configuration in order is one fewer rule to
+ * hold in mind when editing that configuration.
  */
 export function bottomNavItems(items: AppNavItem[]): AppNavItem[] {
-  const selected = items.filter((item) => item.bottom).slice(0, BOTTOM_NAV_SLOTS);
-  const primaryIndex = selected.findIndex((item) => item.primaryAction);
-  const middle = Math.floor(selected.length / 2);
-  if (primaryIndex < 0 || primaryIndex === middle) return selected;
-
-  const reordered = [...selected];
-  const [primary] = reordered.splice(primaryIndex, 1);
-  reordered.splice(middle, 0, primary!);
-  return reordered;
+  return items.filter((item) => item.bottom).slice(0, BOTTOM_NAV_SLOTS);
 }
 
 export function sidebarNavItems(items: AppNavItem[]): { main: AppNavItem[]; support: AppNavItem[] } {

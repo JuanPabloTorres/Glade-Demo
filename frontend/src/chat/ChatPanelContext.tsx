@@ -1,7 +1,7 @@
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation } from "react-router";
 import { useAuth } from "../auth/AuthContext";
-import { ASSISTANT_CASE_PARAM, assistantUrl } from "../config/routes";
+import { ASSISTANT_CASE_PARAM } from "../config/routes";
 import type { AssistantScope, BankruptcyCase } from "../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
 
@@ -55,7 +55,14 @@ function resolveAssistantScope(
 interface ChatPanelContextValue {
   /** The case the assistant is scoped to — null if none is resolvable (e.g. an attorney with no case open). */
   caseData: BankruptcyCase | null;
-  /** Navigates to the assistant page, optionally seeding the composer. */
+  /**
+   * Opens the assistant, optionally seeding the composer.
+   *
+   * An alias of `openPanel`, kept as its own name because the call sites read
+   * as intent ("ask the assistant about expenses") rather than as panel
+   * mechanics. It used to navigate to `/assistant`, which took the user away
+   * from the very section they were asking about.
+   */
   openAssistant: (prefill?: string) => void;
   /** Where the user currently is, for the assistant to reason about. */
   routeContext: AssistantRouteContext;
@@ -80,22 +87,17 @@ const ChatPanelContext = createContext<ChatPanelContextValue | null>(null);
  * reason about, and a contextless assistant has nothing to say. For a client
  * that is their own case; for an attorney it is whichever case is open.
  *
- * The assistant used to be a floating button opening a `Drawer`, with its
- * open/closed state held here. It is now a route (`/assistant`), so that state
- * is gone: the URL holds it. Three things follow that the drawer could not do —
- * the assistant survives a reload, participates in browser back/forward, and
- * can be linked to. It also stops being a second, parallel navigation surface
- * on mobile competing with the bottom bar's centre action, which now points at
- * the same place.
- *
- * A prefilled prompt travels as a query parameter for the same reason: it is
- * part of where the user is, not hidden state a refresh would silently drop.
+ * The assistant is a panel over the current page, and `status` here is what
+ * holds it open. It spent a release as a route (`/assistant`) to gain a URL,
+ * and the cost outweighed it: opening the assistant meant leaving the screen
+ * you wanted to ask about, and the route existing alongside the panel gave the
+ * product two entry points that behaved differently. `/assistant` now
+ * redirects into the panel, so the links that were worth having still work.
  */
 export function ChatPanelProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const workspace = useBankruptcyWorkspace();
   const location = useLocation();
-  const navigate = useNavigate();
 
   // Resolution order: the case named in the URL (the assistant route's own
   // `?case=`, then a `/case/:id` path), and finally the client's own case. A
@@ -119,11 +121,6 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
     return workspace.cases.find((item) => item.id === routeCaseId) ?? null;
   }, [user, workspace.cases, routeCaseId]);
 
-  const openAssistant = useCallback(
-    (prefill?: string) => navigate(assistantUrl(prefill, caseData?.id ?? routeCaseId)),
-    [navigate, caseData?.id, routeCaseId],
-  );
-
   const [status, setStatus] = useState<AssistantStatus>("closed");
   const [panelPrefill, setPanelPrefill] = useState("");
 
@@ -131,6 +128,13 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
     if (prefill) setPanelPrefill(prefill);
     setStatus("open");
   }, []);
+
+  // The same thing, under the name the call sites already use. Opening the
+  // assistant no longer moves the user: a section card that asks "which
+  // documents am I missing?" now gets its answer beside the section it asked
+  // about, instead of navigating to a page that had to be told which case and
+  // which section it had come from.
+  const openAssistant = openPanel;
   const minimizePanel = useCallback(() => setStatus("minimized"), []);
   const closePanel = useCallback(() => setStatus("closed"), []);
 

@@ -229,32 +229,49 @@ test.describe("the assistant is global", () => {
     await expect(panel).toContainText(/Abre un expediente/i);
   });
 
-  test("on a phone the bottom bar owns the assistant and no floating button covers content", async ({ page }) => {
+  test("on a phone the launcher is the entry point and it clears the bottom bar", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await loginAs(page, "cliente");
 
     const bottomNav = page.locator("nav[aria-label='Navegación principal']:not(aside nav)");
     await expect(bottomNav).toBeVisible();
-    // The bar's raised centre action is the phone's entry point.
-    await expect(bottomNav.getByRole("link", { name: /Asistente/ })).toBeVisible();
+    // The bar used to carry the assistant as its raised centre action, which
+    // made it the second entry point beside this button. It carries navigation
+    // destinations only now.
+    await expect(bottomNav.getByRole("link", { name: /Asistente/ })).toHaveCount(0);
 
-    // And there is no second, floating entry point competing with it — one
-    // that, lifted clear of the bar, sat on top of the page's own cards.
-    await expect(page.getByRole("button", { name: "Abrir asistente" })).toBeHidden();
+    const launcher = page.getByRole("button", { name: "Abrir asistente" });
+    await expect(launcher).toBeVisible();
+
+    // The reason it was hidden on phones in the first place: lifted clear of
+    // the bar it sat on top of the page's cards. It is offset above the bar
+    // instead, so the two never overlap.
+    const launcherBox = (await launcher.boundingBox())!;
+    const navBox = (await bottomNav.boundingBox())!;
+    expect(launcherBox.y + launcherBox.height, "the launcher overlaps the bottom bar").toBeLessThanOrEqual(
+      navBox.y + 1,
+    );
   });
 
-  test("the phone's assistant destination fits the viewport", async ({ page }) => {
+  test("the phone's assistant panel takes the whole viewport", async ({ page }) => {
     await page.setViewportSize(MOBILE);
     await loginAs(page, "cliente");
 
-    const bottomNav = page.locator("nav[aria-label='Navegación principal']:not(aside nav)");
-    await bottomNav.getByRole("link", { name: /Asistente/ }).click();
+    await page.getByRole("button", { name: "Abrir asistente" }).click();
+
+    const panel = page.getByRole("dialog", { name: /Asistente/ });
+    const panelBox = (await panel.boundingBox())!;
+    // A phone has nothing to spare: a partial sheet showed about three lines of
+    // an answer above the composer.
+    expect(panelBox.width).toBeGreaterThanOrEqual(MOBILE.width - 1);
+    expect(panelBox.height).toBeGreaterThanOrEqual(MOBILE.height * 0.9);
 
     const composer = page.getByLabel("Mensaje");
     await expect(composer).toBeVisible();
     const box = (await composer.boundingBox())!;
-    const navBox = (await bottomNav.boundingBox())!;
-    expect(box.y + box.height, "the composer is trapped under the bottom bar").toBeLessThanOrEqual(navBox.y + 1);
+    expect(box.y + box.height, "the composer falls outside the viewport").toBeLessThanOrEqual(
+      MOBILE.height + 1,
+    );
   });
 });
 
@@ -272,12 +289,13 @@ test.describe("one language at a time", () => {
    * The application's own chrome and controls — header, sidebar, bottom bar,
    * footer, buttons, links, menus, tab labels.
    *
-   * Deliberately NOT the whole body. Case *content* (timeline entries, seeded
-   * client goals, stage descriptions) is authored Spanish demo data served by
-   * the backend, and it stays Spanish in an English session. That is a real
-   * mixed-language finding, but it belongs to the backend seed/contract and is
-   * recorded as such — asserting on it here would fail this spec for a defect
-   * it cannot fix and hide the chrome regressions it exists to catch.
+   * Deliberately NOT the whole body — not because case content is allowed to
+   * be in the wrong language (it no longer is: the timeline, the evidence
+   * checklist, the assistant's greeting and the demo seed all follow the
+   * session now), but because scoping to chrome is what makes a failure here
+   * point at a control rather than at anything on the page.
+   * `ui-quality-evidence.spec.ts` asserts the whole body, on every screen this
+   * product has, in both languages.
    */
   async function chromeText(page: Page): Promise<string> {
     return page.evaluate(() => {

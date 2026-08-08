@@ -16,11 +16,18 @@ Kept as one flat catalogue rather than scattered across the service so that a
 missing translation is visible by reading two columns, and so `ruff` and the
 type checker see every key.
 
-**`required_evidence` is deliberately absent.** Those strings are matched
-word-by-word against `EVIDENCE_TYPE_LABELS` by
-`BankruptcyAnalysisService._evidence_matches` to compute `evidence_score`;
-translating one side without the other would silently zero that score. That is
-a separate defect from this one and is left recorded rather than half-fixed.
+`required_evidence` used to be absent from this catalogue, and the reason was
+real: those strings were matched word-by-word against `EVIDENCE_TYPE_LABELS` to
+compute `evidence_score`, so translating one side would have zeroed it. The
+matching no longer reads prose at all — `EVIDENCE_REQUIREMENT_TYPES` maps each
+requirement to the canonical evidence-type slugs that satisfy it — so the
+labels are free to be translated, and are, under the `evidence.*` keys below.
+
+That also fixed what the word matching actually did: `"Estados bancarios
+recientes"` never matched `"Estado bancario"` (plural against singular) while
+`"Contrato de arrendamiento o estado hipotecario"` matched it on the stray word
+`"estado"`, so a bank statement satisfied the housing requirement and not the
+banking one.
 """
 
 from __future__ import annotations
@@ -156,6 +163,58 @@ _COPY: dict[str, dict[Language, str]] = {
     "chapter13.joint_filing": {
         "es": "¿Cómo cambia el plan al presentar una petición conjunta?",
         "en": "How does the plan change when filing a joint petition?",
+    },
+    # -- required evidence --------------------------------------------------
+    # Display labels only. Which uploaded document satisfies which requirement
+    # is decided by EVIDENCE_REQUIREMENT_TYPES on canonical slugs, never by
+    # these words.
+    "evidence.government_id": {
+        "es": "Identificación vigente",
+        "en": "Valid photo ID",
+    },
+    "evidence.pay_stubs": {
+        "es": "Talones de pago de los últimos 60 días",
+        "en": "Pay stubs from the last 60 days",
+    },
+    "evidence.bank_statements": {
+        "es": "Estados bancarios recientes",
+        "en": "Recent bank statements",
+    },
+    "evidence.tax_returns": {
+        "es": "Planillas o transcripciones contributivas recientes",
+        "en": "Recent tax returns or transcripts",
+    },
+    "evidence.creditor_statements": {
+        "es": "Estados de cuenta de acreedores",
+        "en": "Creditor account statements",
+    },
+    "evidence.housing_document": {
+        "es": "Contrato de arrendamiento o estado hipotecario",
+        "en": "Lease agreement or mortgage statement",
+    },
+    "evidence.vehicle_loan": {
+        "es": "Estado de préstamo de vehículo, si aplica",
+        "en": "Vehicle loan statement, if applicable",
+    },
+    "evidence.credit_counseling": {
+        "es": "Certificado de orientación crediticia, cuando corresponda",
+        "en": "Credit counseling certificate, where required",
+    },
+    "evidence.business_records": {
+        "es": "Registro de ingresos y gastos del negocio",
+        "en": "Business income and expense records",
+    },
+    "evidence.lien_documents": {
+        "es": "Documentos de gravámenes y garantías",
+        "en": "Lien and collateral documents",
+    },
+    "evidence.collection_notice": {
+        "es": "Demanda, embargo o notificación de cobro",
+        "en": "Lawsuit, garnishment or collection notice",
+    },
+    "evidence.recent_transfers": {
+        "es": "Documentos de transferencias recientes de propiedad",
+        "en": "Documents for recent property transfers",
     },
     # -- next steps ---------------------------------------------------------
     "next.complete_item": {

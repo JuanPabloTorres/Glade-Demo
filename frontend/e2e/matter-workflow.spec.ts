@@ -12,11 +12,12 @@ test("client completes the full 10-step preparation flow (master instruction §2
   await expect(page.getByRole("heading", { name: "Elena Rivera" })).toBeVisible();
   await expect(page.getByTestId("completion-score")).toBeVisible();
 
-  // 3. Ver asistente. It is a route now, not a floating button and a drawer,
-  // so it is reached by navigating — which is also what lets it be linked to
-  // and survive a reload.
-  await page.goto("/assistant");
-  await expect(page.getByRole("heading", { name: "Asistente de preparación" })).toBeVisible();
+  // 3. Ver asistente. One entry point on every breakpoint: the floating
+  // launcher opens the panel over the page the question is about. The
+  // `/assistant` route still resolves and redirects into the same panel, which
+  // the mobile run below covers.
+  await page.getByRole("button", { name: "Abrir asistente" }).click();
+  await expect(page.getByRole("dialog", { name: "Asistente de preparación" })).toBeVisible();
 
   // 4. Preguntar qué falta.
   await page.getByLabel("Mensaje").fill("¿Qué documentos me faltan?");
@@ -157,7 +158,14 @@ test("client flow succeeds on a mobile viewport (§17)", async ({ page }) => {
   await page.getByRole("button", { name: "Continuar", exact: true }).click();
   await expect(page.getByTestId("completion-score")).toBeVisible();
 
+  // The legacy route, exercised here rather than on desktop: it redirects home
+  // and opens the panel, which on a phone claims the whole viewport.
   await page.goto("/assistant");
+  const panel = page.getByRole("dialog", { name: "Asistente de preparación" });
+  await expect(panel).toBeVisible();
+  const panelBox = await panel.boundingBox();
+  expect(panelBox?.width).toBeGreaterThanOrEqual(380);
+
   await page.getByLabel("Mensaje").fill("¿Qué me falta?");
   await page.getByRole("button", { name: "Enviar", exact: true }).click();
   // A generic "what am I missing" question routes to the missing-status topic,

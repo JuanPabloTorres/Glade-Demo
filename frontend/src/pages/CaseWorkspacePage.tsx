@@ -19,6 +19,12 @@ import { AppButton } from "../components/ui/AppButton";
 import { BankruptcyEntryModal } from "../components/organisms/BankruptcyEntryModal";
 import { CaseActionBar } from "../components/organisms/CaseActionBar";
 import { CaseTimeline } from "../components/organisms/CaseTimeline";
+import { AttorneyDiscussionPanel } from "../components/case/AttorneyDiscussionPanel";
+import { CasePanel } from "../components/case/CasePanel";
+import { EvidenceChecklist } from "../components/case/EvidenceChecklist";
+import { EvidenceInventory } from "../components/case/EvidenceInventory";
+import { InsightList } from "../components/case/InsightList";
+import { MetricTiles } from "../components/case/MetricTiles";
 import { CaseStageStepper } from "../components/molecules/CaseStageStepper";
 import { ResponsiveDataView } from "../components/molecules/ResponsiveDataView";
 import { StageOrientation } from "../components/molecules/StageOrientation";
@@ -76,9 +82,8 @@ export function CaseWorkspacePage() {
     analysis,
     error: analysisError,
     completion,
-    requiredEvidence,
+    evidenceRequirements,
     missingEvidenceCount,
-    requiredEvidencePresent,
   } = useCaseAnalysis(caseData);
 
   // `caseId ?? ""` because the hook must be called unconditionally, while the
@@ -173,53 +178,54 @@ export function CaseWorkspacePage() {
       />
 
       <div className="workspace-stage-content">
+        {/*
+          The overview.
+
+          It used to be six always-open cards in two columns — four metric
+          tiles, next steps, warnings, discussion points, and both chapter
+          question lists — roughly twenty bullet lines, with the case's actual
+          figures scrolled off the top before the client reached the questions
+          they were meant to bring to their attorney.
+
+          Now: the figures, then what to do next, then what to raise with the
+          attorney (with the chapter questions behind a disclosure, because they
+          are reference material for a conversation that has not happened yet).
+          Warnings sit above all of it when there are any — an alert that
+          appears third on a screen is one the reader has already scrolled past.
+        */}
         {activeStage === "start" ? (
-          <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-5">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {[
-                  [t("workspace:caseWorkspace.metrics.netIncome"), analysis?.monthly_net_income ?? 0],
-                  [t("workspace:caseWorkspace.metrics.monthlyExpenses"), analysis?.monthly_expenses ?? 0],
-                  [t("workspace:caseWorkspace.metrics.availableCashFlow"), analysis?.monthly_cash_flow ?? 0],
-                  [t("workspace:caseWorkspace.metrics.totalDebt"), analysis?.total_debt ?? 0],
-                ].map(([label, value]) => (
-                  <Card key={String(label)} className="border border-[var(--color-border)] bg-white shadow-none">
-                    <p className="text-sm text-[var(--color-text-muted)]">{label}</p>
-                    <p className="mt-2 text-2xl font-semibold text-[var(--color-text)]">{currency(Number(value))}</p>
-                  </Card>
-                ))}
-              </div>
-              <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-                <h2 className="text-xl font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.nextStepsTitle")}</h2>
-                <div className="mt-4 space-y-3">
-                  {(analysis?.next_steps ?? [t("workspace:caseWorkspace.nextStepsFallback")]).map((step, index) => (
-                    <div key={step} className="flex gap-3">
-                      <span className="glade-gradient flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white">{index + 1}</span>
-                      <p className="text-sm leading-6 text-[var(--color-text-muted)]">{step}</p>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-              {analysis?.warnings.length ? (
-                <Card className="border border-[#f8d3d1] bg-[#fff7f6] shadow-none">
-                  <div className="flex items-center gap-2"><AppIcon name="alert" className="text-[#f85e59]" /><h2 className="font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.warningsTitle")}</h2></div>
-                  <ul className="mt-3 space-y-2 text-sm text-[var(--color-text-muted)]">{analysis.warnings.map((warning) => <li key={warning}>• {warning}</li>)}</ul>
-                </Card>
-              ) : null}
-            </div>
-            <div className="space-y-5">
-              <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-                <h2 className="text-lg font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.discussionPointsTitle")}</h2>
-                <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--color-text-muted)]">{analysis?.discussion_points.map((point) => <li key={point}>• {point}</li>)}</ul>
-              </Card>
-              <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-                <h2 className="text-lg font-semibold text-[var(--color-text)]">{t("workspace:caseWorkspace.chapterComparisonTitle")}</h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.chapterComparisonDescription")}</p>
-                <div className="mt-4 grid gap-4">
-                  <div className="rounded-xl bg-[var(--color-surface-muted)] p-4"><p className="font-semibold">{t("workspace:caseWorkspace.chapter7")}</p><ul className="mt-2 space-y-1 text-sm text-[var(--color-text-muted)]">{analysis?.chapter_7_questions.slice(0, 3).map((item) => <li key={item}>• {item}</li>)}</ul></div>
-                  <div className="rounded-xl bg-[var(--color-surface-muted)] p-4"><p className="font-semibold">{t("workspace:caseWorkspace.chapter13")}</p><ul className="mt-2 space-y-1 text-sm text-[var(--color-text-muted)]">{analysis?.chapter_13_questions.slice(0, 3).map((item) => <li key={item}>• {item}</li>)}</ul></div>
-                </div>
-              </Card>
+          <div className="space-y-5">
+            {analysis?.warnings.length ? (
+              <CasePanel tone="alert" icon="alert" title={t("workspace:caseWorkspace.warningsTitle")}>
+                <InsightList items={analysis.warnings} tone="warning" />
+              </CasePanel>
+            ) : null}
+
+            <MetricTiles
+              tiles={[
+                { id: "net-income", label: t("workspace:caseWorkspace.metrics.netIncome"), value: analysis?.monthly_net_income ?? 0 },
+                { id: "expenses", label: t("workspace:caseWorkspace.metrics.monthlyExpenses"), value: analysis?.monthly_expenses ?? 0 },
+                { id: "cash-flow", label: t("workspace:caseWorkspace.metrics.availableCashFlow"), value: analysis?.monthly_cash_flow ?? 0 },
+                { id: "total-debt", label: t("workspace:caseWorkspace.metrics.totalDebt"), value: analysis?.total_debt ?? 0 },
+              ]}
+            />
+
+            {/* `items-start`: without it the grid stretches both panels to the
+                taller one's height, and "Next steps" — three lines against the
+                chapter accordion's fifteen — became a card that was mostly
+                empty. Each panel is its own height; the row is not a box. */}
+            <div className="grid items-start gap-5 xl:grid-cols-2">
+              <CasePanel icon="arrow-right" title={t("workspace:caseWorkspace.nextStepsTitle")}>
+                <InsightList
+                  ordered
+                  items={analysis?.next_steps ?? [t("workspace:caseWorkspace.nextStepsFallback")]}
+                  limit={5}
+                />
+              </CasePanel>
+
+              <CasePanel icon="attorney" title={t("workspace:caseWorkspace.attorneyPreparationTitle")}>
+                <AttorneyDiscussionPanel analysis={analysis} />
+              </CasePanel>
             </div>
           </div>
         ) : null}
@@ -393,45 +399,42 @@ export function CaseWorkspacePage() {
             onPrimaryAction={() => setModalKind("evidence")}
             onOpenChat={() => openAssistant(t("workspace:caseWorkspace.chatPrompts.documents"))}
           />
-          {/* `min-w-0` on the cards, not just on the rows inside them. A grid
+          {/* `min-w-0` on the panels, not just on the rows inside them. A grid
               item's automatic minimum size is its content, exactly like a flex
               item's, so these two cards were laid out at their min-content
               width — 320px — inside a 288px track at a 320px viewport, and
               overflowed the page by the `main` element's own 16px padding.
-              `frontend/e2e/responsive-overflow.spec.ts` is the regression gate. */}
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
-            <Card className="min-w-0 border border-[var(--color-border)] bg-white shadow-sm">
-              <div className="space-y-3">
-                {caseData.evidence.map((item) => (
-                  <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-surface-muted)]"><AppIcon name="evidence" /></span>
-                      <div><p className="font-semibold">{item.name || t("workspace:entryModal.pendingFileName")}</p><p className="text-sm text-[var(--color-text-muted)]">{t(`workspace:entryModal.evidenceTypes.${item.evidenceType}`)}</p></div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge color={item.status === "reviewed" ? "success" : item.status === "received" ? "info" : item.status === "requested" ? "warning" : "gray"}>{t(`workspace:entryModal.evidenceStatus.${item.status}`)}</Badge>
-                      <AppButton size="xs" color="light" onClick={() => removeEntry("evidence", item.id)}>{t("common:actions.delete")}</AppButton>
-                    </div>
-                  </div>
-                ))}
-                {!caseData.evidence.length ? <p className="rounded-xl bg-[var(--color-surface-muted)] p-4 text-sm text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.empty.documents")}</p> : null}
-              </div>
-            </Card>
-            <Card className="min-w-0 border border-[var(--color-border)] bg-white shadow-sm">
-              <h2 className="text-lg font-semibold">{t("workspace:caseWorkspace.evidenceChecklistTitle")}</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{t("workspace:caseWorkspace.evidenceChecklistDescription")}</p>
-              <div className="mt-4 space-y-2">
-                {requiredEvidence.map((requirement) => {
-                  const present = requiredEvidencePresent(requirement);
-                  return (
-                    <div key={requirement} className="flex gap-2 rounded-lg bg-[var(--color-surface-muted)] p-3 text-sm">
-                      <AppIcon name={present ? "check" : "document"} className={present ? "text-emerald-700" : "text-[var(--color-text-muted)]"} />
-                      <span>{requirement}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
+              `frontend/e2e/responsive-overflow.spec.ts` is the regression gate.
+              CasePanel carries it now.
+
+              The checklist leads and the uploaded documents follow, which is
+              the order the client needs them in: "what do I still owe?" before
+              "what have I handed over?". Reversed, an empty inventory was a
+              tall blank card occupying the first half of the screen while the
+              list that answers the question sat beside it. */}
+          <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <CasePanel
+              icon="tasks"
+              title={t("workspace:caseWorkspace.evidenceChecklistTitle")}
+              description={t("workspace:caseWorkspace.evidenceChecklistDescription")}
+            >
+              <EvidenceChecklist requirements={evidenceRequirements} />
+            </CasePanel>
+
+            <CasePanel
+              icon="evidence"
+              title={t("workspace:caseWorkspace.attachedDocumentsTitle")}
+              action={
+                <Badge color="gray">
+                  {t("workspace:caseWorkspace.attachedDocumentsCount", { count: caseData.evidence.length })}
+                </Badge>
+              }
+            >
+              <EvidenceInventory
+                items={caseData.evidence}
+                onRemove={(evidenceId) => removeEntry("evidence", evidenceId)}
+              />
+            </CasePanel>
           </div>
           </>
         ) : null}
@@ -514,10 +517,9 @@ export function CaseWorkspacePage() {
                   <Textarea id="attorney-notes" rows={10} value={caseData.attorneyNotes ?? ""} onChange={(event) => update((current) => ({ ...current, attorneyNotes: event.target.value }))} placeholder={t("workspace:caseWorkspace.attorneyReview.notesPlaceholder")} />
                 </div>
               </Card>
-              <Card className="border border-[var(--color-border)] bg-white shadow-sm">
-                <h2 className="text-lg font-semibold">{t("workspace:caseWorkspace.attorneyReview.checklistTitle")}</h2>
-                <div className="mt-4 space-y-3">{analysis?.discussion_points.map((item) => <div key={item} className="flex gap-3 rounded-xl bg-[var(--color-surface-muted)] p-3 text-sm"><AppIcon name="check" className="shrink-0" /><span>{item}</span></div>)}</div>
-              </Card>
+              <CasePanel icon="attorney" title={t("workspace:caseWorkspace.attorneyReview.checklistTitle")}>
+                <AttorneyDiscussionPanel analysis={analysis} />
+              </CasePanel>
             </div>
         ) : null}
       </div>

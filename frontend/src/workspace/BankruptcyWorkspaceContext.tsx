@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { i18n } from "../i18n/i18n";
 import { LANGUAGE_STORAGE_KEY } from "../i18n/languages";
 import type { AuthUserDto } from "../types/api";
 import type {
@@ -17,11 +18,33 @@ import type {
   WorkspaceState,
 } from "../types/bankruptcy";
 
-const STORAGE_KEY = "freshstart-bankruptcy-workspace-v2";
+// v3: the demo seed is generated in the session's language now, and timeline
+// entries carry locale keys. A v2 payload in a browser holds Spanish prose
+// frozen at creation time, which is exactly the defect being fixed — it is
+// migrated rather than discarded (see `migrate`).
+const STORAGE_KEY = "freshstart-bankruptcy-workspace-v3";
+const LEGACY_STORAGE_KEYS = ["freshstart-bankruptcy-workspace-v2"];
 
 function id(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
+
+/**
+ * Stage → timeline copy key, for entries persisted before the keys existed.
+ *
+ * Those entries carry Spanish `title`/`description` and nothing else, so an
+ * English session rendered the whole history in Spanish and a language switch
+ * changed nothing. The stage is the one field that was always structured, so it
+ * is what the copy is recovered from.
+ */
+const STAGE_TO_TIMELINE_KEY: Record<string, string> = {
+  request: "requestStarted",
+  financial: "financial",
+  evidence: "evidence",
+  attorney: "attorney",
+  submitted: "submitted",
+  consultation: "consultation",
+};
 
 function timelineEvent(
   stage: string,
@@ -56,7 +79,20 @@ function keyedTimelineEvent(
   };
 }
 
-function seedState(): WorkspaceState {
+/**
+ * The two demo cases.
+ *
+ * Synthetic, but a client reading the demo in English should not meet a case
+ * file written in Spanish, so the prose is generated from the catalogue in the
+ * session's language rather than hardcoded. Proper nouns — client names,
+ * employers, creditors, municipalities — stay literal in both languages,
+ * because that is what they would be in a real file.
+ *
+ * Rows created here are ordinary case data afterwards: a later language switch
+ * re-labels the timeline and the assistant's opening message (they carry keys)
+ * but leaves these rows alone, the same as it leaves anything the user typed.
+ */
+function seedState(t: SeedTranslator): WorkspaceState {
   const createdAt = "2026-08-05T12:00:00.000Z";
   return {
     cases: [
@@ -66,9 +102,9 @@ function seedState(): WorkspaceState {
         clientName: "Elena Rivera",
         clientEmail: "client@freshstart.demo",
         clientPhone: "787-555-0142",
-        preferredLanguage: "es",
+        preferredLanguage: activeLanguage(),
         status: "collecting_information",
-        clientGoal: "Organizar mis finanzas y saber qué debo discutir con un abogado de quiebras.",
+        clientGoal: t("demoSeed.elena.goal"),
         household: {
           maritalStatus: "single",
           householdSize: 2,
@@ -94,7 +130,7 @@ function seedState(): WorkspaceState {
           {
             id: "expense-elena-1",
             category: "housing",
-            description: "Alquiler",
+            description: t("demoSeed.expenses.rent"),
             monthlyAmount: 1100,
             essential: true,
             evidenceIds: [],
@@ -102,7 +138,7 @@ function seedState(): WorkspaceState {
           {
             id: "expense-elena-2",
             category: "food",
-            description: "Alimentos y artículos del hogar",
+            description: t("demoSeed.expenses.groceriesAndHousehold"),
             monthlyAmount: 650,
             essential: true,
             evidenceIds: [],
@@ -110,7 +146,7 @@ function seedState(): WorkspaceState {
           {
             id: "expense-elena-3",
             category: "utilities",
-            description: "Agua, luz, teléfono e internet",
+            description: t("demoSeed.expenses.utilities"),
             monthlyAmount: 290,
             essential: true,
             evidenceIds: [],
@@ -118,7 +154,7 @@ function seedState(): WorkspaceState {
           {
             id: "expense-elena-4",
             category: "transportation",
-            description: "Gasolina y mantenimiento",
+            description: t("demoSeed.expenses.fuelAndMaintenance"),
             monthlyAmount: 360,
             essential: true,
             evidenceIds: [],
@@ -129,7 +165,7 @@ function seedState(): WorkspaceState {
             id: "debt-elena-1",
             creditor: "Example Card",
             debtType: "unsecured",
-            description: "Tarjeta de crédito",
+            description: t("demoSeed.debts.creditCard"),
             balance: 18000,
             monthlyPayment: 450,
             delinquentAmount: 900,
@@ -140,11 +176,11 @@ function seedState(): WorkspaceState {
             id: "debt-elena-2",
             creditor: "Example Auto",
             debtType: "secured",
-            description: "Préstamo de vehículo",
+            description: t("demoSeed.debts.vehicleLoan"),
             balance: 7000,
             monthlyPayment: 320,
             delinquentAmount: 0,
-            collateral: "Sedán 2018",
+            collateral: t("demoSeed.collateral.sedan"),
             collectionLawsuit: false,
             evidenceIds: [],
           },
@@ -186,8 +222,12 @@ function seedState(): WorkspaceState {
           {
             id: "message-welcome-elena",
             role: "assistant",
-            content:
-              "Te ayudaré a organizar ingresos, gastos, deudas, bienes y documentos para preparar una consulta informada con un abogado.",
+            // Keyed as well as filled: this is the first thing an English
+            // session read, and it was Spanish. `contentKey` is what re-labels
+            // it on a language switch — see ChatMessage's docblock for why only
+            // seeded messages carry one.
+            contentKey: "workspace:demoSeed.elena.welcome",
+            content: t("demoSeed.elena.welcome"),
             createdAt,
           },
         ],
@@ -204,9 +244,9 @@ function seedState(): WorkspaceState {
         clientName: "Miguel Santos",
         clientEmail: "miguel@example.demo",
         clientPhone: "939-555-0138",
-        preferredLanguage: "es",
+        preferredLanguage: activeLanguage(),
         status: "submitted",
-        clientGoal: "Revisar atrasos de vivienda y deudas médicas antes de una consulta.",
+        clientGoal: t("demoSeed.miguel.goal"),
         assignedAttorneyName: "Lic. Andrea Morales",
         household: {
           maritalStatus: "married",
@@ -233,7 +273,7 @@ function seedState(): WorkspaceState {
           {
             id: "expense-miguel-1",
             category: "housing",
-            description: "Hipoteca",
+            description: t("demoSeed.expenses.mortgage"),
             monthlyAmount: 1250,
             essential: true,
             evidenceIds: ["evidence-miguel-2"],
@@ -241,7 +281,7 @@ function seedState(): WorkspaceState {
           {
             id: "expense-miguel-2",
             category: "food",
-            description: "Alimentos",
+            description: t("demoSeed.expenses.groceries"),
             monthlyAmount: 850,
             essential: true,
             evidenceIds: [],
@@ -249,7 +289,7 @@ function seedState(): WorkspaceState {
           {
             id: "expense-miguel-3",
             category: "transportation",
-            description: "Vehículos y gasolina",
+            description: t("demoSeed.expenses.vehiclesAndFuel"),
             monthlyAmount: 760,
             essential: true,
             evidenceIds: [],
@@ -257,7 +297,7 @@ function seedState(): WorkspaceState {
           {
             id: "expense-miguel-4",
             category: "medical",
-            description: "Medicinas y copagos",
+            description: t("demoSeed.expenses.medicalCopays"),
             monthlyAmount: 240,
             essential: true,
             evidenceIds: [],
@@ -268,11 +308,11 @@ function seedState(): WorkspaceState {
             id: "debt-miguel-1",
             creditor: "Example Mortgage",
             debtType: "secured",
-            description: "Hipoteca residencial",
+            description: t("demoSeed.debts.residentialMortgage"),
             balance: 148000,
             monthlyPayment: 1250,
             delinquentAmount: 7500,
-            collateral: "Residencia principal",
+            collateral: t("demoSeed.collateral.primaryResidence"),
             collectionLawsuit: true,
             evidenceIds: ["evidence-miguel-2"],
           },
@@ -280,7 +320,7 @@ function seedState(): WorkspaceState {
             id: "debt-miguel-2",
             creditor: "Regional Medical",
             debtType: "unsecured",
-            description: "Servicios médicos",
+            description: t("demoSeed.debts.medicalServices"),
             balance: 24000,
             monthlyPayment: 200,
             delinquentAmount: 0,
@@ -292,7 +332,7 @@ function seedState(): WorkspaceState {
           {
             id: "asset-miguel-1",
             category: "real-estate",
-            description: "Residencia principal",
+            description: t("demoSeed.collateral.primaryResidence"),
             estimatedValue: 165000,
             loanBalance: 148000,
             jointlyOwned: true,
@@ -322,7 +362,8 @@ function seedState(): WorkspaceState {
           {
             id: "message-welcome-miguel",
             role: "assistant",
-            content: "La solicitud fue enviada. El abogado revisará las alertas y documentos pendientes.",
+            contentKey: "workspace:demoSeed.miguel.welcome",
+            content: t("demoSeed.miguel.welcome"),
             createdAt,
           },
         ],
@@ -337,13 +378,44 @@ function seedState(): WorkspaceState {
   };
 }
 
-function readState(): WorkspaceState {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return seedState();
+/**
+ * Recovers locale keys for entries persisted before they existed.
+ *
+ * A v2 payload holds timeline prose frozen in whatever language the case was
+ * created in, so an English session read the whole history in Spanish and the
+ * language switch did nothing. The stage is structured and survived, so the key
+ * is recovered from it; anything whose stage is not a known workflow step (an
+ * attorney's own status note) keeps its literal text, which is correct — those
+ * are a person's words.
+ */
+function migrate(state: WorkspaceState): WorkspaceState {
+  return {
+    cases: state.cases.map((caseData) => ({
+      ...caseData,
+      timeline: caseData.timeline.map((event) => {
+        if (event.titleKey) return event;
+        const key = STAGE_TO_TIMELINE_KEY[event.stage];
+        if (!key) return event;
+        return {
+          ...event,
+          titleKey: `timeline.${key}Title`,
+          descriptionKey: `timeline.${key}Description`,
+        };
+      }),
+    })),
+  };
+}
+
+function readState(t: SeedTranslator): WorkspaceState {
+  const raw =
+    localStorage.getItem(STORAGE_KEY) ??
+    LEGACY_STORAGE_KEYS.map((key) => localStorage.getItem(key)).find(Boolean) ??
+    null;
+  if (!raw) return seedState(t);
   try {
-    return JSON.parse(raw) as WorkspaceState;
+    return migrate(JSON.parse(raw) as WorkspaceState);
   } catch {
-    return seedState();
+    return seedState(t);
   }
 }
 
@@ -362,11 +434,34 @@ interface WorkspaceContextValue {
   resetDemo: () => void;
 }
 
+/**
+ * Just enough of i18next's `t` to generate the seed. Narrowed deliberately:
+ * the seed reads keys and nothing else, and a full `TFunction` here would let
+ * it grow interpolation and pluralization that a fixture has no business
+ * carrying.
+ */
+type SeedTranslator = (key: string) => string;
+
+/**
+ * A translator pinned to the stored preference, not to i18next's current
+ * language.
+ *
+ * The seed is generated inside a `useState` initializer, which runs on the
+ * provider's first render — before `LanguageContext`'s effect has applied the
+ * stored preference. Using the render-time `t` there produced a Spanish case
+ * file for an English session and no amount of switching afterwards fixed it,
+ * because the strings were already written into the case. `getFixedT` reads the
+ * preference directly, so the seed does not depend on which effect ran first.
+ */
+function seedTranslator(): SeedTranslator {
+  return i18n.getFixedT(activeLanguage(), "workspace");
+}
+
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation("workspace");
-  const [state, setState] = useState<WorkspaceState>(() => readState());
+  const [state, setState] = useState<WorkspaceState>(() => readState(seedTranslator()));
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -413,9 +508,13 @@ export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode 
         {
           id: id("message"),
           role: "assistant",
-          // Translated at creation because a chat transcript is a record of what
-          // was said at a moment in time — unlike the timeline, re-labelling it
-          // on a later language switch would rewrite history.
+          // The one exception to "a transcript is a record": nobody said this,
+          // the product did, before the conversation started. An English
+          // session opening the assistant met a Spanish greeting as its first
+          // line, and a language switch left it there. Later turns — anything
+          // a person or the model actually produced — carry no key and are
+          // never re-labelled.
+          contentKey: "workspace:timeline.welcomeMessage",
           content: t("timeline.welcomeMessage"),
           createdAt,
         },
@@ -486,7 +585,10 @@ export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode 
     }));
   }, [updateCase, t]);
 
-  const resetDemo = useCallback(() => setState(seedState()), []);
+  // Re-seeded in whatever language the session is in now, not the one the demo
+  // was first loaded in — resetting is the one moment where regenerating the
+  // synthetic prose is unambiguously right.
+  const resetDemo = useCallback(() => setState(seedState(seedTranslator())), []);
 
   const value = useMemo(
     () => ({ cases: state.cases, createCase, updateCase, deleteCase, submitCase, updateStatus, resetDemo }),

@@ -9,6 +9,8 @@
     "title": "Asistente de preparación",
     "senderYou": "Tú",
     "senderAssistant": "Asistente",
+    "initialsYou": "Tú",
+    "initialsAssistant": "IA",
     "openAssistant": "Abrir asistente de preparación",
     "openCaseFirst": "Abre un expediente para conversar con el asistente.",
     "emptyTranscript": "Pregunta lo que necesites sobre tu expediente. El asistente organiza la información y prepara preguntas para tu abogado.",

@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../auth/AuthContext";
-import { AppIcon } from "../components/atoms/AppIcon";
+import { MetricTiles } from "../components/case/MetricTiles";
 import { DataTableToolbar } from "../components/data-display/DataTableToolbar";
 import { ResponsiveDataView } from "../components/molecules/ResponsiveDataView";
 import { ActionGroup } from "../components/ui/ActionGroup";
@@ -147,30 +147,30 @@ export function AttorneyDashboardPage() {
         <div className="glade-gradient absolute inset-x-0 top-0 h-1.5" />
         <div className="pt-3">
           <Badge color="indigo" className="mb-4 w-fit px-3 py-1.5">{t("workspace:attorneyDashboard.attorneySpace")}</Badge>
-          <h1 className="max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.04em] text-[var(--color-text)] sm:text-4xl lg:text-[2.75rem]">{t("workspace:attorneyDashboard.heroTitle")}</h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-[var(--color-text-muted)]">{t("workspace:attorneyDashboard.heroDescription")}</p>
+          <h1 className="max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.04em] text-heading sm:text-4xl">{t("workspace:attorneyDashboard.heroTitle")}</h1>
+          <p className="mt-4 max-w-3xl text-base leading-7 text-body">{t("workspace:attorneyDashboard.heroDescription")}</p>
         </div>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          ["document", t("workspace:attorneyDashboard.metrics.requests"), cases.length],
-          ["attorney", t("workspace:attorneyDashboard.metrics.inReview"), submitted.length],
-          ["alert", t("workspace:attorneyDashboard.metrics.urgent"), urgent.length],
-          ["evidence", t("workspace:attorneyDashboard.metrics.waitingClient"), waitingOnClient.length],
-        ].map(([icon, label, value]) => (
-          <Card key={String(label)} className="metric-tile">
-            <div className="flex items-center gap-4">
-              <span className="icon-tile flex h-12 w-12 items-center justify-center rounded-xl"><AppIcon name={icon as "document" | "attorney" | "alert" | "evidence"} /></span>
-              <div><p className="text-3xl font-semibold tracking-[-0.03em] text-[var(--color-text)]">{value}</p><p className="mt-0.5 text-sm font-medium text-[var(--color-text-muted)]">{label}</p></div>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {/* The same tile component the client's financial summary and the case
+          overview use, in count mode. Three hand-written metric grids had
+          drifted into three different number sizes. */}
+      <MetricTiles
+        tiles={[
+          { id: "requests", icon: "document", label: t("workspace:attorneyDashboard.metrics.requests"), value: cases.length, count: true },
+          { id: "in-review", icon: "attorney", label: t("workspace:attorneyDashboard.metrics.inReview"), value: submitted.length, count: true },
+          { id: "urgent", icon: "alert", label: t("workspace:attorneyDashboard.metrics.urgent"), value: urgent.length, count: true },
+          { id: "waiting-client", icon: "evidence", label: t("workspace:attorneyDashboard.metrics.waitingClient"), value: waitingOnClient.length, count: true },
+        ]}
+      />
 
       <Card className="app-card">
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-sm font-semibold uppercase tracking-[0.14em] text-fg-brand">{t("workspace:attorneyDashboard.managementLabel")}</p><h2 className="mt-1 text-2xl font-semibold tracking-[-0.025em] text-[var(--color-text)]">{t("workspace:attorneyDashboard.inboxTitle")}</h2><p className="mt-2 text-sm text-[var(--color-text-muted)]">{t("workspace:attorneyDashboard.inboxDescription")}</p></div>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-fg-brand">{t("workspace:attorneyDashboard.managementLabel")}</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-[-0.025em] text-heading">{t("workspace:attorneyDashboard.inboxTitle")}</h2>
+            <p className="mt-2 text-sm text-body">{t("workspace:attorneyDashboard.inboxDescription")}</p>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge color="gray" className="w-fit px-3 py-1.5">{t("workspace:attorneyDashboard.caseCount", { shown: sorted.length, total: cases.length })}</Badge>
             <AppButton className="primary-action" size="sm" onClick={startNewCase} iconLeft="document">
@@ -179,7 +179,7 @@ export function AttorneyDashboardPage() {
           </div>
         </div>
 
-        {/* Vistas / filtros */}
+        {/* Views / filters */}
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
           {views.map((item) => {
             const count = searched.filter(item.match).length;
@@ -272,9 +272,9 @@ export function AttorneyDashboardPage() {
             />
           )}
           columns={[
-            { key: "client", header: t("workspace:attorneyDashboard.columns.client"), hideLabelOnCard: true, render: (item) => <div><p className="font-semibold text-[var(--color-text)]">{item.clientName}</p><p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{item.clientEmail}</p></div> },
+            { key: "client", header: t("workspace:attorneyDashboard.columns.client"), hideLabelOnCard: true, render: (item) => <div><p className="font-semibold text-heading">{item.clientName}</p><p className="mt-0.5 text-xs text-body">{item.clientEmail}</p></div> },
             { key: "status", header: t("workspace:attorneyDashboard.columns.status"), render: (item) => <Badge color={item.status === "submitted" ? "success" : "gray"}>{t(`workspace:status.${item.status as CaseStatus}`)}</Badge> },
-            { key: "completion", header: t("workspace:attorneyDashboard.columns.completion"), render: (item) => <span className="font-semibold text-[var(--color-text)]">{localCompletion(item)}%</span> },
+            { key: "completion", header: t("workspace:attorneyDashboard.columns.completion"), render: (item) => <span className="font-semibold text-heading">{localCompletion(item)}%</span> },
             { key: "alerts", header: t("workspace:attorneyDashboard.columns.alerts"), render: (item) => <Badge color={alertCount(item) ? "failure" : "success"}>{alertCount(item)}</Badge> },
           ]}
         />

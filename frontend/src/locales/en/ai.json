@@ -9,6 +9,8 @@
     "title": "Preparation assistant",
     "senderYou": "You",
     "senderAssistant": "Assistant",
+    "initialsYou": "You",
+    "initialsAssistant": "AI",
     "openAssistant": "Open preparation assistant",
     "openCaseFirst": "Open a case to talk to the assistant.",
     "emptyTranscript": "Ask anything about your case. The assistant organizes your information and prepares questions for your attorney.",

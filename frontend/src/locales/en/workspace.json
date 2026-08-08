@@ -202,7 +202,9 @@
     "nextStepsTitle": "Next steps",
     "nextStepsFallback": "Complete the template to receive guidance.",
     "warningsTitle": "Warnings to review",
+    "attorneyPreparationTitle": "Prepare your consultation",
     "discussionPointsTitle": "Points to discuss with your attorney",
+    "discussionPointsEmpty": "Fill in the template and the points to raise will appear here.",
     "chapterComparisonTitle": "Chapter 7 and Chapter 13",
     "chapterComparisonDescription": "These are preparation questions, not an automatic recommendation.",
     "chapter7": "Chapter 7",
@@ -211,12 +213,12 @@
       "maritalStatus": "Marital status",
       "housingStatus": "Housing status"
     },
-    "householdExample": "Example: Married, 3 people in household, rented home.",
-    "incomeExample": "Example: Biweekly wages of $1,200 gross.",
-    "expenseExample": "Example: Rent $650/month, marked as essential.",
-    "debtExample": "Example: Credit card, balance $3,200, no lawsuit.",
-    "assetExample": "Example: 2018 vehicle, estimated value $9,000, lien $4,200.",
-    "documentsExample": "Example: Most recent pay stub supports your reported income.",
+    "householdExample": "Married, 3 people in household, rented home.",
+    "incomeExample": "Biweekly wages of $1,200 gross.",
+    "expenseExample": "Rent $650/month, marked as essential.",
+    "debtExample": "Credit card, balance $3,200, no lawsuit.",
+    "assetExample": "2018 vehicle, estimated value $9,000, lien $4,200.",
+    "documentsExample": "Most recent pay stub supports your reported income.",
     "chatPrompts": {
       "household": "I am not sure what to put in the household section",
       "income": "What counts as income?",
@@ -288,6 +290,12 @@
     },
     "evidenceChecklistTitle": "Smart evidence checklist",
     "evidenceChecklistDescription": "The checklist adapts to secured debts, collections, self-employment, and transfers.",
+    "evidenceChecklistProgress": "{{satisfied}} of {{total}} supported",
+    "evidenceChecklistReceived": "Received",
+    "evidenceChecklistPending": "Pending",
+    "attachedDocumentsTitle": "Documents on file",
+    "attachedDocumentsCount_one": "{{count}} document",
+    "attachedDocumentsCount_other": "{{count}} documents",
     "review": {
       "title": "Review before sending",
       "description": "Confirm each section is complete. You can return to any section without losing what you already entered.",
@@ -488,5 +496,39 @@
     "welcomeMessage": "Let us start with your goal and your household. Then we will organize every figure with evidence.",
     "consultationTitle": "Consultation",
     "consultationDescription": "Schedule a discussion of the alternatives with the attorney."
+  },
+  "insights": {
+    "moreItems_one": "{{count}} more point",
+    "moreItems_other": "{{count}} more points"
+  },
+  "demoSeed": {
+    "elena": {
+      "goal": "Organize my finances and know what to discuss with a bankruptcy attorney.",
+      "welcome": "I will help you organize income, expenses, debts, assets and documents so your consultation with an attorney is an informed one."
+    },
+    "miguel": {
+      "goal": "Review housing arrears and medical debt before a consultation.",
+      "welcome": "The request has been submitted. The attorney will review the alerts and any outstanding documents."
+    },
+    "expenses": {
+      "rent": "Rent",
+      "mortgage": "Mortgage",
+      "groceries": "Groceries",
+      "groceriesAndHousehold": "Groceries and household supplies",
+      "utilities": "Water, power, phone and internet",
+      "fuelAndMaintenance": "Fuel and maintenance",
+      "vehiclesAndFuel": "Vehicles and fuel",
+      "medicalCopays": "Medication and copays"
+    },
+    "debts": {
+      "creditCard": "Credit card",
+      "vehicleLoan": "Vehicle loan",
+      "residentialMortgage": "Residential mortgage",
+      "medicalServices": "Medical services"
+    },
+    "collateral": {
+      "sedan": "2018 sedan",
+      "primaryResidence": "Primary residence"
+    }
   }
 }

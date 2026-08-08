@@ -48,10 +48,10 @@ Carried forward and still open against `integration/demo-close` at 4.9.0. Measur
 | Attorney cross-case intelligence | `NOT STARTED` | 4.9.0 | needs repository → service → attorney-scoped tool; no list-by-assignment exists | gap audit §B1 |
 | Structured observability (one record per AI turn) | `NOT STARTED` | 4.9.0 | — | gap audit §B2 |
 | Agentic multi-turn continuity matrix | `PARTIAL` | 4.9.0 | rule-based path pinned; ES/EN × client/attorney through the agentic path needs the credential | gap audit §B3 |
-| 320 / 390 in the E2E responsive sweep | `NOT STARTED` | 4.9.0 | suite sweeps 412/430/768/1024/1440; `frontend/CLAUDE.md` governs 320/390/768/1024/1440 | gap audit §D |
-| Sidebar collapse end to end | `UNVERIFIED` | 3.2.0 | implemented (`COLLAPSED_STORAGE_KEY`); never driven at each breakpoint | gap audit §D |
+| 320 in the E2E responsive sweep | `PARTIAL` | 4.9.0 | 390 and 1440 covered by `ui-quality-evidence.spec.ts` at 4.11.0; `responsive-overflow.spec.ts` still starts at 375 | gap audit §D |
+| Sidebar collapse end to end | `UNVERIFIED` | 3.2.0 | control moved onto the brand row at 4.11.0 and rendered at 390/1440; still never driven (expand/collapse) at each governed breakpoint | gap audit §D |
 | Login centring at all five governed widths | `UNVERIFIED` | 4.9.0 | — | gap audit §D |
-| Rendered-DOM i18n audit | `PARTIAL` | 4.3.0 | static JSX scan returns 0 Spanish residue; dynamic content never audited in the DOM | gap audit §D |
+| Rendered-DOM i18n audit | `DONE` at 4.11.0 | 4.3.0 | closed — `e2e/ui-quality-evidence.spec.ts` asserts the rendered body of five screens in both languages at two widths | `changes/ui-quality-i18n-components.md` |
 | AI failure states in the UI | `UNVERIFIED` | 4.9.0 | provider down / timeout / malformed / empty retrieval never driven in a browser | `changes/demo-ready-verification.md` |
 | Document intelligence end to end | `UNVERIFIED` | 4.0.0 | unit and integration tests only; no upload → extract → index → retrieve against the live app | `changes/demo-ready-verification.md` |
 | Modal / a11y / security browser probes | `NOT STARTED` | 4.9.0 | — | `changes/demo-ready-verification.md` |
@@ -84,6 +84,26 @@ On `integration/demo-close` since the 4.9.0 release commit. No version bump yet.
   line was produced by running a command or reading a file.
 - Ran the committed Playwright suite: **80 passed, exit 0, 2.5 minutes**, closing the
   "E2E never run" item opened by `changes/demo-ready-verification.md`.
+- Translated the evidence checklist and moved its per-line tick to the server —
+  `EVIDENCE_REQUIREMENT_TYPES` matches canonical slugs, and
+  `test_a_document_satisfies_its_own_requirement_and_not_another` pins that a bank
+  statement no longer satisfies the housing requirement.
+  (`changes/ui-quality-i18n-components.md`, 4.11.0)
+- Closed the rendered-DOM i18n audit: `e2e/ui-quality-evidence.spec.ts` asserts the whole
+  body of client home, case overview, documents, activity and the attorney home carries no
+  foreign-language string, at 390 and 1440, in both languages. **6 passed.**
+- Migrated case-history entries persisted before locale keys existed, recovering the key
+  from each entry's `stage`, so an English session no longer reads its timeline in Spanish.
+- Reduced the assistant to one entry point on every breakpoint. `AiLauncher` is the only
+  control; `/assistant` redirects into the panel carrying its `?prompt=`; the panel takes
+  the whole viewport below `md`. Pinned by `assistant-page.spec.ts` and the two rewritten
+  cases in `shell-overlays-language.spec.ts`.
+- Added six reusable case components (`frontend/src/components/case/`) and composed the
+  workspace and both dashboards from them, replacing per-page `<Card>` markup.
+  `caseComponents.test.tsx`: 8 passed.
+- Moved the sidebar collapse control onto the brand row. **Still `UNVERIFIED` end to end**
+  — it is driven at 390 and 1440 by the evidence spec but not at each governed breakpoint,
+  so the 3.2.0 ledger item stays open.
 
 ### Not delivered
 
@@ -99,6 +119,18 @@ On `integration/demo-close` since the 4.9.0 release commit. No version bump yet.
   fixture; only the identifiers are pinned by a test.
 - Effort estimates in the gap audit are judgement, not measurement. The gap list is
   measured; the hours attached to it are not.
+- `320` in the E2E responsive sweep — still `NOT STARTED`. The new evidence spec adds 390
+  and 1440 in both languages; `responsive-overflow.spec.ts` still starts at 375, and
+  `frontend/CLAUDE.md` governs 320.
+- `evidence_score` moves for cases with self-employment income, secured debts or a bank
+  statement. Correcting the matching was the point, but no fixture pins the old numbers, so
+  the change is asserted by construction (score equals the tick count) rather than by a
+  before/after comparison.
+- `ChatPanel`'s `variant="page"` has no caller now that `/assistant` is a redirect. Left in
+  place with its tests rather than folded into this change.
+- The demo seed follows the language it was created in. A later switch re-labels the
+  timeline and the assistant's greeting, which carry keys, but not the synthetic rows —
+  they are ordinary case data by then. `resetDemo` regenerates them.
 
 ---
 

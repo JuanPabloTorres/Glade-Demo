@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
-import { type AppNavItem, bottomNavItems, isNavItemActive } from "../../../config/navigation";
+import { bottomNavItems, isNavItemActive } from "../../../config/navigation";
 import { useRoleNavigation } from "../../../hooks/useRoleNavigation";
 import { AppIcon } from "../../atoms/AppIcon";
 
@@ -12,34 +12,20 @@ import { AppIcon } from "../../atoms/AppIcon";
 const SLOT = "flex h-full w-full flex-col items-center justify-center gap-1 px-0.5 outline-none focus-visible:ring-4 focus-visible:ring-brand-soft";
 const LABEL = "w-full truncate text-center text-[0.625rem] font-medium leading-tight";
 
+/**
+ * Written out rather than interpolated: Tailwind scans source text for class
+ * names, and `grid-cols-${n}` produces no CSS at all.
+ */
+const COLUMNS: Record<number, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-2",
+  3: "grid-cols-3",
+  4: "grid-cols-4",
+  5: "grid-cols-5",
+};
+
 function SlotLabel({ children, active }: { children: string; active?: boolean }) {
   return <span className={`${LABEL} ${active ? "font-semibold" : ""}`}>{children}</span>;
-}
-
-/**
- * The raised centre action. The assistant is the product's primary capability,
- * so it gets the one visually distinct slot — a solid brand-gradient circle
- * rather than a flat icon.
- *
- * It is a real `<Link>` to a real route, not a `+` button opening a sheet: the
- * action is "go to the assistant", and a control that navigates should look and
- * behave like navigation, including middle-click and browser back.
- */
-function PrimarySlot({ item, label, active }: { item: AppNavItem; label: string; active: boolean }) {
-  const circle = `flex h-11 w-11 items-center justify-center rounded-full text-white shadow-lg transition-transform ${
-    active ? "glade-gradient scale-105 shadow-indigo-950/30" : "glade-gradient shadow-indigo-950/20 hover:scale-105"
-  }`;
-
-  if (!item.to) return null;
-
-  return (
-    <Link to={item.to} aria-current={active ? "page" : undefined} className={`${SLOT} -mt-3`}>
-      <span className={circle}>
-        <AppIcon name={item.icon} size={22} />
-      </span>
-      <SlotLabel active={active}>{label}</SlotLabel>
-    </Link>
-  );
 }
 
 /**
@@ -50,9 +36,17 @@ function PrimarySlot({ item, label, active }: { item: AppNavItem; label: string;
  * I" and costs two taps per navigation. The sidebar simply does not render at
  * this width (see Sidebar.tsx), rather than being re-flowed into a phone.
  *
+ * The assistant is not one of these slots. It used to own the raised centre
+ * action, which meant a phone had two ways into it — that circle and the
+ * floating launcher — pointing at two different surfaces. `AiLauncher` is the
+ * only entry point now, on every breakpoint, and it clears this bar's height so
+ * the two never overlap.
+ *
  * Layout follows Flowbite's floating bottom-navigation block: a `rounded-full`
  * bar, horizontally centred, held off the bottom edge, capped at `max-w-lg`,
- * five equal columns. Two departures from that block, both deliberate:
+ * equal columns sized to however many destinations the role actually has (the
+ * attorney has four, the client five). Two departures from that block, both
+ * deliberate:
  *
  * - The block's items are icon-only with tooltips. Tooltips need a hover a
  *   touch device does not have, so every slot carries a visible label. That is
@@ -82,7 +76,11 @@ export function BottomNavigation() {
       aria-label={t("navigation:bottomNav.label")}
       className="pointer-events-none fixed inset-x-0 bottom-0 z-nav px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden"
     >
-      <ul className="pointer-events-auto mx-auto grid h-[4.5rem] w-full max-w-lg grid-cols-5 items-stretch rounded-full border border-default bg-neutral-primary-soft shadow-[0_10px_30px_rgba(15,23,42,0.16)]">
+      <ul
+        className={`pointer-events-auto mx-auto grid h-18 w-full max-w-lg items-stretch rounded-full border border-default bg-neutral-primary-soft shadow-[0_10px_30px_rgba(15,23,42,0.16)] ${
+          COLUMNS[slots.length] ?? COLUMNS[5]
+        }`}
+      >
         {slots.map((item) => {
           const label = t(item.labelKey);
           const active = item.to ? isNavItemActive(item.to, location.pathname, location.search) : false;
@@ -98,14 +96,6 @@ export function BottomNavigation() {
                   <AppIcon name={item.icon} size={20} />
                   <SlotLabel>{label}</SlotLabel>
                 </span>
-              </li>
-            );
-          }
-
-          if (item.primaryAction) {
-            return (
-              <li key={item.id} className="min-w-0">
-                <PrimarySlot item={item} label={label} active={active} />
               </li>
             );
           }
