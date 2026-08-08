@@ -49,15 +49,22 @@ The login form is above the fold on a phone — the first field moved from y=936
 to y=528 at 320px and from y=884 to y=504 at 390px. The assistant sheet shows
 one header instead of two stacked ones announcing the same title twice.
 
-## Known limitation
+## The attorney's demo case now exists server-side
 
-Opening a case as the attorney returns 404 from `bankruptcy.analyze`, so the
-review workspace renders without figures. The demo cases are seeded in the
-browser and a case only reaches the database once its owning client analyzes it;
-`case-miguel-demo` belongs to a client nobody logs in as. `DEMO_CASE_ID` is
-aligned to `case-elena-demo` so the server fixture is the case the UI shows, but
-the attorney's case still needs its own server-side fixture. See
-`changes/demo-close-integration.md`.
+Opening a case as the attorney returned 404 from `bankruptcy.analyze`, so the
+review workspace rendered with no cash flow, no debt composition and no missing
+items. The authorization rule was right — an attorney may review a case, not
+conjure one — but the demo cases were seeded only in the browser, and a case
+reaches the database only after its own client analyzes it. `case-miguel-demo`
+belongs to a client nobody signs in as.
+
+`DEMO_CASE_ID` is aligned to `case-elena-demo` and a second fixture seeds
+`case-miguel-demo`, so both seeds now name the same cases. Verified in a browser
+on a fresh database: the attorney opens the queued case, the preparation score
+renders from the server analysis, and the console is clean.
+
+`SEED_DEMO_DATA_ON_STARTUP` is still off by default, so a demo deployment must
+opt in.
 
 # FreshStart 4.8.0
 
