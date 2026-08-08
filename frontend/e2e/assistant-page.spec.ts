@@ -79,10 +79,15 @@ test.describe("Assistant panel", () => {
 
     await page.getByLabel("Mensaje").fill("¿Qué documentos me faltan?");
     await page.getByRole("button", { name: "Enviar", exact: true }).click();
-    // The reply is about documents, because that is what was asked — the
-    // deterministic draft branches on the message now, not only on case state.
+    // The reply names uncovered *requirements*, not "pending documents".
+    //
+    // That distinction is the change: `pending_documents` holds documents an
+    // attorney explicitly requested and is empty on almost every case, so this
+    // question used to be answered "no hay documentos pendientes" — true about
+    // requests, useless about evidence. Matched on the requirement vocabulary
+    // rather than a full sentence, so a copy edit does not fail the journey.
     await expect(
-      page.getByText(/documentos? pendientes?|documento\(s\) pendiente\(s\)/i).first(),
+      page.getByText(/requisito\(s\)|respaldo|No falta evidencia/i).first(),
     ).toBeVisible();
 
     // Two new bubbles arrived. If the panel grew instead of the transcript, the

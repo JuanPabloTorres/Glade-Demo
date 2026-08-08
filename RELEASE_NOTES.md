@@ -1,3 +1,64 @@
+# FreshStart 4.12.0
+
+The assistant answered the sentence, not the question — and the cause was not
+the prompts.
+
+`CaseContextDto` carried exactly one document field: `pending_documents`, which
+holds documents an *attorney explicitly requested* and is empty on almost every
+case. So "¿qué documentos me faltan?" was answered "no hay documentos
+pendientes" — true about requests, useless about evidence, and word for word the
+same answer as "¿qué documentos tengo?" and "¿cuál consigo primero?". No prompt
+could have fixed that: the facts were not in the room.
+
+Three concepts now exist where there was one: documents the case **holds**,
+requirements they **satisfy**, requirements **nothing covers**. `get_evidence_status`
+returns all three, and the four document questions produce four different,
+grounded answers. A document already on file is never recommended as missing,
+because satisfied and unsatisfied are disjoint by construction rather than by
+wording.
+
+Tool descriptions were rewritten to say *when* and *why* to call them, not just
+what they return — a model choosing a tool from its name is guessing. The
+specialists gained a reasoning contract: fetch before asserting, answer the
+question first, add the next step when the data points at one, and say "the case
+does not hold that yet" instead of approximating.
+
+## Two questions the demo's own script asks were not recognized at all
+
+Found by running the golden scenarios rather than by reading the code.
+*"¿Y cuánto debo?"* shares no stem with `deuda`, so the most common Spanish
+phrasing for the most common question fell through to the generic default and
+answered "el próximo paso es completar gastos mensuales". *"¿Qué sabes de mi
+caso?"*, the opening line, did the same. Both now answer what was asked.
+
+## The attorney assistant knows what the attorney can do
+
+It was asked what to do next and did not know this product has a toolbar, so it
+produced advice about following up with clients while the control that does
+exactly that sat two clicks away. `get_attorney_actions` exposes the nine real
+controls with what each one does. It is vocabulary, not authorization: there is
+still no write action type, and every one of them is a person pressing a button.
+
+Portfolio triage now categorizes rather than ranks — attorney action needed,
+client action needed, ready for review, no immediate action — each justified by
+the recorded signal behind it.
+
+## Fixed: "Could not refresh the financial analysis" on a new case
+
+The attorney dashboard's "Create case" built a case owned by the *attorney*, and
+a case must have a client owner, so every one of them 404'd on its first analyze
+call. The control is removed rather than the rule relaxed: attorney-initiated
+intake needs an owner-selection flow and an authorization change, which is an
+ADR. The client path was never broken and is now pinned by a test.
+
+The floating assistant launcher is a 48px circle instead of a labelled pill.
+
+What is proven: the right specialist runs the right tool, and the facts reach
+the model — `FakeProviderModel.transcript` is asserted, which is what separates
+*the model answered badly* from *the model was never told*. What is not proven:
+how well a real model writes those facts up. That needs a live provider
+credential, which this environment still does not have.
+
 # FreshStart 4.11.1
 
 Three things that delivering 4.11.0 exposed, one of which users could see.

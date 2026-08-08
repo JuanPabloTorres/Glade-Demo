@@ -115,6 +115,25 @@ On `integration/demo-close` since the 4.9.0 release commit. No version bump yet.
   the operation that was impossible before.
 - Pinned the footer version badge to the tree's `VERSION`, so a build a release behind fails
   a suite rather than being spotted on a screen.
+- Gave the assistant the facts an evidence answer needs. `CaseContextDto` now carries held
+  documents, evidence requirements and their satisfaction; `get_evidence_status` returns all
+  three. The four document questions produce four different grounded answers, and a covered
+  requirement is never recommended as missing. 23 cases in `tests/test_golden_scenarios.py`.
+  (`changes/agent-answer-quality.md`, 4.12.0)
+- Rewrote every tool description to say when and why to call it, and gave the specialists a
+  reasoning contract (fetch before asserting, answer first, next step when grounded).
+- Taught the attorney assistant the case toolbar: `get_attorney_actions` exposes the nine real
+  controls with what each does, so "what should I do next" names a control instead of giving
+  generic advice. Vocabulary only — there is still no write action type.
+- Recognized two questions the demo's own acceptance script asks and the fallback did not:
+  "¿Y cuánto debo?" and "¿Qué sabes de mi caso?". Both fell through to the generic
+  missing-items default; found by running the golden scenarios, not by reading the code.
+- Categorized portfolio triage (attorney action / client action / ready / none) instead of
+  ranking without a reason.
+- Fixed **"Could not refresh the financial analysis"** on a new case: the attorney dashboard's
+  "Create case" built a case owned by the attorney, which `CaseAccessService` refuses, so every
+  one 404'd on its first analyze call. Control removed; both halves pinned by tests.
+- Made the floating assistant launcher a 48px circle instead of a labelled pill.
 - Made the frontend unit suite exit 0 again. On the 4.11.0 tree it exited 1 while printing
   "143 passed": `ChatPanel` began calling `minimizePanel` and the six `useChatPanel` mocks
   were literals without it, so the click threw into Vitest's unhandled-error channel. One

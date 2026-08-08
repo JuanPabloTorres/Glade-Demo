@@ -49,10 +49,25 @@ def agentic(monkeypatch: pytest.MonkeyPatch) -> Any:
     return install
 
 
-def _payload(role: str, case_id: str, message: str, locale: str, scope: str) -> dict[str, Any]:
+def _payload(
+    role: str,
+    case_id: str,
+    message: str,
+    locale: str,
+    scope: str,
+    case: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """The request body for one turn.
+
+    `case` is overridable because these conversations only need an identity and
+    a locale, while the golden scenarios need a case with documents on it —
+    otherwise the tool returns an empty inventory and an assertion that the
+    model "was told about the pay stub" passes for the wrong reason.
+    """
     return {
         "assistant_scope": scope,
-        "case": {
+        "case": case
+        or {
             "id": case_id,
             "owner_user_id": "client-demo",
             "client_name": "Elena Rivera",
@@ -102,6 +117,7 @@ def converse(
     locale: str,
     scope: str,
     turns: list[tuple[str, list[str], str]],
+    case: dict[str, Any] | None = None,
 ) -> list[Turn]:
     _use_capable_provider(client)
     recorded: list[Turn] = []
@@ -109,7 +125,7 @@ def converse(
         model = install(prefers, answer)
         response = client.post(
             "/api/v1/bankruptcy/guide",
-            json=_payload(role, case_id, message, locale, scope),
+            json=_payload(role, case_id, message, locale, scope, case),
         )
         assert response.status_code == 200, response.text
         recorded.append(Turn(response.json(), model))
@@ -199,14 +215,14 @@ class TestClientEnglish:
                 ),
                 (
                     "Which items need evidence?",
-                    ["documents_agent", "get_pending_documents"],
+                    ["documents_agent", "get_evidence_status"],
                     "Your pay stubs and your lease still need evidence.",
                 ),
             ],
         )
 
         _assert_agentic(first, tool="get_missing_information", language="en")
-        _assert_agentic(second, tool="get_pending_documents", language="en")
+        _assert_agentic(second, tool="get_evidence_status", language="en")
         assert "What am I missing?" in second.prompt
 
     def test_the_language_is_the_requested_one_on_both_turns(
@@ -264,14 +280,14 @@ class TestATopicChange:
                 ("¿Cuánto debo?", ["analysis_agent", "get_financial_snapshot"], "Debes $24,500."),
                 (
                     "¿Qué documentos tengo?",
-                    ["documents_agent", "get_pending_documents"],
+                    ["documents_agent", "get_evidence_status"],
                     "Tienes dos documentos en el expediente.",
                 ),
             ],
         )
 
         _assert_agentic(first, tool="get_financial_snapshot", language="es")
-        _assert_agentic(second, tool="get_pending_documents", language="es")
+        _assert_agentic(second, tool="get_evidence_status", language="es")
 
         prompt = second.prompt
         boundary = prompt.index("Their message:")
@@ -300,7 +316,7 @@ class TestATopicChange:
             scope="case",
             turns=[
                 ("¿Cuánto debo?", ["analysis_agent", "get_financial_snapshot"], "Debes $24,500."),
-                ("¿Qué documentos tengo?", ["documents_agent", "get_pending_documents"], "Dos."),
+                ("¿Qué documentos tengo?", ["documents_agent", "get_evidence_status"], "Dos."),
             ],
         )
 

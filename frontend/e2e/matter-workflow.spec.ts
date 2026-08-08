@@ -29,7 +29,7 @@ test("client completes the full 10-step preparation flow (master instruction §2
   // branch of the documents topic is a pass — what matters is that the topic
   // matches the question.
   await expect(
-    page.getByText(/documentos? pendientes?|documento\(s\) pendiente\(s\)/i).first(),
+    page.getByText(/requisito\(s\)|respaldo|No falta evidencia/i).first(),
   ).toBeVisible();
 
   // 5. Abrir sección recomendada — this also closes the chat dialog.

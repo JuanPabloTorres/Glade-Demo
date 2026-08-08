@@ -99,7 +99,25 @@ _TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
         "subir archivo",
         "upload",
     ),
-    "debts": ("deuda", "debt", "acreedor", "creditor"),
+    # "cuánto debo" is the most common way a Spanish speaker asks this and it
+    # shares no stem with "deuda", so it fell through to the generic
+    # missing-items default: the demo's own acceptance script asks "¿Y cuánto
+    # debo?" and was answered "el próximo paso es completar gastos mensuales".
+    # Matched as a span, not on the bare verb "debo", which also opens
+    # "¿debo declararme?" — a question this provider must decline, not answer
+    # with a balance (see `_FILING_DECISION_KEYWORDS`, checked first).
+    "debts": (
+        "deuda",
+        "debt",
+        "acreedor",
+        "creditor",
+        "cuánto debo",
+        "cuanto debo",
+        "cuánto adeudo",
+        "cuanto adeudo",
+        "how much do i owe",
+        "what do i owe",
+    ),
     "assets": ("bienes", "activo", "activos", "propiedad", "propiedades", "asset", "property"),
     "income_expenses": (
         "ingreso",
@@ -122,6 +140,11 @@ _TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
         "marital",
     ),
     "alerts": ("alerta", "alert", "urgente", "urgency", "urgencia"),
+    # "¿Qué sabes de mi caso?" opens the demo's acceptance conversation and was
+    # not recognized at all — it fell to the missing-items default, so the first
+    # thing the assistant ever said was a next step rather than an orientation.
+    # A summary request is a progress question with a wider answer, which is
+    # what `progress_status` now produces.
     "progress_status": (
         "avance",
         "progreso",
@@ -132,6 +155,16 @@ _TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
         "case status",
         "completion",
         "completado",
+        "qué sabes",
+        "que sabes",
+        "sobre mi caso",
+        "de mi caso",
+        "resume este caso",
+        "resumen del caso",
+        "what do you know",
+        "about my case",
+        "summarize this case",
+        "case summary",
     ),
     "greeting": (
         "hola",
@@ -209,6 +242,48 @@ _FOLLOWUP_EXACT = frozenset(
 "situación" is not an acknowledgement."""
 
 _FOLLOWUP_WORD_LIMIT = 4
+
+
+# Which document question was asked. Same auditable substring style as
+# `_TOPIC_KEYWORDS`: the branch is readable next to its keyword list, and no
+# scoring or learned classifier is involved.
+_DOCS_WHICH_FIRST = (
+    "primero",
+    "prioridad",
+    "prioritario",
+    "empezar por",
+    "empiezo por",
+    "first",
+    "priority",
+    "start with",
+    "which should i get",
+)
+_DOCS_MISSING = ("falta", "faltan", "pendiente", "missing", "outstanding", "still need", "necesito")
+_DOCS_HELD = (
+    "tengo",
+    "tenemos",
+    "hay en el expediente",
+    "ya subí",
+    "ya subi",
+    "subidos",
+    "cargados",
+    "do i have",
+    "on file",
+    "uploaded",
+    "already have",
+)
+
+
+def _asks_which_first(folded: str) -> bool:
+    return any(keyword in folded for keyword in _DOCS_WHICH_FIRST)
+
+
+def _asks_what_is_missing(folded: str) -> bool:
+    return any(keyword in folded for keyword in _DOCS_MISSING)
+
+
+def _asks_what_is_held(folded: str) -> bool:
+    return any(keyword in folded for keyword in _DOCS_HELD)
 
 
 def _match_topic(folded_text: str) -> str | None:
@@ -336,7 +411,7 @@ class RuleBasedProvider:
 
         topic = _detect_topic(folded, context.recent_conversation)
         if topic is not None:
-            draft = self._topic_draft(topic, context, en, is_attorney)
+            draft = self._topic_draft(topic, folded, context, en, is_attorney)
             if draft is not None:
                 return draft
 
@@ -440,8 +515,11 @@ class RuleBasedProvider:
         )
 
     def _topic_draft(
-        self, topic: str, context: CaseContextDto, en: bool, is_attorney: bool
+        self, topic: str, folded: str, context: CaseContextDto, en: bool, is_attorney: bool
     ) -> GuidanceDraft | None:
+        # `folded` reaches here because the documents branch splits four ways on
+        # the wording (what do I have / what is missing / which first / overall).
+        # The other topics answer one question each and ignore it.
         if topic == "missing_status":
             if context.missing_items:
                 return self._missing_items_draft(
@@ -461,28 +539,7 @@ class RuleBasedProvider:
             )
 
         if topic == "documents":
-            pending = context.pending_documents
-            if pending:
-                message = (
-                    f"There are {len(pending)} document(s) still pending: {', '.join(pending[:3])}."
-                    if en
-                    else f"Hay {len(pending)} documento(s) pendiente(s): {', '.join(pending[:3])}."
-                )
-            else:
-                message = (
-                    "No documents are pending on this case right now."
-                    if en
-                    else "No hay documentos pendientes en este expediente por ahora."
-                )
-            return GuidanceDraft(
-                message=message,
-                intent="documents_status",
-                suggested_actions=pending[:3] or context.next_steps[:3],
-                focus_section="evidence",
-                requested_documents=pending,
-                requires_attorney_review=is_attorney,
-                warnings=context.warnings if is_attorney else [],
-            )
+            return self._documents_draft(folded, context, en, is_attorney)
 
         if topic == "debts":
             message = (
@@ -571,12 +628,35 @@ class RuleBasedProvider:
             )
 
         if topic == "progress_status":
+            # A summary, not two percentages. This branch answers both "how far
+            # along am I" and "what do you know about my case", and the second
+            # one needs the objective and the first real gap to be an answer at
+            # all. Every part is read off the context; nothing is inferred.
+            gap = (
+                (
+                    f" The most significant gap is {context.missing_items[0].lower()}."
+                    if en
+                    else f" Lo más relevante que falta es {context.missing_items[0].lower()}."
+                )
+                if context.missing_items
+                else (
+                    " The intake information is complete."
+                    if en
+                    else " La información de admisión está completa."
+                )
+            )
+            # `rstrip(".")` because the client's own goal usually ends in one,
+            # and "…con un abogado.." reads as a typo in the assistant's voice.
+            goal = context.objective.strip().rstrip(".") if context.objective else ""
+            objective = (
+                (f" Stated goal: {goal}." if en else f" Meta declarada: {goal}.") if goal else ""
+            )
             message = (
                 f"This case is {context.completion_score}% complete with an evidence score of "
-                f"{context.evidence_score}%. Current status: {context.status}."
+                f"{context.evidence_score}%. Current status: {context.status}.{objective}{gap}"
                 if en
                 else f"Este expediente está {context.completion_score}% completo con un puntaje de "
-                f"evidencia de {context.evidence_score}%. Estado actual: {context.status}."
+                f"evidencia de {context.evidence_score}%. Estado actual: {context.status}.{objective}{gap}"
             )
             return GuidanceDraft(
                 message=message,
@@ -606,6 +686,125 @@ class RuleBasedProvider:
             )
 
         return None
+
+    def _documents_draft(
+        self, folded: str, context: CaseContextDto, en: bool, is_attorney: bool
+    ) -> GuidanceDraft:
+        """Four document questions, four answers.
+
+        This branch used to be one sentence for every evidence intent, and the
+        sentence was about the wrong thing: `pending_documents` holds documents
+        an *attorney requested*, which is empty on almost every case, so "¿qué
+        documentos me faltan?" was answered "no hay documentos pendientes" — a
+        true statement about requests and a useless one about evidence.
+
+        The four intents are separated by keyword, in the same auditable style
+        as `_TOPIC_KEYWORDS`: what do I have, what is missing, which first, and
+        (falling through) the overall state. Every figure is read off
+        `CaseContextDto`; nothing here reasons, and nothing here should — the
+        agent path is where reasoning lives, and a fallback that imitates it
+        would be a worse agent with no way to tell.
+        """
+        held = context.held_documents
+        unsatisfied = [item.label for item in context.evidence_requirements if not item.satisfied]
+        satisfied = [item.label for item in context.evidence_requirements if item.satisfied]
+        requested = context.pending_documents
+
+        # An attorney's request outranks everything: someone is waiting on it.
+        priority = requested + [label for label in unsatisfied if label not in requested]
+
+        if _asks_which_first(folded) and priority:
+            ordered = "; ".join(f"{index}. {label}" for index, label in enumerate(priority[:3], 1))
+            message = (
+                f"Start with: {ordered}. "
+                + (
+                    "The first one was requested by the attorney, so someone is waiting on it. "
+                    if requested
+                    else ""
+                )
+                + f"{len(satisfied)} of {len(context.evidence_requirements)} requirements are already covered."
+                if en
+                else f"Empieza por: {ordered}. "
+                + (
+                    "El primero lo pidió el abogado, así que alguien está esperándolo. "
+                    if requested
+                    else ""
+                )
+                + f"Ya hay {len(satisfied)} de {len(context.evidence_requirements)} requisitos cubiertos."
+            )
+            return self._evidence_draft(message, "documents_priority", priority, context, is_attorney)
+
+        if _asks_what_is_missing(folded):
+            if not unsatisfied and not requested:
+                message = (
+                    "No evidence is outstanding for the current requirements. "
+                    "The next useful step is to review the case summary."
+                    if en
+                    else "No falta evidencia para los requisitos actuales. "
+                    "El siguiente paso útil es revisar el resumen del expediente."
+                )
+                return self._evidence_draft(
+                    message, "documents_complete", context.next_steps[:3], context, is_attorney
+                )
+            message = (
+                f"{len(unsatisfied)} requirement(s) have no supporting document yet: "
+                f"{', '.join(unsatisfied[:3])}."
+                if en
+                else f"{len(unsatisfied)} requisito(s) todavía no tienen documento de respaldo: "
+                f"{', '.join(unsatisfied[:3])}."
+            )
+            if requested:
+                message += (
+                    f" The attorney also requested: {', '.join(requested[:2])}."
+                    if en
+                    else f" Además, el abogado solicitó: {', '.join(requested[:2])}."
+                )
+            return self._evidence_draft(message, "documents_missing", priority, context, is_attorney)
+
+        if _asks_what_is_held(folded):
+            if not held:
+                message = (
+                    "There are no documents on file for this case yet."
+                    if en
+                    else "Todavía no hay documentos en este expediente."
+                )
+            else:
+                names = ", ".join(f"{item.name} ({item.type_label})" for item in held[:3])
+                message = (
+                    f"{len(held)} document(s) on file: {names}. "
+                    f"They cover {len(satisfied)} of {len(context.evidence_requirements)} requirements."
+                    if en
+                    else f"{len(held)} documento(s) en el expediente: {names}. "
+                    f"Cubren {len(satisfied)} de {len(context.evidence_requirements)} requisitos."
+                )
+            return self._evidence_draft(message, "documents_held", priority, context, is_attorney)
+
+        message = (
+            f"Evidence is {context.evidence_score}% complete: {len(satisfied)} of "
+            f"{len(context.evidence_requirements)} requirements covered by {len(held)} document(s) on file."
+            if en
+            else f"La evidencia está {context.evidence_score}% completa: {len(satisfied)} de "
+            f"{len(context.evidence_requirements)} requisitos cubiertos por {len(held)} documento(s)."
+        )
+        return self._evidence_draft(message, "documents_status", priority, context, is_attorney)
+
+    def _evidence_draft(
+        self,
+        message: str,
+        intent: str,
+        actions: list[str],
+        context: CaseContextDto,
+        is_attorney: bool,
+    ) -> GuidanceDraft:
+        return GuidanceDraft(
+            message=message,
+            intent=intent,
+            suggested_actions=actions[:3] or context.next_steps[:3],
+            focus_section="evidence",
+            requested_documents=context.pending_documents,
+            requires_attorney_review=is_attorney,
+            warnings=context.warnings if is_attorney else [],
+        )
 
     def _missing_items_draft(
         self, context: CaseContextDto, en: bool, first: str, is_attorney: bool
