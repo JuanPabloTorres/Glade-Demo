@@ -1,11 +1,13 @@
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { LANGUAGE_STORAGE_KEY } from "../i18n/languages";
 import type { AuthUserDto } from "../types/api";
 import type {
@@ -28,6 +30,30 @@ function timelineEvent(
   status: TimelineEvent["status"],
 ): TimelineEvent {
   return { id: id("timeline"), stage, title, description, status, createdAt: new Date().toISOString() };
+}
+
+/**
+ * A timeline entry that names its copy instead of carrying it.
+ *
+ * `title`/`description` are still filled with the Spanish text so that anything
+ * reading an event without going through `CaseTimeline` — a test fixture, a
+ * future export — still finds a human-readable string. The keys are what the UI
+ * actually renders.
+ */
+function keyedTimelineEvent(
+  stage: string,
+  key: string,
+  fallbackTitle: string,
+  fallbackDescription: string,
+  status: TimelineEvent["status"],
+  descriptionParams?: Record<string, string>,
+): TimelineEvent {
+  return {
+    ...timelineEvent(stage, fallbackTitle, fallbackDescription, status),
+    titleKey: `timeline.${key}Title`,
+    descriptionKey: `timeline.${key}Description`,
+    ...(descriptionParams ? { descriptionParams } : {}),
+  };
 }
 
 function seedState(): WorkspaceState {
@@ -123,17 +149,21 @@ function seedState(): WorkspaceState {
             evidenceIds: [],
           },
         ],
-        assets: [
-          {
-            id: "asset-elena-1",
-            category: "vehicle",
-            description: "Sedán 2018",
-            estimatedValue: 9000,
-            loanBalance: 7000,
-            jointlyOwned: false,
-            evidenceIds: [],
-          },
-        ],
+        // Deliberately empty, and the only section of Elena's that is.
+        //
+        // `completion_score` and `missing_items` are computed from the same
+        // eight section booleans (`BankruptcyAnalysisService`), so a case with
+        // every section filled reports 100% and an empty missing list — and
+        // "¿Qué me falta?", which is the question this product exists to
+        // answer, comes back with nothing to say. The demo needs one real gap
+        // for the assistant to find.
+        //
+        // Assets is the realistic one to leave open: people record income,
+        // expenses and debts first and get to what they own last. It is also
+        // the section the attorney's triage does not read — `list_incomplete_
+        // cases` looks at income, debts and evidence — so the queue keeps its
+        // three-way split while the client sees something outstanding.
+        assets: [],
         evidence: [
           {
             id: "evidence-elena-1",
@@ -162,10 +192,10 @@ function seedState(): WorkspaceState {
           },
         ],
         timeline: [
-          timelineEvent("request", "Solicitud iniciada", "El cliente comenzó la evaluación financiera.", "complete"),
-          timelineEvent("financial", "Plantilla financiera", "Completar ingresos, gastos, deudas y bienes.", "current"),
-          timelineEvent("evidence", "Evidencia", "Vincular documentos con las cifras reportadas.", "upcoming"),
-          timelineEvent("attorney", "Revisión del abogado", "Enviar el expediente y preparar la consulta.", "upcoming"),
+          keyedTimelineEvent("request", "requestStarted", "Solicitud iniciada", "El cliente comenzó la evaluación financiera.", "complete"),
+          keyedTimelineEvent("financial", "financial", "Plantilla financiera", "Completar ingresos, gastos, deudas y bienes.", "current"),
+          keyedTimelineEvent("evidence", "evidence", "Evidencia", "Vincular documentos con las cifras reportadas.", "upcoming"),
+          keyedTimelineEvent("attorney", "attorney", "Revisión del abogado", "Enviar el expediente y preparar la consulta.", "upcoming"),
         ],
       },
       {
@@ -297,10 +327,10 @@ function seedState(): WorkspaceState {
           },
         ],
         timeline: [
-          timelineEvent("request", "Solicitud iniciada", "El cliente abrió el expediente.", "complete"),
-          timelineEvent("financial", "Información financiera", "Ingresos, gastos y deudas organizados.", "complete"),
-          timelineEvent("submitted", "Solicitud enviada", "El expediente está disponible para el abogado.", "current"),
-          timelineEvent("consultation", "Consulta", "Programar discusión de alternativas.", "upcoming"),
+          keyedTimelineEvent("request", "requestStarted", "Solicitud iniciada", "El cliente abrió el expediente.", "complete"),
+          keyedTimelineEvent("financial", "financial", "Información financiera", "Ingresos, gastos y deudas organizados.", "complete"),
+          keyedTimelineEvent("submitted", "submitted", "Solicitud enviada", "El expediente está disponible para el abogado.", "current"),
+          keyedTimelineEvent("consultation", "consultation", "Consulta", "Programar discusión de alternativas.", "upcoming"),
         ],
       },
     ],
@@ -335,13 +365,14 @@ interface WorkspaceContextValue {
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation("workspace");
   const [state, setState] = useState<WorkspaceState>(() => readState());
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
-  const updateCase = (
+  const updateCase = useCallback((
     caseId: string,
     updater: (caseData: BankruptcyCase) => BankruptcyCase,
   ) => {
@@ -352,9 +383,9 @@ export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode 
           : caseData,
       ),
     }));
-  };
+  }, []);
 
-  const createCase = (user: AuthUserDto): string => {
+  const createCase = useCallback((user: AuthUserDto): string => {
     const caseId = id("case");
     const createdAt = new Date().toISOString();
     const caseData: BankruptcyCase = {
@@ -382,29 +413,31 @@ export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode 
         {
           id: id("message"),
           role: "assistant",
-          content:
-            "Comencemos por tu meta y la composición del hogar. Luego organizaremos cada cifra con evidencia.",
+          // Translated at creation because a chat transcript is a record of what
+          // was said at a moment in time — unlike the timeline, re-labelling it
+          // on a later language switch would rewrite history.
+          content: t("timeline.welcomeMessage"),
           createdAt,
         },
       ],
       timeline: [
-        timelineEvent("request", "Solicitud iniciada", "Se creó un expediente privado de evaluación.", "current"),
-        timelineEvent("financial", "Plantilla financiera", "Organizar ingresos, gastos, deudas y bienes.", "upcoming"),
-        timelineEvent("evidence", "Evidencia", "Añadir documentos y revisar faltantes.", "upcoming"),
-        timelineEvent("attorney", "Revisión del abogado", "Enviar la solicitud y programar consulta.", "upcoming"),
+        keyedTimelineEvent("request", "requestStarted", "Solicitud iniciada", "Se creó un expediente privado de evaluación.", "current"),
+        keyedTimelineEvent("financial", "financial", "Plantilla financiera", "Organizar ingresos, gastos, deudas y bienes.", "upcoming"),
+        keyedTimelineEvent("evidence", "evidence", "Evidencia", "Añadir documentos y revisar faltantes.", "upcoming"),
+        keyedTimelineEvent("attorney", "attorney", "Revisión del abogado", "Enviar la solicitud y programar consulta.", "upcoming"),
       ],
     };
     setState((current) => ({ cases: [caseData, ...current.cases] }));
     return caseId;
-  };
+  }, [t]);
 
-  const deleteCase = (caseId: string) => {
+  const deleteCase = useCallback((caseId: string) => {
     setState((current) => ({
       cases: current.cases.filter((caseData) => caseData.id !== caseId),
     }));
-  };
+  }, []);
 
-  const submitCase = (caseId: string) => {
+  const submitCase = useCallback((caseId: string) => {
     updateCase(caseId, (caseData) => ({
       ...caseData,
       status: "submitted",
@@ -413,7 +446,8 @@ export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode 
         ...caseData.timeline.map((event) =>
           event.status === "current" ? { ...event, status: "complete" as const } : event,
         ),
-        timelineEvent(
+        keyedTimelineEvent(
+          "submitted",
           "submitted",
           "Solicitud enviada",
           "El abogado puede revisar la información y solicitar aclaraciones.",
@@ -421,9 +455,9 @@ export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode 
         ),
       ],
     }));
-  };
+  }, [updateCase]);
 
-  const updateStatus = (caseId: string, status: CaseStatus, note?: string) => {
+  const updateStatus = useCallback((caseId: string, status: CaseStatus, note?: string) => {
     updateCase(caseId, (caseData) => ({
       ...caseData,
       status,
@@ -431,21 +465,32 @@ export function BankruptcyWorkspaceProvider({ children }: { children: ReactNode 
         ...caseData.timeline.map((event) =>
           event.status === "current" ? { ...event, status: "complete" as const } : event,
         ),
-        timelineEvent(
-          status,
-          "Estado actualizado",
-          note || `El expediente cambió a ${status.replaceAll("_", " ")}.`,
-          "current",
-        ),
+        // A note is the attorney's own words and is stored verbatim, with no
+        // key: translating what a person wrote would be a mistranslation. Only
+        // the generated fallback is keyed, and it interpolates the localized
+        // status label rather than the raw enum with its underscores stripped.
+        note
+          ? { ...timelineEvent(status, t("timeline.statusChangedTitle"), note, "current"), titleKey: "timeline.statusChangedTitle" }
+          : keyedTimelineEvent(
+              status,
+              "statusChanged",
+              "Estado actualizado",
+              `El expediente cambió a ${status.replaceAll("_", " ")}.`,
+              "current",
+              // The raw enum, not its label: storing the translated string
+              // would freeze this one entry in the language it was created in,
+              // which is the defect the keys exist to remove.
+              { statusKey: status },
+            ),
       ],
     }));
-  };
+  }, [updateCase, t]);
 
-  const resetDemo = () => setState(seedState());
+  const resetDemo = useCallback(() => setState(seedState()), []);
 
   const value = useMemo(
     () => ({ cases: state.cases, createCase, updateCase, deleteCase, submitCase, updateStatus, resetDemo }),
-    [state.cases],
+    [state.cases, createCase, updateCase, deleteCase, submitCase, updateStatus, resetDemo],
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

@@ -6,6 +6,8 @@ import { Navigate, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthContext";
 import { AppIcon } from "../components/atoms/AppIcon";
 import { AppButton } from "../components/ui/AppButton";
+import { IconButton } from "../components/ui/IconButton";
+import { CheckboxField } from "../components/forms/fields";
 import { FloatingField } from "../components/molecules/FloatingField";
 import { LanguageSwitcher } from "../components/molecules/LanguageSwitcher";
 import { ROUTES } from "../config/routes";
@@ -105,39 +107,49 @@ export function LoginPage() {
         <LanguageSwitcher compact tone="onDark" />
       </div>
 
-      <div className="relative mx-auto grid min-h-screen w-full max-w-360 gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_480px] lg:items-center lg:gap-16 lg:px-10 xl:px-16">
-        <section className="max-w-3xl text-white">
-          <div className="mb-7">
-            {/* `pe-28` on the eyebrow only: the language switcher is absolutely
-                positioned in this corner, and the English string of this line
-                is long enough to run underneath it on a phone. Reserving the
-                space here keeps the fix local to the one line that collides,
-                rather than indenting the whole hero. */}
-            <p className="mb-3 pe-28 text-xs font-semibold uppercase tracking-[0.14em] text-white/70 lg:pe-0">
-              {t("auth:login.heroBadge")}
-            </p>
-            <div className="flex items-center gap-4">
-              <span className="brand-mark flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-xl shadow-indigo-950/30">
-                <AppIcon name="brand" size={30} />
-              </span>
-              <div>
-                <p className="text-xl font-semibold tracking-[-0.02em]">Fresh Start</p>
-                <p className="text-sm text-white/70">{t("common:app.subtitle")}</p>
-              </div>
-            </div>
+      {/*
+        DOM order is the phone order: brand, then the form, then the hero copy.
+        Previously the whole hero came first in a single column, so signing in on
+        a phone meant scrolling past roughly 400px of marketing — an eyebrow, the
+        brand block, a 36px headline and a body paragraph — before the first
+        field. The task comes first; the copy stays, below it, for anyone who
+        wants it.
+
+        From `lg` the two-column layout is unchanged, and it is restored with
+        explicit grid placement rather than `order` utilities: the brand and hero
+        copy occupy rows 1 and 2 of the first column, and the card spans both
+        rows of the second. That keeps one copy of every element in the markup —
+        an `lg:hidden` duplicate of the brand block would be two things to keep
+        in sync for one breakpoint.
+      */}
+      <div className="relative mx-auto grid min-h-screen w-full max-w-360 content-start gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_480px] lg:grid-rows-[auto_auto] lg:content-center lg:gap-x-16 lg:gap-y-7 lg:px-10 xl:px-16">
+        {/* `pe-28` reserves the corner the absolutely-positioned language
+            switcher occupies. It sat on the eyebrow before, which was the
+            topmost element then; the brand row is the topmost element now. */}
+        {/* `min-w-0` is load-bearing, not defensive. A grid item's automatic
+            minimum size is its min-content, and the `truncate` below sets
+            `white-space: nowrap`, whose min-content is the *whole* string. On a
+            320px screen that widened the single-column track to 351px and
+            dragged the form card 47px off-screen — clipped rather than
+            scrollable, because `<main>` is `overflow-hidden`. Clamping the
+            minimum lets the track stay at the viewport width and the truncation
+            do its job. */}
+        <div className="flex min-w-0 items-center gap-4 pe-24 text-white lg:col-start-1 lg:row-start-1 lg:self-end lg:pe-0">
+          <span className="brand-mark flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-xl shadow-indigo-950/30 sm:h-14 sm:w-14">
+            <AppIcon name="brand" size={30} />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-xl font-semibold tracking-[-0.02em]">Fresh Start</p>
+            <p className="truncate text-sm text-white/70">{t("common:app.subtitle")}</p>
           </div>
+        </div>
 
-          <h1 className="max-w-3xl text-4xl font-semibold leading-[1.08] tracking-[-0.045em] sm:text-5xl lg:text-6xl">
-            {t("auth:login.heroTitle")}
-          </h1>
-          <p className="mt-6 max-w-2xl text-base leading-7 text-white/78 sm:text-lg sm:leading-8">
-            {t("auth:login.heroBody")}
-          </p>
-        </section>
-
-        <section className="flex items-center justify-center lg:justify-end">
+        <section className="flex min-w-0 items-center justify-center lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center lg:justify-end">
           <Card className="w-full max-w-120 overflow-hidden border border-white/40 bg-white/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
-            <form className="space-y-6" onSubmit={submit}>
+            {/* `space-y-4` below `sm`: at 320x720 the six-gap rhythm put the sign-in
+                  button 84px below the fold, so a phone user had to scroll past the
+                  form to submit it. Gated by e2e/governed-viewports.spec.ts. */}
+            <form className="space-y-4 sm:space-y-6" onSubmit={submit}>
               {/* Header follows Flowbite's authentication-modal block: title on a
                   ruled row, no badge stack above it. The "demo" badge that used
                   to sit here is gone — the disclaimer at the foot of this form
@@ -152,7 +164,7 @@ export function LoginPage() {
                   <AppButton type="button" size="lg" className="primary-action w-full" disabled={busy} iconLeft="client" onClick={() => openSession(CLIENT)}>
                     {t("auth:login.asClient")}
                   </AppButton>
-                  <p className="mt-1.5 text-xs leading-4 text-body">
+                  <p className="mt-1.5 hidden text-xs leading-4 text-body sm:block">
                     {t("auth:login.clientHint")}
                   </p>
                 </div>
@@ -160,7 +172,7 @@ export function LoginPage() {
                   <AppButton type="button" size="lg" color="light" className="secondary-action w-full" disabled={busy} iconLeft="attorney" onClick={() => openSession(ATTORNEY)}>
                     {t("auth:login.asAttorney")}
                   </AppButton>
-                  <p className="mt-1.5 text-xs leading-4 text-body">
+                  <p className="mt-1.5 hidden text-xs leading-4 text-body sm:block">
                     {t("auth:login.attorneyHint")}
                   </p>
                 </div>
@@ -177,7 +189,7 @@ export function LoginPage() {
               {/* Floating-label fields (Flowbite's floating form block). The label
                   doubles as the field's resting placeholder, so the form loses a
                   stacked label row per field without losing the label itself. */}
-              <div className="space-y-7">
+              <div className="space-y-5 sm:space-y-7">
                 <FloatingField
                   id="login-email"
                   type="email"
@@ -196,30 +208,27 @@ export function LoginPage() {
                   autoComplete="current-password"
                   required
                   trailing={
-                    <button
-                      type="button"
-                      aria-label={showPassword ? t("auth:login.hidePassword") : t("auth:login.showPassword")}
-                      className="flex h-11 w-11 items-center justify-center text-body hover:text-fg-brand"
+                    <IconButton
+                      icon={showPassword ? "eye-hide" : "eye-show"}
+                      label={showPassword ? t("auth:login.hidePassword") : t("auth:login.showPassword")}
                       onClick={() => setShowPassword((value) => !value)}
-                    >
-                      <AppIcon name={showPassword ? "eye-hide" : "eye-show"} size={18} />
-                    </button>
+                    />
                   }
                 />
               </div>
 
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <div className="flex items-center">
-                  <input
+                {/* `min-w-0` because CheckboxField is full-width by design and
+                    this row is a flex container: without it the label's text
+                    inflates the item's automatic minimum size and pushes the
+                    forgot-password note off a 320px screen. */}
+                <div className="min-w-0">
+                  <CheckboxField
                     id="login-remember"
-                    type="checkbox"
+                    label={t("auth:login.rememberMe")}
                     checked={rememberMe}
-                    onChange={(event) => setRememberMe(event.target.checked)}
-                    className="h-4 w-4 rounded-xs border border-default-medium bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
+                    onChange={setRememberMe}
                   />
-                  <label htmlFor="login-remember" className="ms-2 text-sm font-medium text-heading">
-                    {t("auth:login.rememberMe")}
-                  </label>
                 </div>
                 <span className="ms-auto text-xs text-body">{t("auth:login.forgotPassword")}</span>
               </div>
@@ -231,6 +240,18 @@ export function LoginPage() {
               <p className="text-xs leading-5 text-body">{t("auth:login.disclaimer")}</p>
             </form>
           </Card>
+        </section>
+
+        <section className="max-w-3xl text-white lg:col-start-1 lg:row-start-2 lg:self-start">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
+            {t("auth:login.heroBadge")}
+          </p>
+          <h1 className="max-w-3xl text-3xl font-semibold leading-[1.1] tracking-[-0.045em] sm:text-5xl lg:text-6xl">
+            {t("auth:login.heroTitle")}
+          </h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-white/78 sm:mt-6 sm:text-lg sm:leading-8">
+            {t("auth:login.heroBody")}
+          </p>
         </section>
       </div>
     </main>

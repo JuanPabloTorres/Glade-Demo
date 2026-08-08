@@ -50,6 +50,18 @@ class CaseDocumentIndex:
     def document_count(self, case_id: str) -> int:
         return len(self._buckets.get(case_id, []))
 
+    def clear_case(self, case_id: str) -> None:
+        """Drop everything indexed for one case.
+
+        The database half of a demo reset wipes rows; without this the vector
+        half keeps them, so the assistant would go on retrieving documents the
+        evidence list no longer shows — and repeated resets would stack
+        duplicate chunks of the same seeded text. Scoped to one case for the
+        same reason every other method is: there is no code path here that
+        touches another case's bucket.
+        """
+        self._buckets.pop(case_id, None)
+
 
 _shared_index: CaseDocumentIndex | None = None
 

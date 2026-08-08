@@ -36,10 +36,19 @@ jobs:
         if: github.event_name == 'push'
         run: npm run version:check-bump
 
+  # `versioning`, `governance`, `backend`, `frontend` and `e2e` are deliberately
+  # independent. They were chained (versioning → governance → backend+frontend
+  # → e2e), which made the critical path the *sum* of the slowest job in each
+  # link — roughly 17 minutes — even though no job consumes another's artifacts:
+  # `e2e` installs its own dependencies and starts its own servers. Running them
+  # in parallel makes the critical path the slowest single job instead.
+  #
+  # The trade is compute for latency: a governance failure no longer cancels the
+  # test jobs before they start, so a bad push burns a few extra runner-minutes.
+  # `cancel-in-progress` on the concurrency group already bounds that per branch.
   governance:
     name: governance
     runs-on: ubuntu-latest
-    needs: [versioning]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +62,6 @@ jobs:
   backend:
     name: backend
     runs-on: ubuntu-latest
-    needs: [governance]
     timeout-minutes: 10
     defaults:
       run: { working-directory: backend }
@@ -73,7 +81,6 @@ jobs:
   frontend:
     name: frontend
     runs-on: ubuntu-latest
-    needs: [governance]
     timeout-minutes: 10
     defaults:
       run: { working-directory: frontend }
@@ -95,7 +102,6 @@ jobs:
   e2e:
     name: e2e
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -114,6 +120,16 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci --no-audit --no-fund
+      # Keyed on the lockfile so the cache is invalidated exactly when the
+      # @playwright/test version moves — a stale browser build against a newer
+      # driver is a failure mode that looks like a flaky test.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
       - name: Install Chromium
         working-directory: frontend
         run: npx playwright install --with-deps chromium

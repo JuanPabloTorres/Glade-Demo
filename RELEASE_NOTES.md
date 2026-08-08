@@ -1,3 +1,153 @@
+# FreshStart 4.10.1
+
+The client's demo case had nothing missing.
+
+`completion_score` and `missing_items` are computed from the same eight section
+booleans, so a case with every section filled reports 100% and an empty missing
+list — and *"¿Qué me falta?"*, the question this product exists to answer, came
+back with nothing to say. Every suite asserts the completion score is *visible*,
+never what it says, so nothing failed. A screenshot of the running application
+showed a progress bar at 100% next to an assistant with nothing to report.
+
+Elena now records no assets, and only assets: the realistic section to leave open,
+and the one the attorney's triage does not read, so the queue keeps its three-way
+split. Completion reads 86% and the dashboard surfaces *"Próxima acción —
+Completar: Bienes y activos."*
+
+Also covered: a topic change on the agentic path, asserted on the half that is
+ours — the prompt keeps earlier turns available while presenting only the new
+question as the current one — and a retrieval miss, where a case with nothing
+indexed still answers agentically instead of degrading.
+
+# FreshStart 4.10.0
+
+Closes the demo. Every gate runs from one integrated tree, and the two release
+journeys work in Spanish and English on a phone and a desktop. No contract change.
+
+## The assistant now remembers the conversation it is in
+
+`AgentRuntime._build_prompt` sent the language, the role and the current message.
+`recent_conversation` reached `CaseContextDto` and stopped there — only the
+deterministic providers ever read it. So on the agentic path a follow-up had
+nothing to resolve against: the "y" in *"¿Y cuánto pago al mes?"* referred to
+nothing, and *"Why the first one?"* had no first one.
+
+Prior turns now reach the prompt as an `EARLIER TURNS` block, framed as data
+rather than instructions. Case facts still arrive through tools; the block is
+omitted entirely on a first turn. What is stored is the guarded message, so a
+later turn cannot read back a phrasing the guardrails removed.
+
+Four two-turn conversations cover the release contract — client in Spanish and
+English, attorney across the portfolio and inside one case — each asserting that
+turn two was handed turn one. Removing the change fails exactly those four.
+
+## The demo cases carry the evidence their triage depends on
+
+No seeded case had a single document. The client's evidence screen was never
+empty, because the browser workspace seeds it, but the server's record was — and
+two things read that record. `evidence_count` was zero for every case, so the
+attorney tool that separates "waiting on me" from "waiting on the client"
+matched all three. And the retrieval index was empty on a fresh database, so
+document intelligence only worked for a document uploaded in that same process.
+
+Evidence is now distributed by what each case has to show: Elena has two
+documents and an open request for more, Miguel has the three a review needs,
+Rosa deliberately has none.
+
+## One icon button, and a checkbox that was already built
+
+Five standalone icon-only buttons agreed on what they were and disagreed on
+everything else — three hover treatments, two focus rings, two spellings of a
+square, and an accessible name that was right at all five only because five
+authors each remembered it. `IconButton` requires the label in its type. The
+login "remember me" control was a raw checkbox input in a codebase that already
+had `CheckboxField`.
+
+`ActionGroup`'s menu trigger and `FileField`'s two controls were classified and
+deliberately left alone; both are recorded in `docs/POST-DEMO-BACKLOG.md`.
+
+## Verification
+
+351 backend tests, 132 frontend tests, 95 Playwright tests, all green from one
+tree. Lint, typecheck, build, i18n, contracts and governance all pass.
+
+The first end-to-end run reported three failures and was thrown away: Playwright's
+`reuseExistingServer` had adopted another checkout's dev server, so all 95 results
+described code that was not under test. The re-run with reuse disabled, against a
+server verified to be serving this tree, passes completely. The mechanism is
+recorded, because it fails toward green just as easily.
+
+Live AI against a real provider and deployment smoke tests are not included: no
+OpenAI-compatible credential exists in this environment.
+
+# FreshStart 4.9.0
+
+Consolidates seven delivered branches into one verified state and drives both
+product journeys in a browser. No contract change.
+
+## The development loop stopped costing two minutes
+
+Vitest spent 52 of its 56 seconds on scaffolding: the Tailwind and Flowbite
+plugins were loaded under test, where nothing reads their output, and each test
+file built its own jsdom. The config is now a function of `mode` and reuses one
+environment per worker. Tests 56.3s → 7.6s, lint 33.3s → 2.9s warm, the full
+local loop ~2min → 26s.
+
+CI ran five jobs as a serial chain although no job consumes another's artifacts.
+The `needs:` edges are gone, so the critical path is the slowest single job.
+
+`backend/uv.lock` was out of sync with `pyproject.toml`, so `uv lock --check`
+failed and every pull request inherited a red backend job regardless of content.
+
+## The assistant now recognizes the two questions the product exists for
+
+`RuleBasedProvider` reached its only review-raising branch by testing for the
+literal tokens "capítulo 7" / "chapter 7". Six formulations of *"do I qualify"*
+and *"should I file"*, in both languages, fell through to a generic next-step
+answer about uploading documents, with `requires_attorney_review` left false.
+
+The guardrails could not have caught it: they inspect the answer, and the answer
+made no prohibited claim — it was simply about something else. The reply now
+declines explicitly, names what the determination depends on, quotes the case's
+own figures and raises the review flag at the source.
+
+## Assistant quality is measurable
+
+`backend/tests/evals` adds a golden dataset: 14 scenarios over 4 synthetic case
+profiles, run through the production stack unstubbed, with seven blocking
+graders and three scored against a committed baseline. It runs in 0.45s with no
+model, and it is what found the defect above.
+
+## The case timeline is bilingual, including its history
+
+Timeline entries were generated as Spanish prose and persisted to
+`localStorage`, so an English session read the whole history in Spanish and
+switching language changed nothing. Entries now carry locale keys and are
+translated at render, so the switch re-labels entries that already existed.
+
+## Mobile
+
+The login form is above the fold on a phone — the first field moved from y=936
+to y=528 at 320px and from y=884 to y=504 at 390px. The assistant sheet shows
+one header instead of two stacked ones announcing the same title twice.
+
+## The attorney's demo case now exists server-side
+
+Opening a case as the attorney returned 404 from `bankruptcy.analyze`, so the
+review workspace rendered with no cash flow, no debt composition and no missing
+items. The authorization rule was right — an attorney may review a case, not
+conjure one — but the demo cases were seeded only in the browser, and a case
+reaches the database only after its own client analyzes it. `case-miguel-demo`
+belongs to a client nobody signs in as.
+
+`DEMO_CASE_ID` is aligned to `case-elena-demo` and a second fixture seeds
+`case-miguel-demo`, so both seeds now name the same cases. Verified in a browser
+on a fresh database: the attorney opens the queued case, the preparation score
+renders from the server analysis, and the console is clean.
+
+`SEED_DEMO_DATA_ON_STARTUP` is still off by default, so a demo deployment must
+opt in.
+
 # FreshStart 4.8.0
 
 Integrates `refactor/ui-global-audit`: one overlay layer system, one action control, one language switcher. No contract, route or business-rule change.

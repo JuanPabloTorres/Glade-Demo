@@ -16,8 +16,9 @@ import inspect
 
 import pytest
 
-from app.ai.agents.factory import ATTORNEY_AGENT, SPECIALISTS
+from app.ai.agents.factory import ATTORNEY_AGENT, PORTFOLIO_AGENT, SPECIALISTS
 from app.ai.tools.case_tools import CaseTools, ToolAuthorizationError
+from app.ai.tools.portfolio_tools import PortfolioTools
 from app.schemas.assistant import CaseContextDto
 from app.schemas.bankruptcy import BankruptcyCaseDto, UserRole
 from app.services.bankruptcy_service import BankruptcyAnalysisService
@@ -106,9 +107,17 @@ class TestRoleRestrictions:
         holders = [spec.name for spec in SPECIALISTS if _ATTORNEY_ONLY_TOOL in spec.tool_names]
         assert holders == [ATTORNEY_AGENT]
 
-    def test_the_attorney_specialist_is_the_only_role_gated_one(self) -> None:
-        gated = [spec.name for spec in SPECIALISTS if spec.attorney_only]
-        assert gated == [ATTORNEY_AGENT]
+    def test_only_attorney_specialists_are_role_gated(self) -> None:
+        """Both attorney specialists are gated, and nothing else is.
+
+        Asserted as a set rather than the single-element list this used to be:
+        the portfolio specialist is the second attorney-only capability, and a
+        list comparison would have to be rewritten for a third while a set
+        comparison keeps saying the thing that matters — no non-attorney
+        specialist is gated, and no attorney specialist is ungated.
+        """
+        gated = {spec.name for spec in SPECIALISTS if spec.attorney_only}
+        assert gated == {ATTORNEY_AGENT, PORTFOLIO_AGENT}
 
     def test_support_specialist_has_no_case_data_tools(self) -> None:
         support = next(spec for spec in SPECIALISTS if spec.name == "support_agent")
@@ -125,11 +134,24 @@ class TestToolAllowList:
         offenders = [name for name in tool_names if name.startswith(write_verbs)]
         assert not offenders, f"Write-shaped tools registered on an agent: {offenders}"
 
-    def test_every_registered_tool_exists_on_case_tools(self) -> None:
-        tools = _tools("case-a", "attorney")
+    def test_every_registered_tool_exists_on_its_declared_holder(self) -> None:
+        """Two tool holders now, two closed authorization scopes.
+
+        `tool_source` is what says which one a specialist resolves against, so
+        this checks the grant against the holder the spec names — a portfolio
+        tool asserted against `CaseTools` would fail for the right reason but
+        prove the wrong thing.
+        """
+        holders = {
+            "case": _tools("case-a", "attorney"),
+            "portfolio": PortfolioTools([]),
+        }
         for spec in SPECIALISTS:
+            holder = holders[spec.tool_source]
             for name in spec.tool_names:
-                assert hasattr(tools, name), f"{spec.name} registers unknown tool {name!r}"
+                assert hasattr(holder, name), (
+                    f"{spec.name} registers {name!r}, absent from its {spec.tool_source} holder"
+                )
 
     def test_orchestrator_prompt_declares_no_data_tools(self) -> None:
         """The orchestrator must route, not read. Its only tools are

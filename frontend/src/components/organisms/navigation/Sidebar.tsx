@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { sidebarNavItems } from "../../../config/navigation";
 import { useRoleNavigation } from "../../../hooks/useRoleNavigation";
-import { AppIcon } from "../../atoms/AppIcon";
 import { AppLogo } from "../../atoms/AppLogo";
 import { AppTooltip } from "../../overlays/AppTooltip";
+import { IconButton } from "../../ui/IconButton";
 import { SidebarGroup } from "./SidebarGroup";
 import { SidebarItem } from "./SidebarItem";
 
@@ -77,15 +77,15 @@ export function Sidebar() {
 
       <div className={`mb-3 flex ${collapsed ? "justify-center" : "justify-end"}`}>
         <AppTooltip content={toggleLabel} side="right">
-          <button
-            type="button"
+          <IconButton
             onClick={() => setCollapsed((value) => !value)}
-            aria-label={toggleLabel}
+            icon="collapse-left"
+            iconClassName={collapsed ? "rotate-180" : undefined}
+            label={toggleLabel}
             aria-expanded={!collapsed}
-            className="flex h-9 w-9 items-center justify-center rounded-base text-body outline-none transition-colors hover:bg-neutral-tertiary hover:text-fg-brand focus-visible:ring-4 focus-visible:ring-brand-soft"
-          >
-            <AppIcon name="collapse-left" size={18} className={collapsed ? "rotate-180" : undefined} />
-          </button>
+            size="sm"
+            iconSize={18}
+          />
         </AppTooltip>
       </div>
 

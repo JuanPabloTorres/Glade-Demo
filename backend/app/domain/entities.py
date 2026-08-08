@@ -189,3 +189,32 @@ class CaseEntity:
     tasks: tuple[CaseTaskEntity, ...] = ()
     timeline: tuple[TimelineEventEntity, ...] = ()
     notes: tuple[CaseNoteEntity, ...] = ()
+
+
+@dataclass(frozen=True)
+class CasePortfolioEntry:
+    """One row of an attorney's triage list.
+
+    Every field is a fact the database can answer directly. There is no
+    completion score here on purpose: that figure comes from
+    `BankruptcyAnalysisService`, and computing it per case to render a list
+    would run the full analysis N times to sort a table. A tool that needs it
+    for one case can ask for that case.
+
+    `has_collection_lawsuit` and `urgent_collection_action` are the two signals
+    that actually distinguish "needs attention today" from "needs attention" —
+    both are recorded facts the client entered, not inferences.
+    """
+
+    case_id: str
+    client_name: str
+    status: CaseStatus
+    owner_user_id: str
+    urgent_collection_action: bool
+    has_collection_lawsuit: bool
+    income_count: int
+    expense_count: int
+    debt_count: int
+    asset_count: int
+    evidence_count: int
+    updated_at: datetime

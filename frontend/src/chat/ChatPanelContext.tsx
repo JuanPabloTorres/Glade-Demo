@@ -2,7 +2,7 @@ import { createContext, type ReactNode, useCallback, useContext, useMemo, useSta
 import { useLocation, useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthContext";
 import { ASSISTANT_CASE_PARAM, assistantUrl } from "../config/routes";
-import type { BankruptcyCase } from "../types/bankruptcy";
+import type { AssistantScope, BankruptcyCase } from "../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
 
 /**
@@ -29,6 +29,29 @@ export interface AssistantRouteContext {
   section: string | null;
 }
 
+/**
+ * Which surface the question is being asked from.
+ *
+ * Derived from the route the user is actually on, not from the words they
+ * typed: the UI already knows whether it is showing a case workspace or the
+ * attorney's queue, and a keyword classifier would get "¿qué le falta a este
+ * caso?" and "¿cuáles necesitan atención?" wrong in both directions.
+ *
+ * Only an attorney standing outside a case is asking a portfolio question — a
+ * client has one case and never has a queue, and anyone inside a case
+ * workspace is asking about that case. The server pairs this with the
+ * authenticated role before it means anything, so a wrong answer here narrows
+ * or widens *nothing*: it can only pick between scopes the session already
+ * allows.
+ */
+function resolveAssistantScope(
+  role: string | undefined,
+  routeContext: AssistantRouteContext,
+): AssistantScope {
+  if (role !== "attorney") return "case";
+  return routeContext.entityType === "case" ? "case" : "portfolio";
+}
+
 interface ChatPanelContextValue {
   /** The case the assistant is scoped to — null if none is resolvable (e.g. an attorney with no case open). */
   caseData: BankruptcyCase | null;
@@ -36,6 +59,8 @@ interface ChatPanelContextValue {
   openAssistant: (prefill?: string) => void;
   /** Where the user currently is, for the assistant to reason about. */
   routeContext: AssistantRouteContext;
+  /** Which authorized scope the server should build for this turn. */
+  assistantScope: AssistantScope;
   status: AssistantStatus;
   /** Opens the global panel in place — no navigation. Optionally seeds the composer. */
   openPanel: (prefill?: string) => void;
@@ -121,9 +146,14 @@ export function ChatPanelProvider({ children }: { children: ReactNode }) {
     };
   }, [location.pathname]);
 
+  const assistantScope = useMemo(
+    () => resolveAssistantScope(user?.role, routeContext),
+    [user?.role, routeContext],
+  );
+
   const value = useMemo(
-    () => ({ caseData, openAssistant, routeContext, status, openPanel, minimizePanel, closePanel, panelPrefill }),
-    [caseData, openAssistant, routeContext, status, openPanel, minimizePanel, closePanel, panelPrefill],
+    () => ({ caseData, openAssistant, routeContext, assistantScope, status, openPanel, minimizePanel, closePanel, panelPrefill }),
+    [caseData, openAssistant, routeContext, assistantScope, status, openPanel, minimizePanel, closePanel, panelPrefill],
   );
 
   return <ChatPanelContext.Provider value={value}>{children}</ChatPanelContext.Provider>;

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import i18n from "i18next";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BankruptcyCase } from "../../types/bankruptcy";
 import {
   ANALYSIS_CASH_FLOW_TURN,
@@ -58,6 +59,10 @@ function renderChat(prefill?: string) {
   return render(<ChatPanel prefill={prefill} />);
 }
 
+function renderEmbeddedChat() {
+  return render(<ChatPanel variant="embedded" />);
+}
+
 /** Type the question and send it, the way a person does. */
 async function ask(question: string) {
   fireEvent.change(screen.getByLabelText("Mensaje"), { target: { value: question } });
@@ -69,7 +74,7 @@ describe("ChatPanel", () => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: { id: "client-1", name: "Elena Rivera", role: "client" } });
     mockUseBankruptcyWorkspace.mockReturnValue({ cases: [makeCase()], updateCase: vi.fn() });
-    mockUseChatPanel.mockReturnValue({ caseData: makeCase() });
+    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "case" });
     mockUseAiHealth.mockReturnValue({
       data: { available: true, model: "llama3.1:8b" },
       loading: false,
@@ -101,6 +106,31 @@ describe("ChatPanel", () => {
 
       expect(screen.getByText("Elena Rivera")).toBeInTheDocument();
       expect(screen.getByText("IA lista (llama3.1:8b)")).toBeInTheDocument();
+    });
+  });
+
+  describe("embedded in a container that already has a header", () => {
+    // AiPanel's sheet header already carries this title and the window
+    // controls. Rendering the page header inside it stacked two headers on a
+    // phone and announced the same title twice.
+    it("does not repeat the surface title the container already provides", () => {
+      renderEmbeddedChat();
+
+      expect(screen.queryByRole("heading", { name: "Asistente de preparación" })).toBeNull();
+    });
+
+    it("still says which case it is scoped to and whether the model is reachable", () => {
+      renderEmbeddedChat();
+
+      expect(screen.getByText("Elena Rivera")).toBeInTheDocument();
+      expect(screen.getByText("IA lista")).toBeInTheDocument();
+    });
+
+    it("keeps the composer, so the sheet is a working conversation and not a preview", () => {
+      renderEmbeddedChat();
+
+      expect(screen.getByLabelText("Mensaje")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Enviar" })).toBeInTheDocument();
     });
 
     it("invites a first question instead of opening on an empty box", () => {
@@ -260,5 +290,142 @@ describe("ChatPanel", () => {
     renderChat("¿Qué documentos me faltan?");
 
     expect(screen.getByLabelText("Mensaje")).toHaveValue("¿Qué documentos me faltan?");
+  });
+});
+
+
+// The scope comes from the surface the user is on, resolved in
+// ChatPanelContext from the route. These pin what ChatPanel does with it: pass
+// it through untouched, and send nothing that could be mistaken for a claim.
+describe("assistant scope", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({ user: { id: "client-1", name: "Elena Rivera", role: "client" } });
+    mockUseBankruptcyWorkspace.mockReturnValue({ cases: [makeCase()], updateCase: vi.fn() });
+    mockUseAiHealth.mockReturnValue({
+      data: { available: true, model: "llama3.1:8b" },
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+    mockGuide.mockResolvedValue(ANALYSIS_CASH_FLOW_TURN);
+  });
+
+  it("sends the case scope a case workspace resolves to", async () => {
+    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "case" });
+    renderChat();
+
+    await ask("¿Cuánto debo?");
+
+    await waitFor(() => expect(mockGuide).toHaveBeenCalled());
+    expect(mockGuide.mock.calls[0]?.[3]).toBe("case");
+  });
+
+  it("sends the portfolio scope the attorney queue resolves to", async () => {
+    mockUseAuth.mockReturnValue({ user: { id: "attorney-1", name: "Andrea", role: "attorney" } });
+    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "portfolio" });
+    renderChat();
+
+    await ask("¿Cuáles de mis casos requieren atención?");
+
+    await waitFor(() => expect(mockGuide).toHaveBeenCalled());
+    expect(mockGuide.mock.calls[0]?.[3]).toBe("portfolio");
+  });
+
+  it("carries no identity and no case identifiers of its own", async () => {
+    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "portfolio" });
+    renderChat();
+
+    await ask("¿Qué me falta?");
+
+    await waitFor(() => expect(mockGuide).toHaveBeenCalled());
+    // A scope is a word. Anything richer would be the frontend asserting what
+    // it may see, which is the server's decision and nobody else's.
+    expect(typeof mockGuide.mock.calls[0]?.[3]).toBe("string");
+    expect(["case", "portfolio"]).toContain(mockGuide.mock.calls[0]?.[3]);
+  });
+});
+
+/**
+ * The same three answer states, in English.
+ *
+ * Every assertion above reads Spanish copy, so all of them would still pass if
+ * the AI states had a Spanish string baked into the component — and an English
+ * user hitting a failed turn would read Spanish at the exact moment something
+ * went wrong. Mixed-language application text is a release blocker, and the
+ * failure path is the least-exercised place for it to hide.
+ *
+ * `i18n:check` guarantees the two bundles have the same keys. It cannot
+ * guarantee the component reads a key at all rather than holding a literal,
+ * which is what these render.
+ */
+describe("the answer states in English", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({ user: { id: "client-1", name: "Elena Rivera", role: "client" } });
+    mockUseBankruptcyWorkspace.mockReturnValue({ cases: [makeCase()], updateCase: vi.fn() });
+    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "case" });
+    mockUseAiHealth.mockReturnValue({
+      data: { available: true, model: "llama3.1:8b" },
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+    await i18n.changeLanguage("en");
+  });
+
+  // Restored so the locale does not leak into whatever file runs next — the
+  // i18next instance is a module singleton shared across the whole run, and
+  // `isolate: false` means it is not rebuilt per file.
+  afterEach(async () => {
+    await i18n.changeLanguage("es");
+  });
+
+  /** Same as `ask`, in the language under test. */
+  async function askInEnglish(question: string) {
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: question } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  }
+
+  it("renders a model answer with English chrome around it", async () => {
+    mockGuide.mockResolvedValue(ANALYSIS_CASH_FLOW_TURN);
+    render(<ChatPanel />);
+
+    await askInEnglish("How much is left each month?");
+
+    await waitFor(() => expect(mockGuide).toHaveBeenCalled());
+    expect(screen.getByRole("heading", { name: "Preparation assistant" })).toBeInTheDocument();
+  });
+
+  it("says an answer is deterministic in English, not in Spanish", async () => {
+    mockGuide.mockResolvedValue(ELIGIBILITY_DEGRADED_TURN);
+    render(<ChatPanel />);
+
+    await askInEnglish("Do I qualify for chapter 7?");
+
+    expect(
+      await screen.findByText(/This answer comes from deterministic guidance/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/guía determinística/)).toBeNull();
+  });
+
+  it("reports a failed turn in English and still resends the same question", async () => {
+    mockGuide
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce(ANALYSIS_CASH_FLOW_TURN);
+    render(<ChatPanel />);
+
+    await askInEnglish("How much do I owe in total?");
+
+    expect(
+      await screen.findByText("The assistant did not respond. Try again in a moment."),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    await waitFor(() => expect(mockGuide).toHaveBeenCalledTimes(2));
+    // Retry resends the question, not the empty composer: the message was
+    // cleared on send, so a retry that read state would send "".
+    expect(mockGuide.mock.calls[1]?.[1]).toBe("How much do I owe in total?");
   });
 });

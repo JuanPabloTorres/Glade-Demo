@@ -14,11 +14,14 @@ what "demo data" means.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import dataclass
+
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.core.security import get_demo_accounts
-from app.domain.value_objects import UserRole
+from app.domain.value_objects import TimelineEventType, UserRole
 from app.repositories.database import get_sessionmaker, init_db
 from app.repositories.orm_models import (
     AIConversationModel,
@@ -34,8 +37,164 @@ from app.repositories.orm_models import (
     CaseTimelineModel,
     UserModel,
 )
+from app.services.documents.chunking import DocumentChunker
+from app.services.documents.index import get_shared_case_document_index
 
-DEMO_CASE_ID = "case-demo-elena-rivera"
+DEMO_CASE_ID = "case-elena-demo"
+"""The demo client's case id, and it must equal the one the UI seeds.
+
+`frontend/src/workspace/BankruptcyWorkspaceContext.tsx` seeds the browser
+workspace with `case-elena-demo` and `case-miguel-demo`. This constant used to
+be `case-demo-elena-rivera`, so the two seeds never referred to the same case:
+the server held a rich fixture — household, incomes, expenses, debts, assets,
+timeline, notes, tasks — that the demo never displayed, while the UI worked
+against a bare snapshot built from `localStorage` on the first `analyze` call.
+
+Aligning it is not cosmetic. `CaseAccessService.authorize_for_submission`
+creates a missing case only for the owning *client*; an attorney gets 404 by
+design. So any case the UI shows to an attorney has to exist server-side
+already, and it can only do that if both seeds agree on the identifier.
+
+The attorney-facing case is `ATTORNEY_REVIEW_CASE_ID` below.
+"""
+
+ATTORNEY_REVIEW_CASE_ID = "case-miguel-demo"
+"""The submitted case the attorney queue opens, and the reason it must exist here.
+
+`CaseAccessService.authorize_for_submission` creates a missing case only for its
+owning *client*; an attorney correctly gets 404 rather than being able to conjure
+one. Demo cases are seeded in the browser, so a case only reaches the database
+once its own client analyzes it — and this case belongs to a client nobody logs
+in as. Without a server-side fixture the attorney opened the case and every
+`analyze` call returned 404, so the review workspace rendered with no cash flow,
+no debt composition and no missing items: the whole professional half of the
+demo, failing silently.
+
+Its owner is a user row, not a demo account. Miguel is the subject of a case the
+attorney reviews, not a persona anyone signs in as, and `cases.owner_user_id`
+has a foreign key to `users.id` — the row exists to satisfy that relationship and
+to keep ownership checks meaningful, not to add a third login.
+
+The figures mirror `frontend/src/workspace/BankruptcyWorkspaceContext.tsx`'s
+`case-miguel-demo`, so the workspace shows the same case whether it is read from
+the browser seed or from here.
+"""
+
+ATTORNEY_REVIEW_CLIENT_ID = "client-miguel-demo"
+
+INCOMPLETE_CASE_ID = "case-rosa-demo"
+INCOMPLETE_CLIENT_ID = "client-rosa-demo"
+"""A third case, deliberately thin.
+
+The portfolio only demonstrates triage if the cases differ in the signals triage
+uses. Elena is collecting information with no urgency; Miguel is submitted with a
+collection lawsuit and an urgent flag; Rosa is barely started with nothing
+attached. A queue of three healthy cases would let a ranking answer look correct
+while ranking on nothing.
+"""
+
+
+@dataclass(frozen=True)
+class DemoEvidence:
+    """One synthetic document: what the evidence list shows, and what it says.
+
+    `text` is not decoration. It is indexed for retrieval, so "¿qué dice mi
+    talón de pago?" has something real to find — without it the demo's document
+    step is a list of filenames the assistant cannot read.
+    """
+
+    filename: str
+    evidence_type: str
+    text: str
+
+
+DEMO_EVIDENCE: tuple[DemoEvidence, ...] = (
+    DemoEvidence(
+        filename="talon-pago-julio.txt",
+        evidence_type="Talones de pago",
+        text=(
+            "Talon de pago quincenal. Patrono: Panaderia Los Robles. "
+            "Salario bruto $1,200.00. Neto $950.00. Periodo: julio 2026."
+        ),
+    ),
+    DemoEvidence(
+        filename="contrato-alquiler.txt",
+        evidence_type="Contrato de alquiler",
+        text=(
+            "Contrato de alquiler residencial en Ponce. Renta mensual $1,100.00. "
+            "Arrendataria: Elena Rivera. Vigencia hasta diciembre 2026."
+        ),
+    ),
+)
+"""Elena has documents *and* an open task asking for more.
+
+Both halves are the point: a case with nothing attached cannot demonstrate the
+evidence step, and a case with everything attached cannot demonstrate the
+product's actual job, which is surfacing what is still missing.
+"""
+
+ATTORNEY_REVIEW_EVIDENCE: tuple[DemoEvidence, ...] = (
+    DemoEvidence(
+        filename="estado-hipoteca.txt",
+        evidence_type="Estados de cuenta",
+        text=(
+            "Estado de cuenta hipotecario. Balance $148,000.00. "
+            "Atrasos acumulados $6,400.00. Propiedad: residencia principal."
+        ),
+    ),
+    DemoEvidence(
+        filename="demanda-cobro.txt",
+        evidence_type="Notificaciones de cobro",
+        text=(
+            "Notificacion de demanda de cobro de dinero. Acreedor: Regional Medical. "
+            "Cantidad reclamada $24,000.00."
+        ),
+    ),
+    DemoEvidence(
+        filename="talon-pago-miguel.txt",
+        evidence_type="Talones de pago",
+        text="Talon de pago mensual. Salario bruto $3,400.00. Neto $2,690.00.",
+    ),
+)
+"""Miguel's case is the one that is ready to review, which needs evidence on file.
+
+Rosa deliberately gets none. That is what separates "waiting on the client" from
+"waiting on me" in the attorney's queue — and with no evidence anywhere, every
+case looked incomplete and the triage tools ranked on nothing.
+"""
+
+
+def _seed_evidence(session: Session, case_id: str, documents: Sequence[DemoEvidence]) -> None:
+    """Record each document and make its text retrievable.
+
+    Two stores, because they answer different questions and the demo needs both:
+    `case_documents` is the durable evidence checklist the UI lists and the
+    portfolio counts, and `CaseDocumentIndex` is the in-process vector index the
+    assistant searches. Writing only the first gives an evidence list the
+    assistant cannot read; writing only the second gives answers about documents
+    that appear nowhere in the case.
+
+    The index is per case by construction, so seeding it here cannot cross cases
+    any more than an upload can.
+    """
+    index = get_shared_case_document_index()
+    # A reset is a reset. The rows were just wiped, so anything still indexed
+    # for this case is from a previous seed — kept, it would both duplicate
+    # every chunk and let the assistant cite documents the evidence list no
+    # longer lists.
+    index.clear_case(case_id)
+    for document in documents:
+        chunks = list(DocumentChunker().chunk(document.text))
+        session.add(
+            CaseDocumentModel(
+                case_id=case_id,
+                filename=document.filename,
+                evidence_type=document.evidence_type,
+                status="received",
+                chunk_count=len(chunks),
+            )
+        )
+        index.add_document(case_id, chunks)
 
 
 def _wipe_all(session: Session) -> None:
@@ -132,20 +291,19 @@ def reset_demo_data(settings: Settings) -> None:
                 delinquent_amount=900,
             )
         )
-        session.add(
-            CaseAssetModel(
-                case_id=case.id,
-                category="vehicle",
-                description="Sedan 2018",
-                estimated_value=9000,
-                loan_balance=7000,
-            )
-        )
+        # Elena records no assets, deliberately, and this is the only section
+        # she is missing. `completion_score` and `missing_items` are computed
+        # from the same eight section booleans, so a complete case answers
+        # "¿Qué me falta?" — the question the product exists for — with nothing.
+        # Kept aligned with the browser seed in
+        # `frontend/src/workspace/BankruptcyWorkspaceContext.tsx`, which is what
+        # the workspace actually renders; the two must tell the same story.
         session.add(
             CaseTaskModel(
                 case_id=case.id, title="Adjuntar talones de pago recientes", status="open"
             )
         )
+        _seed_evidence(session, case.id, DEMO_EVIDENCE)
         session.add(
             CaseTimelineModel(
                 case_id=case.id,
@@ -153,7 +311,144 @@ def reset_demo_data(settings: Settings) -> None:
                 message="Caso de demostracion inicializado.",
             )
         )
+
+        _seed_attorney_review_case(session, settings)
+        _seed_incomplete_case(session)
         session.commit()
+
+
+def _seed_attorney_review_case(session: Session, settings: Settings) -> None:
+    """A second, already-submitted case, so the attorney queue opens something real.
+
+    Kept in its own function rather than inlined: the two fixtures are read for
+    different reasons — one is the client's in-progress workspace, this one is
+    what professional review looks like — and a single 150-line block made it
+    hard to see that they are different stories rather than duplicated data.
+    """
+    session.add(
+        UserModel(
+            id=ATTORNEY_REVIEW_CLIENT_ID,
+            email="miguel@example.demo",
+            name="Miguel Santos",
+            role=UserRole.CLIENT.value,
+            preferred_language="es",
+        )
+    )
+
+    case = CaseModel(
+        id=ATTORNEY_REVIEW_CASE_ID,
+        owner_user_id=ATTORNEY_REVIEW_CLIENT_ID,
+        client_name="Miguel Santos",
+        client_email="miguel@example.demo",
+        client_phone="939-555-0138",
+        preferred_language="es",
+        # Submitted, not collecting: the attorney's queue is a review surface,
+        # and a case still being filled in would not belong in it.
+        status="submitted",
+        client_goal="Revisar atrasos de vivienda y deudas medicas antes de una consulta.",
+    )
+    session.add(case)
+    session.flush()
+
+    session.add(
+        CaseHouseholdModel(
+            case_id=case.id,
+            marital_status="married",
+            household_size=4,
+            dependents=2,
+            housing_status="own",
+            municipality="Caguas",
+            # The one fact in this fixture that drives an urgency signal, and the
+            # reason this case is worth putting in front of an attorney at all.
+            urgent_collection_action=True,
+        )
+    )
+    session.add(
+        CaseIncomeModel(
+            case_id=case.id,
+            category="wages",
+            source="Island Manufacturing",
+            gross_amount=3400,
+            net_amount=2750,
+            frequency="monthly",
+        )
+    )
+    for category, description, amount in (
+        ("housing", "Hipoteca", 1250),
+        ("food", "Alimentos", 850),
+        ("transportation", "Vehiculos y gasolina", 760),
+        ("medical", "Medicinas y copagos", 240),
+    ):
+        session.add(
+            CaseExpenseModel(
+                case_id=case.id,
+                category=category,
+                description=description,
+                monthly_amount=amount,
+                essential=True,
+            )
+        )
+
+    session.add(
+        CaseDebtModel(
+            case_id=case.id,
+            creditor="Example Mortgage",
+            debt_type="secured",
+            description="Hipoteca residencial",
+            balance=148000,
+            monthly_payment=1250,
+            delinquent_amount=7500,
+            collateral="Residencia principal",
+            collection_lawsuit=True,
+        )
+    )
+    session.add(
+        CaseDebtModel(
+            case_id=case.id,
+            creditor="Regional Medical",
+            debt_type="unsecured",
+            description="Servicios medicos",
+            balance=24000,
+            monthly_payment=200,
+        )
+    )
+    session.add(
+        CaseAssetModel(
+            case_id=case.id,
+            category="real-estate",
+            description="Residencia principal",
+            estimated_value=165000,
+            loan_balance=148000,
+            jointly_owned=True,
+        )
+    )
+    session.add(
+        CaseTaskModel(
+            case_id=case.id,
+            title="Revisar atrasos hipotecarios y demanda de cobro",
+            status="open",
+        )
+    )
+    session.add(
+        CaseNoteModel(
+            case_id=case.id,
+            author_user_id=settings.demo_attorney_id,
+            body="Confirmar el estado de la demanda de cobro antes de la consulta.",
+        )
+    )
+    _seed_evidence(session, case.id, ATTORNEY_REVIEW_EVIDENCE)
+    # `TimelineEventType` is the vocabulary — there is no "case_submitted"
+    # member, and inventing one as a bare string is the magic-string pattern the
+    # repository forbids. Submission is a status change, so it is recorded as an
+    # update; adding a member to the enum would be a domain change, not a seed
+    # fixture's business.
+    session.add(
+        CaseTimelineModel(
+            case_id=case.id,
+            event_type=TimelineEventType.CASE_UPDATED.value,
+            message="Expediente enviado para revision del abogado.",
+        )
+    )
 
 
 def seed_demo_data_if_absent(settings: Settings) -> bool:
@@ -187,3 +482,50 @@ def seed_demo_data_if_absent(settings: Settings) -> bool:
         return False
     reset_demo_data(settings)
     return True
+
+
+def _seed_incomplete_case(session: Session) -> None:
+    """The case that needs chasing rather than reviewing.
+
+    Household only: no income, no expenses, no debts, no assets, no evidence.
+    That is the point — an attorney asking which cases need attention should be
+    able to separate "waiting on me" from "waiting on the client", and this is
+    the second kind.
+    """
+    session.add(
+        UserModel(
+            id=INCOMPLETE_CLIENT_ID,
+            email="rosa@example.demo",
+            name="Rosa Mendez",
+            role=UserRole.CLIENT.value,
+            preferred_language="es",
+        )
+    )
+    case = CaseModel(
+        id=INCOMPLETE_CASE_ID,
+        owner_user_id=INCOMPLETE_CLIENT_ID,
+        client_name="Rosa Mendez",
+        client_email="rosa@example.demo",
+        preferred_language="es",
+        status="collecting_information",
+        client_goal="Entender mis opciones antes de decidir.",
+    )
+    session.add(case)
+    session.flush()
+    session.add(
+        CaseHouseholdModel(
+            case_id=case.id,
+            marital_status="single",
+            household_size=1,
+            dependents=0,
+            housing_status="rent",
+            municipality="Bayamon",
+        )
+    )
+    session.add(
+        CaseTimelineModel(
+            case_id=case.id,
+            event_type=TimelineEventType.CASE_CREATED.value,
+            message="Expediente iniciado; falta informacion financiera.",
+        )
+    )

@@ -28,6 +28,41 @@ AGENT_PROVIDERS: frozenset[str] = frozenset({OPENAI, OLLAMA})
 `transformers`) never reaches this factory — `AgentRuntime` answers
 deterministically instead."""
 
+STRUCTURED_OUTPUT_PROVIDERS: frozenset[str] = frozenset({OPENAI})
+"""Providers that can be *forced* to return the `AgentAnswer` schema.
+
+`AgentRuntime` asks Strands for `structured_output_model=AgentAnswer`, which the
+SDK implements by constraining tool choice. That constraint is not universally
+supported, and a provider that ignores it does not fail — it answers in prose,
+the structured output is absent, and the turn degrades. Measured before this
+list existed: every Ollama turn returned `degraded=True` regardless of model
+(`llama3.1:8b` 23.8s, `llama3.1:8b-16k` 9.4s, `llama3:latest` 1.1s), and Strands
+warned `A ToolChoice was provided to this provider but is not supported and will
+be ignored`.
+
+The SDK is explicit about which is which: `strands/models/ollama.py` calls
+`warn_on_tool_choice_not_supported(tool_choice)`, while
+`strands/models/openai.py` implements `_format_request_tool_choice`. So this is
+a property of the provider adapter, not of the model behind it, and no amount of
+prompting or a larger local model changes it.
+
+`OPENAI` covers every OpenAI-compatible endpoint, including Groq — see
+`_create_openai_compatible`, where `OPENAI_BASE_URL` selects the Chat
+Completions protocol those providers actually expose.
+
+See `docs/audits/STRANDS-ACCEPTANCE-AUDIT.md` for the full measurement.
+"""
+
+
+def supports_forced_structured_output(provider: str) -> bool:
+    """Whether `provider` can honour the contract `AgentRuntime` depends on.
+
+    Checked *before* a model is constructed so an incompatible configuration
+    degrades on the spot with a diagnostic, instead of after a model round trip
+    that was always going to be discarded.
+    """
+    return provider.strip().lower() in STRUCTURED_OUTPUT_PROVIDERS
+
 
 class UnsupportedAIProviderError(ValueError):
     pass

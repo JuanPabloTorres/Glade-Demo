@@ -23,9 +23,13 @@ coverage.xml
 htmlcov/
 .env
 
+# Tooling caches
+frontend/.eslintcache
+
 # Browser test artifacts
 frontend/playwright-report/
 frontend/test-results/
+test-results/
 backend/matter_ready_e2e.db
 frontend/.flowbite-react/
 frontend/.tmp-screenshots/

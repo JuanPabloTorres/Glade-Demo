@@ -1,0 +1,7 @@
+{
+  "signal_score": 1.0,
+  "provider": "rule_based",
+  "scenarios": 14,
+  "measured_on": "4.8.0",
+  "note": "Signal graders only. Blocking graders are pass/fail and are not scored. Three scenarios are recorded as known gaps in scenarios.py and are excluded from the enforced gate; see the change fragment for why."
+}

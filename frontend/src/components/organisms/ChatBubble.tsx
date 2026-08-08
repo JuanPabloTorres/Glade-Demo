@@ -1,9 +1,9 @@
 import { Avatar } from "flowbite-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatTime } from "../../i18n/format";
-import { AppIcon } from "../atoms/AppIcon";
+import { IconButton } from "../ui/IconButton";
 import { AppTooltip } from "../overlays/AppTooltip";
 import type { ChatMessage } from "../../types/bankruptcy";
 
@@ -39,12 +39,27 @@ export function ChatBubble({ message }: ChatBubbleProps) {
   const { locale } = useLanguage();
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  // The "copied" confirmation reverts on a timer. Held in a ref and cancelled
+  // on unmount because otherwise the callback runs against a component that no
+  // longer exists: React warns in the browser, and under test the timer fires
+  // after the environment is torn down, which Vitest reports as an unhandled
+  // `ReferenceError: window is not defined` and exits non-zero. Cancelling
+  // before re-scheduling also keeps rapid repeat clicks from stacking timers
+  // that each clear the flag at a different moment.
+  const revertTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (revertTimer.current) clearTimeout(revertTimer.current);
+    };
+  }, []);
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      if (revertTimer.current) clearTimeout(revertTimer.current);
+      revertTimer.current = setTimeout(() => setCopied(false), 1500);
     } catch {
       // Clipboard access can be denied by the browser; failing silently is
       // acceptable here — the message text remains visible and selectable.
@@ -77,14 +92,16 @@ export function ChatBubble({ message }: ChatBubbleProps) {
       </div>
 
       <AppTooltip content={copied ? t("chat.copied") : t("chat.copy")}>
-        <button
-          type="button"
+        <IconButton
           onClick={copy}
-          aria-label={t("chat.copyToClipboard")}
-          className="box-border inline-flex items-center self-center h-9 w-9 justify-center rounded-base border border-transparent bg-neutral-primary text-body hover:bg-neutral-tertiary hover:text-heading focus:outline-none focus:ring-4 focus:ring-neutral-tertiary"
-        >
-          <AppIcon name={copied ? "check" : "document"} size={16} />
-        </button>
+          icon={copied ? "check" : "document"}
+          label={t("chat.copyToClipboard")}
+          size="sm"
+          // Placement and ground, which are this row's business: the control is
+          // centred against a bubble whose height it does not set, and it needs
+          // its own background to stay visible on top of one.
+          className="self-center bg-neutral-primary"
+        />
       </AppTooltip>
     </div>
   );

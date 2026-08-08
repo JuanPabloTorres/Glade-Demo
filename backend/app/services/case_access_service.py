@@ -40,6 +40,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 
+from app.domain.entities import CasePortfolioEntry
 from app.repositories.case_repository import CaseRepositoryDep, SqlAlchemyCaseRepository
 from app.schemas.auth import AuthUserDto
 from app.schemas.bankruptcy import BankruptcyCaseDto
@@ -84,6 +85,31 @@ class CaseAccessService:
 
         self._ensure_role_can_access(existing_owner, current_user)
         return existing_owner
+
+    def attorney_portfolio(self, current_user: AuthUserDto) -> list[CasePortfolioEntry]:
+        """The cases this identity may triage.
+
+        Authorization happens here, before anything reaches an agent. Nothing
+        downstream — no tool, no prompt, no model — ever names a case id: it
+        receives a collection that was already filtered, which is the only shape
+        that cannot be talked around.
+
+        A client is refused rather than handed their own case. A portfolio is an
+        attorney capability, and returning a one-item list for a client would
+        make a role check look like a filter, so a wiring mistake would read as
+        working software.
+
+        Today every persisted case is visible to any attorney, which is the demo
+        (one attorney, a shared queue) and is exactly what `_ensure_role_can_access`
+        already grants case-by-case. When per-attorney assignment exists, this is
+        the one method that changes, and every caller inherits it.
+        """
+        if current_user.role != "attorney":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only an attorney can review a case portfolio.",
+            )
+        return self._cases.list_portfolio()
 
     def case_exists(self, case_id: str) -> bool:
         return self._cases.get_owner_user_id(case_id) is not None
