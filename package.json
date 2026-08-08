@@ -1,7 +1,7 @@
 {
   "name": "matter-ready-demo",
   "private": true,
-  "version": "4.12.0",
+  "version": "4.13.0",
   "engines": {
     "node": "22.x"
   },
@@ -26,6 +26,8 @@
     "agent:worktree": "node scripts/agent/worktree.mjs",
     "agent:changeset": "node scripts/agent/changeset.mjs",
     "agent:validate": "node scripts/agent/verify.mjs governance",
-    "agent:verify": "node scripts/agent/verify.mjs"
+    "agent:verify": "node scripts/agent/verify.mjs",
+    "release:verify": "node scripts/agent/release-verify.mjs",
+    "release:verify:quick": "node scripts/agent/release-verify.mjs --quick"
   }
 }

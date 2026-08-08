@@ -1,3 +1,49 @@
+# FreshStart 4.13.0
+
+Two release gates reported green while being wrong, and neither is catchable by
+reading the output more carefully.
+
+A suite passed its summary and failed its process: Vitest printed
+*Tests 143 passed (143)* and exited 1, because a `TypeError` reached its
+unhandled-error channel from a click handler — a failure that fails a *run*
+without failing a *named test*. And a run measured another branch:
+`reuseExistingServer` accepted a sibling worktree's dev server on the port
+Playwright picked, so three minutes of assertions described a different tree.
+The wasted run was the cheap part. A *green* run against the wrong tree is the
+expensive one, and nothing in the output would have said so.
+
+`npm run release:verify` now judges every gate by its exit code and nothing
+else. It parses no output, counts no tests, and the word "passed" does not
+appear in it: if a tool can print a perfect summary and fail, only the status
+tells them apart. Every gate runs even after one fails, because "which gate
+failed" is the first question and stopping early hides the rest.
+
+The rule was tested against the failure it exists for rather than assumed — a
+command that prints `Tests 143 passed (143)` and exits 1 is recorded failing.
+
+## Release regression runs on its own servers
+
+`reuseExistingServer` is off, ports are asked of the OS instead of guessed —
+eight checkouts of this repository can be live at once — the API gets its own
+database file per port, and a global setup refuses to continue unless
+`/api/v1/health` reports this checkout's version. That refusal was tested by
+making it fire.
+
+One identity check did not survive contact: fetching `/src/config/version.ts`
+and looking for the substituted `__APP_VERSION__` fails against a correct build,
+because Vite serves that module in dev with the token unsubstituted. It was
+deleted rather than softened into a warning — a guard that cries wolf is worse
+than no guard.
+
+## Locale is declared, not assumed
+
+Playwright no longer forces `es-PR` on every run. That global made Spanish the
+invisible default and left the English first-visit path untested, which is
+exactly how an English interface shipped around a Spanish case file. Six suites
+that assert Spanish now say so themselves, and first-visit acceptance runs in
+both directions with no stored preference — checking that the interface *and*
+the seeded case file resolve through the same rule.
+
 # FreshStart 4.12.0
 
 The assistant answered the sentence, not the question — and the cause was not

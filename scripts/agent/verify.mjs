@@ -3,6 +3,12 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadActiveTask, root } from "./common.mjs";
 
+/**
+ * Per-change verification. For a *release* gate use
+ * `npm run release:verify` — it runs every gate rather than stopping at the
+ * first failure, isolates Playwright from other checkouts' servers, and reports
+ * each gate's real exit code.
+ */
 const mode = process.argv[2] || "governance";
 function step(command, args, cwd = root) {
   console.log(`> ${command} ${args.join(" ")}`);
