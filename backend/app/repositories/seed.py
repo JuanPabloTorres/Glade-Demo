@@ -291,15 +291,13 @@ def reset_demo_data(settings: Settings) -> None:
                 delinquent_amount=900,
             )
         )
-        session.add(
-            CaseAssetModel(
-                case_id=case.id,
-                category="vehicle",
-                description="Sedan 2018",
-                estimated_value=9000,
-                loan_balance=7000,
-            )
-        )
+        # Elena records no assets, deliberately, and this is the only section
+        # she is missing. `completion_score` and `missing_items` are computed
+        # from the same eight section booleans, so a complete case answers
+        # "¿Qué me falta?" — the question the product exists for — with nothing.
+        # Kept aligned with the browser seed in
+        # `frontend/src/workspace/BankruptcyWorkspaceContext.tsx`, which is what
+        # the workspace actually renders; the two must tell the same story.
         session.add(
             CaseTaskModel(
                 case_id=case.id, title="Adjuntar talones de pago recientes", status="open"

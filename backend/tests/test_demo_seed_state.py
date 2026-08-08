@@ -54,6 +54,31 @@ class TestTheClientCaseIsDemonstrable:
     def test_it_opens_with_evidence_on_file(self) -> None:
         assert _document_count(DEMO_CASE_ID) >= 2
 
+    def test_the_assistant_has_a_real_gap_to_report(self) -> None:
+        """"¿Qué me falta?" must have an answer.
+
+        `completion_score` and `missing_items` are computed from the same eight
+        section booleans (`BankruptcyAnalysisService`), so a case with every
+        section filled reports 100% and an empty missing list — and the flagship
+        client question comes back with nothing to say.
+
+        Elena is missing assets and only assets. Asserted here as the shape of
+        the fixture rather than by running the analysis, because that is what
+        this file is for and what a future seed edit would break: one empty
+        section, and the rest populated so the gap is the only one.
+        """
+        with get_sessionmaker()() as session:
+            entries = CaseAccessService(SqlAlchemyCaseRepository(session)).attorney_portfolio(
+                ATTORNEY
+            )
+        elena = next(entry for entry in entries if entry.case_id == DEMO_CASE_ID)
+
+        assert elena.asset_count == 0, "the client case has no gap for the assistant to find"
+        assert elena.income_count > 0
+        assert elena.expense_count > 0
+        assert elena.debt_count > 0
+        assert elena.evidence_count > 0
+
     def test_it_still_has_something_outstanding(self) -> None:
         """A complete case cannot demonstrate the product's actual job.
 

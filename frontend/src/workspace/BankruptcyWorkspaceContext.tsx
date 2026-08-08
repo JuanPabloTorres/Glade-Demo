@@ -149,17 +149,21 @@ function seedState(): WorkspaceState {
             evidenceIds: [],
           },
         ],
-        assets: [
-          {
-            id: "asset-elena-1",
-            category: "vehicle",
-            description: "Sedán 2018",
-            estimatedValue: 9000,
-            loanBalance: 7000,
-            jointlyOwned: false,
-            evidenceIds: [],
-          },
-        ],
+        // Deliberately empty, and the only section of Elena's that is.
+        //
+        // `completion_score` and `missing_items` are computed from the same
+        // eight section booleans (`BankruptcyAnalysisService`), so a case with
+        // every section filled reports 100% and an empty missing list — and
+        // "¿Qué me falta?", which is the question this product exists to
+        // answer, comes back with nothing to say. The demo needs one real gap
+        // for the assistant to find.
+        //
+        // Assets is the realistic one to leave open: people record income,
+        // expenses and debts first and get to what they own last. It is also
+        // the section the attorney's triage does not read — `list_incomplete_
+        // cases` looks at income, debts and evidence — so the queue keeps its
+        // three-way split while the client sees something outstanding.
+        assets: [],
         evidence: [
           {
             id: "evidence-elena-1",

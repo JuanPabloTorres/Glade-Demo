@@ -234,6 +234,80 @@ class TestClientEnglish:
         assert all("Answer in: en" in turn.prompt for turn in turns)
 
 
+class TestATopicChange:
+    """Continuity must not become stickiness.
+
+    A fake provider takes the tools it is scripted to take, so nothing here can
+    show that a *real* model changes subject when asked to. What it can show is
+    the half that is ours: that the prompt keeps the earlier turns available
+    while presenting only the new question as the thing being asked. If history
+    were appended after the message, or run together with it unlabelled, a model
+    answering the earlier question would be a reasonable reading of what we
+    sent — and that would be our defect, not its.
+
+    The deterministic path's own topic switching is real logic and is tested
+    separately (`test_ai_providers.py`: a keyword match in the current message
+    always beats inheritance, and inheritance requires an explicit marker).
+    """
+
+    def test_the_new_question_is_the_only_one_presented_as_current(
+        self, client: TestClient, agentic: Any
+    ) -> None:
+        first, second = converse(
+            client,
+            agentic,
+            role="client",
+            case_id=DEMO_CASE_ID,
+            locale="es-PR",
+            scope="case",
+            turns=[
+                ("¿Cuánto debo?", ["analysis_agent", "get_financial_snapshot"], "Debes $24,500."),
+                (
+                    "¿Qué documentos tengo?",
+                    ["documents_agent", "get_pending_documents"],
+                    "Tienes dos documentos en el expediente.",
+                ),
+            ],
+        )
+
+        _assert_agentic(first, tool="get_financial_snapshot", language="es")
+        _assert_agentic(second, tool="get_pending_documents", language="es")
+
+        prompt = second.prompt
+        boundary = prompt.index("Their message:")
+        # The earlier question is available, and it is on the history side of
+        # the boundary. The new one is on the current side, alone.
+        assert prompt.index("¿Cuánto debo?") < boundary
+        assert "¿Qué documentos tengo?" in prompt[boundary:]
+        assert "¿Cuánto debo?" not in prompt[boundary:]
+
+    def test_history_does_not_narrow_the_tools_offered(
+        self, client: TestClient, agentic: Any
+    ) -> None:
+        """A second turn must still be able to reach a different specialist.
+
+        The orchestrator is rebuilt per request, so this pins that a stored
+        conversation does not survive as a constraint on what the next turn may
+        do — the failure mode where "we were talking about debts" quietly
+        becomes "you may only talk about debts".
+        """
+        _, second = converse(
+            client,
+            agentic,
+            role="client",
+            case_id=DEMO_CASE_ID,
+            locale="es-PR",
+            scope="case",
+            turns=[
+                ("¿Cuánto debo?", ["analysis_agent", "get_financial_snapshot"], "Debes $24,500."),
+                ("¿Qué documentos tengo?", ["documents_agent", "get_pending_documents"], "Dos."),
+            ],
+        )
+
+        assert "documents_agent" in second.model.offered_tools[0]
+        assert "analysis_agent" in second.model.offered_tools[0]
+
+
 class TestAttorneyPortfolio:
     """Which cases need attention? → Why the first one?
 

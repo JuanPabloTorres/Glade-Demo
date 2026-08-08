@@ -29,6 +29,7 @@ from fastapi.testclient import TestClient
 from app.ai.model_factory import OPENAI, ModelFactory
 from app.core.config import get_settings
 from app.repositories.seed import ATTORNEY_REVIEW_CASE_ID, DEMO_CASE_ID, reset_demo_data
+from app.services.documents.index import get_shared_case_document_index
 from tests.support.fake_model import FakeProviderModel
 
 # Deliberately unmistakable strings. The seeded cases carry realistic figures,
@@ -146,6 +147,36 @@ class TestTheHappyPath:
 
         assert body["degraded"] is False
         assert "ZQ-ELENA-77" not in model.transcript
+
+
+class TestARetrievalMiss:
+    def test_a_case_with_no_documents_still_gets_a_real_answer(
+        self, attorney_client: TestClient, agentic: Any
+    ) -> None:
+        """Nothing to retrieve is a normal state, not a failure.
+
+        Rosa's case is seeded deliberately empty — it is the "waiting on the
+        client" case in the attorney's queue, so asking about its documents is
+        something the demo actually does. The search tool must run and come back
+        with nothing, and the turn must still be agentic: an empty index that
+        degraded the answer would make the emptiest cases the ones the assistant
+        is least able to talk about, which is backwards.
+        """
+        from app.repositories.seed import INCOMPLETE_CASE_ID
+
+        model = agentic(["documents_agent", "search_case_documents"])
+        body = _ask(
+            attorney_client,
+            INCOMPLETE_CASE_ID,
+            "¿Qué documentos hay en este caso?",
+            role="attorney",
+        )
+
+        assert body["degraded"] is False
+        assert model.data_tools_invoked == ["search_case_documents"]
+        # The tool ran and found nothing — not "the tool was skipped".
+        assert get_shared_case_document_index().search(INCOMPLETE_CASE_ID, "documentos") == []
+        assert "ZQ-" not in model.transcript
 
 
 class TestOneCaseNeverReadsAnother:
