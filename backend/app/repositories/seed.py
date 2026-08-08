@@ -35,7 +35,25 @@ from app.repositories.orm_models import (
     UserModel,
 )
 
-DEMO_CASE_ID = "case-demo-elena-rivera"
+DEMO_CASE_ID = "case-elena-demo"
+"""The demo client's case id, and it must equal the one the UI seeds.
+
+`frontend/src/workspace/BankruptcyWorkspaceContext.tsx` seeds the browser
+workspace with `case-elena-demo` and `case-miguel-demo`. This constant used to
+be `case-demo-elena-rivera`, so the two seeds never referred to the same case:
+the server held a rich fixture — household, incomes, expenses, debts, assets,
+timeline, notes, tasks — that the demo never displayed, while the UI worked
+against a bare snapshot built from `localStorage` on the first `analyze` call.
+
+Aligning it is not cosmetic. `CaseAccessService.authorize_for_submission`
+creates a missing case only for the owning *client*; an attorney gets 404 by
+design. So any case the UI shows to an attorney has to exist server-side
+already, and it can only do that if both seeds agree on the identifier.
+
+Known remaining gap: `case-miguel-demo`, the case the attorney queue opens, has
+no server-side fixture at all, so `POST /api/v1/bankruptcy/analyze` still
+returns 404 for it. See `changes/demo-close-integration.md`.
+"""
 
 
 def _wipe_all(session: Session) -> None:

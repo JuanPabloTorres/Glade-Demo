@@ -1,7 +1,15 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { BankruptcyCase } from "../../types/bankruptcy";
+import type { BankruptcyCase, EntrySubmission } from "../../types/bankruptcy";
 import { useCaseEntries } from "./useCaseEntries";
+
+/** The five case fields `addEntry`/`removeEntry` write into. */
+type EntryListKey = "incomes" | "expenses" | "debts" | "assets" | "evidence";
+
+/** Ids of one entry list, without needing the list's element type at the call site. */
+function ids(caseData: BankruptcyCase, list: EntryListKey): string[] {
+  return caseData[list].map((item) => item.id);
+}
 
 const mockUpdateCase = vi.fn();
 vi.mock("../../workspace/BankruptcyWorkspaceContext", () => ({
@@ -54,23 +62,61 @@ describe("useCaseEntries", () => {
     // The kind-to-list mapping used to exist twice in the page — an if-chain in
     // addEntry and five ternaries in removeEntry — so a new kind had two places
     // to update and only one would fail loudly. These pin every branch.
-    it.each([
-      ["income", "incomes"],
-      ["expense", "expenses"],
-      ["debt", "debts"],
-      ["asset", "assets"],
-      ["evidence", "evidence"],
-    ] as const)("puts a new %s in the right list", (kind, list) => {
-      const before = baseCase();
-      entries().addEntry({ kind, value: { ...(before[list][0] as never), id: "new-1" } } as never);
+    //
+    // Each submission is written out with its real type rather than derived
+    // from the case by index. The derived form needed an `as never` cast, which
+    // silences exactly the mismatch these tests exist to catch — and it did not
+    // typecheck under `tsc -b` at all, only under vitest, which does not
+    // typecheck. That is how a green test run shipped a broken build.
+    const SUBMISSIONS: Array<{ submission: EntrySubmission; list: EntryListKey }> = [
+      {
+        list: "incomes",
+        submission: {
+          kind: "income",
+          value: { id: "new-1", category: "wages", source: "B", grossAmount: 200, frequency: "monthly", evidenceIds: [] },
+        },
+      },
+      {
+        list: "expenses",
+        submission: {
+          kind: "expense",
+          value: { id: "new-1", category: "food", description: "Alimentos", monthlyAmount: 60, essential: true, evidenceIds: [] },
+        },
+      },
+      {
+        list: "debts",
+        submission: {
+          kind: "debt",
+          value: { id: "new-1", creditor: "E", debtType: "secured", description: "F", balance: 20, monthlyPayment: 2, delinquentAmount: 0, collectionLawsuit: false, evidenceIds: [] },
+        },
+      },
+      {
+        list: "assets",
+        submission: {
+          kind: "asset",
+          value: { id: "new-1", category: "bank", description: "Cuenta", estimatedValue: 5, loanBalance: 0, jointlyOwned: false, evidenceIds: [] },
+        },
+      },
+      {
+        list: "evidence",
+        submission: {
+          kind: "evidence",
+          value: { id: "new-1", evidenceType: "bank-statement", name: "b.pdf", status: "received", relatedEntryIds: [] },
+        },
+      },
+    ];
 
-      const next = applyLastUpdate();
-      expect(next[list].map((item) => item.id)).toEqual([before[list][0].id, "new-1"]);
+    it.each(SUBMISSIONS)("puts a new $submission.kind in the right list", ({ submission, list }) => {
+      const existing = ids(baseCase(), list);
+      entries().addEntry(submission);
+
+      expect(ids(applyLastUpdate(), list)).toEqual([...existing, "new-1"]);
     });
 
     it("leaves the other lists untouched", () => {
-      const before = baseCase();
-      entries().addEntry({ kind: "debt", value: { ...before.debts[0], id: "debt-2" } } as never);
+      const debtSubmission = SUBMISSIONS.find((entry) => entry.list === "debts");
+      expect(debtSubmission).toBeDefined();
+      entries().addEntry(debtSubmission!.submission);
 
       const next = applyLastUpdate();
       expect(next.incomes).toHaveLength(1);

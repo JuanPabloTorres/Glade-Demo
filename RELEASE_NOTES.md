@@ -1,3 +1,64 @@
+# FreshStart 4.9.0
+
+Consolidates seven delivered branches into one verified state and drives both
+product journeys in a browser. No contract change.
+
+## The development loop stopped costing two minutes
+
+Vitest spent 52 of its 56 seconds on scaffolding: the Tailwind and Flowbite
+plugins were loaded under test, where nothing reads their output, and each test
+file built its own jsdom. The config is now a function of `mode` and reuses one
+environment per worker. Tests 56.3s → 7.6s, lint 33.3s → 2.9s warm, the full
+local loop ~2min → 26s.
+
+CI ran five jobs as a serial chain although no job consumes another's artifacts.
+The `needs:` edges are gone, so the critical path is the slowest single job.
+
+`backend/uv.lock` was out of sync with `pyproject.toml`, so `uv lock --check`
+failed and every pull request inherited a red backend job regardless of content.
+
+## The assistant now recognizes the two questions the product exists for
+
+`RuleBasedProvider` reached its only review-raising branch by testing for the
+literal tokens "capítulo 7" / "chapter 7". Six formulations of *"do I qualify"*
+and *"should I file"*, in both languages, fell through to a generic next-step
+answer about uploading documents, with `requires_attorney_review` left false.
+
+The guardrails could not have caught it: they inspect the answer, and the answer
+made no prohibited claim — it was simply about something else. The reply now
+declines explicitly, names what the determination depends on, quotes the case's
+own figures and raises the review flag at the source.
+
+## Assistant quality is measurable
+
+`backend/tests/evals` adds a golden dataset: 14 scenarios over 4 synthetic case
+profiles, run through the production stack unstubbed, with seven blocking
+graders and three scored against a committed baseline. It runs in 0.45s with no
+model, and it is what found the defect above.
+
+## The case timeline is bilingual, including its history
+
+Timeline entries were generated as Spanish prose and persisted to
+`localStorage`, so an English session read the whole history in Spanish and
+switching language changed nothing. Entries now carry locale keys and are
+translated at render, so the switch re-labels entries that already existed.
+
+## Mobile
+
+The login form is above the fold on a phone — the first field moved from y=936
+to y=528 at 320px and from y=884 to y=504 at 390px. The assistant sheet shows
+one header instead of two stacked ones announcing the same title twice.
+
+## Known limitation
+
+Opening a case as the attorney returns 404 from `bankruptcy.analyze`, so the
+review workspace renders without figures. The demo cases are seeded in the
+browser and a case only reaches the database once its owning client analyzes it;
+`case-miguel-demo` belongs to a client nobody logs in as. `DEMO_CASE_ID` is
+aligned to `case-elena-demo` so the server fixture is the case the UI shows, but
+the attorney's case still needs its own server-side fixture. See
+`changes/demo-close-integration.md`.
+
 # FreshStart 4.8.0
 
 Integrates `refactor/ui-global-audit`: one overlay layer system, one action control, one language switcher. No contract, route or business-rule change.
