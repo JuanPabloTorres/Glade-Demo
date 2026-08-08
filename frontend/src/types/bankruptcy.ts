@@ -21,6 +21,18 @@ export type DebtType = "secured" | "priority" | "unsecured";
 export type EvidenceStatus = "missing" | "requested" | "received" | "reviewed";
 export type EntryKind = "income" | "expense" | "debt" | "asset" | "evidence";
 
+/**
+ * Which surface the assistant was asked from.
+ *
+ * A hint, never a permission. The server pairs it with the authenticated role
+ * before it means anything: `portfolio` from a client session is ignored, and
+ * the case collection it selects is always resolved server-side from the
+ * session. Sending it saves the backend from classifying every sentence, which
+ * would get "¿qué le falta a este caso?" and "¿cuáles necesitan atención?"
+ * wrong in both directions.
+ */
+export type AssistantScope = "case" | "portfolio";
+
 export interface Household {
   maritalStatus?: string;
   householdSize: number;

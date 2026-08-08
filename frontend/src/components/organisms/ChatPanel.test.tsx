@@ -73,7 +73,7 @@ describe("ChatPanel", () => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: { id: "client-1", name: "Elena Rivera", role: "client" } });
     mockUseBankruptcyWorkspace.mockReturnValue({ cases: [makeCase()], updateCase: vi.fn() });
-    mockUseChatPanel.mockReturnValue({ caseData: makeCase() });
+    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "case" });
     mockUseAiHealth.mockReturnValue({
       data: { available: true, model: "llama3.1:8b" },
       loading: false,
@@ -289,5 +289,58 @@ describe("ChatPanel", () => {
     renderChat("¿Qué documentos me faltan?");
 
     expect(screen.getByLabelText("Mensaje")).toHaveValue("¿Qué documentos me faltan?");
+  });
+});
+
+
+// The scope comes from the surface the user is on, resolved in
+// ChatPanelContext from the route. These pin what ChatPanel does with it: pass
+// it through untouched, and send nothing that could be mistaken for a claim.
+describe("assistant scope", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({ user: { id: "client-1", name: "Elena Rivera", role: "client" } });
+    mockUseBankruptcyWorkspace.mockReturnValue({ cases: [makeCase()], updateCase: vi.fn() });
+    mockUseAiHealth.mockReturnValue({
+      data: { available: true, model: "llama3.1:8b" },
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+    mockGuide.mockResolvedValue(ANALYSIS_CASH_FLOW_TURN);
+  });
+
+  it("sends the case scope a case workspace resolves to", async () => {
+    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "case" });
+    renderChat();
+
+    await ask("¿Cuánto debo?");
+
+    await waitFor(() => expect(mockGuide).toHaveBeenCalled());
+    expect(mockGuide.mock.calls[0][3]).toBe("case");
+  });
+
+  it("sends the portfolio scope the attorney queue resolves to", async () => {
+    mockUseAuth.mockReturnValue({ user: { id: "attorney-1", name: "Andrea", role: "attorney" } });
+    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "portfolio" });
+    renderChat();
+
+    await ask("¿Cuáles de mis casos requieren atención?");
+
+    await waitFor(() => expect(mockGuide).toHaveBeenCalled());
+    expect(mockGuide.mock.calls[0][3]).toBe("portfolio");
+  });
+
+  it("carries no identity and no case identifiers of its own", async () => {
+    mockUseChatPanel.mockReturnValue({ caseData: makeCase(), assistantScope: "portfolio" });
+    renderChat();
+
+    await ask("¿Qué me falta?");
+
+    await waitFor(() => expect(mockGuide).toHaveBeenCalled());
+    // A scope is a word. Anything richer would be the frontend asserting what
+    // it may see, which is the server's decision and nobody else's.
+    expect(typeof mockGuide.mock.calls[0][3]).toBe("string");
+    expect(["case", "portfolio"]).toContain(mockGuide.mock.calls[0][3]);
   });
 });

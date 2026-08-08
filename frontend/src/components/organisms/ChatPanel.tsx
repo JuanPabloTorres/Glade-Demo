@@ -67,7 +67,7 @@ export function ChatPanel({ prefill = "", routeContext = null, variant = "page" 
   const { user } = useAuth();
   const workspace = useBankruptcyWorkspace();
   const navigate = useNavigate();
-  const { caseData } = useChatPanel();
+  const { caseData, assistantScope } = useChatPanel();
   const aiHealth = useAiHealth();
   const [message, setMessage] = useState(prefill);
   const [guidance, setGuidance] = useState<AssistantResponse | null>(null);
@@ -106,7 +106,10 @@ export function ChatPanel({ prefill = "", routeContext = null, variant = "page" 
     const userMessage = { id: `message-${crypto.randomUUID()}`, role: "user" as const, content: trimmed, createdAt: new Date().toISOString() };
     workspace.updateCase(caseData.id, (current) => ({ ...current, messages: [...current.messages, userMessage] }));
     try {
-      const response = await bankruptcyApi.guide(caseData, trimmed, user.role);
+      // The scope comes from the route the user is on, resolved in
+      // ChatPanelContext. It selects which authorized scope the server builds;
+      // it never claims one.
+      const response = await bankruptcyApi.guide(caseData, trimmed, user.role, assistantScope);
       setGuidance(response);
       workspace.updateCase(caseData.id, (current) => ({
         ...current,

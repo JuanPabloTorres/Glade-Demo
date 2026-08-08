@@ -4,6 +4,7 @@ import { LANGUAGE_STORAGE_KEY, toLocale } from "../i18n/languages";
 import type {
   ApiBankruptcyCase,
   AssistantResponse,
+  AssistantScope,
   BankruptcyCase,
   CaseAnalysis,
 } from "../types/bankruptcy";
@@ -95,6 +96,9 @@ export const bankruptcyApi = {
     caseData: BankruptcyCase,
     message: string,
     role: UserRole,
+    // Defaults to "case" so a caller that has no opinion never widens the
+    // scope by accident — the same default the backend applies.
+    assistantScope: AssistantScope = "case",
   ): Promise<AssistantResponse> {
     const selected = localStorage.getItem(LANGUAGE_STORAGE_KEY);
     const language = selected === "en" ? "en" : "es";
@@ -103,6 +107,7 @@ export const bankruptcyApi = {
       message,
       role,
       locale: toLocale(language),
+      assistant_scope: assistantScope,
     });
     return response.data;
   },
