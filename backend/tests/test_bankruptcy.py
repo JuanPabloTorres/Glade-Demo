@@ -93,6 +93,53 @@ def test_analysis_normalizes_income_and_finances(client: TestClient) -> None:
     assert "Existen cuentas en atraso" in " ".join(payload["warnings"])
 
 
+def test_a_client_can_analyze_a_case_that_does_not_exist_yet(client: TestClient) -> None:
+    """Creating a request must work on its first analyze call.
+
+    This is the client half of the "Could not refresh the financial analysis"
+    report: the case has no persisted owner yet, and `authorize_for_submission`
+    is what decides whether that is a creation or a 404.
+    """
+    case = sample_case()
+    case["id"] = "case-brand-new-client"
+    # Emptied, and not only for realism: `sample_case`'s child rows carry fixed
+    # ids ("asset-1", "expense-1"), which another test in this session has
+    # already persisted under a different case. A brand-new request has no child
+    # rows anyway, so this is the honest shape as well as the isolated one.
+    for section in ("incomes", "expenses", "debts", "assets", "evidence"):
+        case[section] = []
+
+    response = client.post("/api/v1/bankruptcy/analyze", json={"case": case})
+
+    assert response.status_code == 200, response.text
+    assert response.json()["completion_score"] >= 0
+
+
+def test_an_attorney_cannot_conjure_a_case_that_has_no_client_owner(
+    attorney_client: TestClient,
+) -> None:
+    """The other half, and the actual defect.
+
+    The attorney dashboard used to offer "Create case", which built a case whose
+    owner was the *attorney*. A case must have a client owner
+    (`CaseAccessService`'s docstring), so this 404s — and the workspace rendered
+    that as "Could not refresh the financial analysis" on every attorney-created
+    case.
+
+    The control was removed rather than this rule relaxed: letting an attorney
+    create on a client's behalf is an authorization change and needs an ADR.
+    This test is here so that re-adding the button fails with the reason
+    attached instead of failing in a browser.
+    """
+    case = sample_case()
+    case["id"] = "case-attorney-conjured"
+    case["owner_user_id"] = "attorney-demo"
+
+    response = attorney_client.post("/api/v1/bankruptcy/analyze", json={"case": case})
+
+    assert response.status_code == 404
+
+
 def test_guidance_asks_for_missing_section(client: TestClient) -> None:
     case = sample_case()
     case["assets"] = []

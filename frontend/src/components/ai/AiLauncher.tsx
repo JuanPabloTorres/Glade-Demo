@@ -20,9 +20,11 @@ import { AppIcon } from "../atoms/AppIcon";
  * (4.5rem) plus its gutter and the device's safe-area inset, and drops back to
  * a plain inset at `md` where the bar does not render.
  *
- * Below `sm` it is the mark alone. A pill wide enough for "Abrir asistente"
- * spans a third of a 320px viewport and covers whatever sits under it; the
- * label is still the button's accessible name and its tooltip.
+ * It is a circle, not a pill. The labelled version spanned a third of a 320px
+ * viewport and a good part of a card at 1440 — a permanently-floating control
+ * has to be findable without being the largest thing on the screen. The label
+ * survives as the accessible name, the `title` tooltip and, when the
+ * conversation is minimized, the dot.
  *
  * It hides itself while the panel is open — two controls for one thing, one of
  * them underneath the other, is not a choice worth offering. Minimized is
@@ -50,18 +52,18 @@ export function AiLauncher() {
       onClick={() => openPanel()}
       aria-label={label}
       title={label}
-      className="glade-gradient fixed end-4 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-launcher inline-flex min-h-14 min-w-14 items-center justify-center gap-2.5 rounded-full px-4 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(15,23,42,0.28)] outline-none transition-transform hover:scale-105 focus-visible:ring-4 focus-visible:ring-brand-soft md:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"
+      // h-12/w-12: comfortably above the 44px touch minimum and no larger.
+      className="glade-gradient fixed end-4 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-launcher inline-flex h-12 w-12 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(15,23,42,0.26)] outline-none transition-transform hover:scale-110 focus-visible:ring-4 focus-visible:ring-brand-soft md:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"
     >
       <span className="relative flex h-6 w-6 items-center justify-center">
         <AppIcon name="assistant" size={22} />
         {minimized ? (
           <span
             aria-hidden="true"
-            className="absolute -end-1 -top-1 h-2.5 w-2.5 rounded-full bg-white ring-2 ring-indigo-500"
+            className="absolute -end-1.5 -top-1.5 h-2.5 w-2.5 rounded-full bg-white ring-2 ring-indigo-500"
           />
         ) : null}
       </span>
-      <span className="hidden sm:inline">{label}</span>
     </button>
   );
 }

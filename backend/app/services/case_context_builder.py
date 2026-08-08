@@ -2,10 +2,22 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from app.ai.attorney_actions import attorney_actions
 from app.core.i18n import resolve_language
 from app.domain.entities import AIConversationMessageEntity, TimelineEventEntity
-from app.schemas.assistant import CaseContextDto, ConversationTurnDto, TimelineEventDto
+from app.schemas.assistant import (
+    CaseContextDto,
+    ConversationTurnDto,
+    EvidenceRequirementContextDto,
+    HeldDocumentDto,
+    TimelineEventDto,
+)
 from app.schemas.bankruptcy import BankruptcyCaseDto, CaseAnalysisDto, UserRole
+
+# `analysis_copy`, not `bankruptcy_service`: the service imports this builder, so
+# reaching back into it for a label would be a cycle. The catalogue has no such
+# dependency — it only knows the two languages.
+from app.services.analysis_copy import evidence_type_label
 
 
 class CaseContextBuilder:
@@ -30,11 +42,12 @@ class CaseContextBuilder:
         recent_conversation: Sequence[AIConversationMessageEntity] = (),
         retrieved_documents: Sequence[str] = (),
     ) -> CaseContextDto:
+        language = resolve_language(locale)
         return CaseContextDto(
             case_id=case.id,
             role=role,
             locale=locale,
-            language=resolve_language(locale),
+            language=language,
             status=case.status,
             client_name=case.client_name,
             objective=case.client_goal,
@@ -56,6 +69,31 @@ class CaseContextBuilder:
             pending_documents=[
                 item.name for item in case.evidence if item.status == "requested"
             ],
+            # The three document concepts the assistant has to tell apart. It
+            # previously had only `pending_documents` — attorney *requests*,
+            # empty on almost every case — so "which documents am I missing?"
+            # was answered "none pending", which is true about requests and
+            # useless about evidence.
+            held_documents=[
+                HeldDocumentDto(
+                    name=item.name,
+                    evidence_type=item.evidence_type,
+                    type_label=evidence_type_label(item.evidence_type, language),
+                    status=item.status,
+                )
+                for item in case.evidence
+                if item.status != "missing"
+            ],
+            evidence_requirements=[
+                EvidenceRequirementContextDto(
+                    key=requirement.key, label=requirement.label, satisfied=requirement.satisfied
+                )
+                for requirement in analysis.evidence_requirements
+            ],
+            # Attorney-only, like the notes below and for the same reason: a
+            # client has no use for the toolbar's vocabulary, and a context that
+            # carries it anyway is one more thing to redact correctly.
+            attorney_actions=attorney_actions(language) if role == "attorney" else [],
             # Redaction by role (§6.2/§8.2): a client never sees the
             # attorney's private notes verbatim through the AI context.
             attorney_notes=case.attorney_notes if role == "attorney" else None,

@@ -62,8 +62,10 @@ SPECIALISTS: tuple[SpecialistSpec, ...] = (
         prompt="case_agent",
         tool_names=("get_case_summary", "get_missing_information"),
         description=(
-            "Reads and summarizes the case's stage, progress and outstanding "
-            "information. Use for 'where am I' and 'what is missing'."
+            "Where the case stands and what information it still needs. Use for "
+            "'what do you know about my case', 'how far along am I', 'what is "
+            "missing', 'what should I do next'. Not for amounts and not for "
+            "documents."
         ),
     ),
     SpecialistSpec(
@@ -71,17 +73,24 @@ SPECIALISTS: tuple[SpecialistSpec, ...] = (
         prompt="analysis_agent",
         tool_names=("get_financial_snapshot", "get_review_questions"),
         description=(
-            "Explains the case's calculated income, expenses, cash flow, debt "
-            "and asset totals, and the questions prepared for the attorney."
+            "Any question with a number in the answer — debt, income, expenses, "
+            "cash flow, asset value — and the questions prepared for the "
+            "consultation, including anything about Chapter 7 or Chapter 13."
         ),
     ),
     SpecialistSpec(
         name="documents_agent",
         prompt="documents_agent",
-        tool_names=("get_pending_documents", "search_case_documents", "get_case_timeline"),
+        tool_names=(
+            "get_evidence_status",
+            "search_case_documents",
+            "get_case_timeline",
+        ),
         description=(
-            "Reports outstanding documents, searches the case's uploaded "
-            "documents, and reads recent case activity."
+            "Every question about documents or evidence: which the case holds, "
+            "which requirements they already cover, which are still uncovered, "
+            "which to obtain first and why, and what a specific uploaded "
+            "document says."
         ),
     ),
     SpecialistSpec(
@@ -96,10 +105,18 @@ SPECIALISTS: tuple[SpecialistSpec, ...] = (
     SpecialistSpec(
         name=ATTORNEY_AGENT,
         prompt="attorney_agent",
-        tool_names=("get_attorney_review_notes", "get_case_summary", "get_review_questions"),
+        tool_names=(
+            "get_attorney_review_notes",
+            "get_attorney_actions",
+            "get_case_summary",
+            "get_review_questions",
+            "get_case_timeline",
+        ),
         description=(
-            "Summarizes priority alerts and the attorney's private review "
-            "notes. Attorney sessions only."
+            "Professional review of the case that is open: what matters, what "
+            "changed, what to review first, and which of the case toolbar's "
+            "actions to use next. Holds the private notes and the priority "
+            "alerts. Attorney sessions only."
         ),
         attorney_only=True,
     ),

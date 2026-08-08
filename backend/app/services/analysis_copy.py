@@ -216,6 +216,41 @@ _COPY: dict[str, dict[Language, str]] = {
         "es": "Documentos de transferencias recientes de propiedad",
         "en": "Documents for recent property transfers",
     },
+    # -- evidence type labels -----------------------------------------------
+    # The display name for an uploaded document's canonical slug, so the
+    # assistant can say "the pay stub already on file" using the same words the
+    # workspace shows. Kept in step with frontend
+    # `workspace.json > entryModal.evidenceTypes`.
+    "evidence_type.government-id": {"es": "Identificación vigente", "en": "Valid photo ID"},
+    "evidence_type.pay-stubs": {"es": "Talones de pago", "en": "Pay stubs"},
+    "evidence_type.bank-statement": {"es": "Estado bancario", "en": "Bank statement"},
+    "evidence_type.tax-return-or-transcript": {
+        "es": "Planilla o transcripción contributiva",
+        "en": "Tax return or transcript",
+    },
+    "evidence_type.creditor-statement": {
+        "es": "Estado de cuenta de acreedor",
+        "en": "Creditor statement",
+    },
+    "evidence_type.lease-agreement": {"es": "Contrato de arrendamiento", "en": "Lease agreement"},
+    "evidence_type.mortgage-statement": {"es": "Estado hipotecario", "en": "Mortgage statement"},
+    "evidence_type.vehicle-loan-statement": {
+        "es": "Estado de préstamo de vehículo",
+        "en": "Vehicle loan statement",
+    },
+    "evidence_type.collection-or-lawsuit-notice": {
+        "es": "Demanda, embargo o notificación de cobro",
+        "en": "Lawsuit, garnishment or collection notice",
+    },
+    "evidence_type.property-or-valuation-document": {
+        "es": "Documento de propiedad o valoración",
+        "en": "Property or valuation document",
+    },
+    "evidence_type.credit-counseling-certificate": {
+        "es": "Certificado de orientación crediticia",
+        "en": "Credit counseling certificate",
+    },
+    "evidence_type.other-document": {"es": "Otro documento", "en": "Other document"},
     # -- next steps ---------------------------------------------------------
     "next.complete_item": {
         "es": "Completar: {item}.",
@@ -266,6 +301,17 @@ _COPY: dict[str, dict[Language, str]] = {
         "en": "Record the professional decision and the next steps.",
     },
 }
+
+
+def evidence_type_label(evidence_type: str, language: Language) -> str:
+    """The display name for an uploaded document's type.
+
+    Unlike `copy`, an unknown key is not a programming error here: the slug
+    comes from a stored case row, and a document uploaded under a type that a
+    later release renamed must still be describable. Falls back to the slug,
+    which is at least honest and traceable.
+    """
+    return _COPY.get(f"evidence_type.{evidence_type}", {}).get(language, evidence_type)
 
 
 def copy(key: str, language: Language) -> str:

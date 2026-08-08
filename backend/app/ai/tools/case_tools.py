@@ -62,10 +62,14 @@ class CaseTools:
 
     @tool
     def get_case_summary(self) -> dict[str, Any]:
-        """Get the status, objective and completeness of the current case.
+        """Returns this case's stage, objective, household and completeness scores.
 
-        Use this first when the user asks "where am I", "what is missing" or
-        anything about overall progress.
+        Call this when the question is about where the case stands overall —
+        "what do you know about my case", "how far along am I", "where am I" —
+        or as the first call when you need to know how complete the case is
+        before judging what matters next. It does not list what is missing
+        (`get_missing_information`) and it does not carry figures
+        (`get_financial_snapshot`).
         """
         context = self._context
         return {
@@ -80,7 +84,16 @@ class CaseTools:
 
     @tool
     def get_missing_information(self) -> dict[str, Any]:
-        """Get the list of information the case still needs before attorney review."""
+        """Returns the case sections still incomplete, and the prepared next steps.
+
+        Call this whenever the user asks what is missing, what is left, what to
+        do next, or what to prepare — and before claiming a case is complete.
+        These are *sections of information* (income, debts, assets, goal), not
+        documents: for evidence use `get_evidence_status`.
+
+        An empty `missing_items` means the intake is complete; say so plainly
+        rather than inventing something outstanding.
+        """
         return {
             "status": "success",
             "missing_items": self._context.missing_items,
@@ -91,10 +104,17 @@ class CaseTools:
 
     @tool
     def get_financial_snapshot(self) -> dict[str, Any]:
-        """Get the calculated monthly income, expenses, cash flow, debt and asset totals.
+        """Returns the case's calculated monthly income, expenses, cash flow,
+        total debt and total assets.
 
-        These figures are computed by BankruptcyAnalysisService from data the
-        client entered. Report them as given; never recompute or estimate them.
+        Call this for any question involving an amount — how much do I owe,
+        what is left each month, how much do I earn, what are my assets worth —
+        and before commenting on whether a budget is tight.
+
+        These figures are computed by `BankruptcyAnalysisService` from what the
+        client entered. Report them as given. Never add, subtract, project or
+        re-derive them: a number you calculated is not a number this case
+        recorded.
         """
         context = self._context
         return {
@@ -109,7 +129,13 @@ class CaseTools:
 
     @tool
     def get_review_questions(self) -> dict[str, Any]:
-        """Get the prepared discussion points and chapter-related questions for the attorney.
+        """Returns the discussion points and chapter questions already prepared
+        for this case's consultation.
+
+        Call this when asked what to bring to the attorney, what to ask, or
+        anything touching Chapter 7 versus Chapter 13 — the prepared questions
+        are the honest answer to a chapter question, and inventing a comparison
+        is not.
 
         These are questions to raise with a licensed attorney. They are not
         answers, and they never establish eligibility or a chapter choice.
@@ -125,13 +151,54 @@ class CaseTools:
     # --- documents specialist -------------------------------------------
 
     @tool
-    def get_pending_documents(self) -> dict[str, Any]:
-        """Get the documents that have been requested but not yet provided."""
-        return {"status": "success", "pending_documents": self._context.pending_documents}
+    def get_evidence_status(self) -> dict[str, Any]:
+        """Returns the whole evidence picture: what the case holds, what that
+        already covers, and what is still uncovered.
+
+        Call this for ANY question about documents or evidence — what do I
+        have, what am I missing, which should I get first, why do I need one,
+        is my evidence complete. It is the only tool that can answer those, and
+        answering them without it means guessing.
+
+        Three distinct lists, and conflating them is the mistake to avoid:
+
+        * `held_documents` — documents actually attached to the case, with the
+          name to refer to them by.
+        * `satisfied_requirements` — requirements those documents already
+          cover. Never recommend one of these as missing.
+        * `unsatisfied_requirements` — requirements nothing covers yet. These
+          are what "missing evidence" means. When asked what to get first,
+          prioritize from this list and say what each one supports.
+
+        `evidence_score` is the server's own percentage; report it, never
+        recompute it.
+        """
+        context = self._context
+        satisfied = [item for item in context.evidence_requirements if item.satisfied]
+        unsatisfied = [item for item in context.evidence_requirements if not item.satisfied]
+        return {
+            "status": "success",
+            "held_documents": [
+                {"name": item.name, "type": item.type_label, "state": item.status}
+                for item in context.held_documents
+            ],
+            "satisfied_requirements": [item.label for item in satisfied],
+            "unsatisfied_requirements": [item.label for item in unsatisfied],
+            "evidence_score": context.evidence_score,
+            # Documents an attorney explicitly asked this client for. Distinct
+            # from an unsatisfied requirement: someone is waiting on these.
+            "documents_requested_by_attorney": context.pending_documents,
+        }
 
     @tool
     def search_case_documents(self, query: str) -> dict[str, Any]:
-        """Search the documents uploaded for this case.
+        """Searches inside the text of this case's uploaded documents.
+
+        Call this only when the question is about what a document *says* — a
+        figure, a date, a creditor named inside a statement. For which
+        documents exist or are missing, use `get_evidence_status`; this tool
+        returns text, not an inventory, and an empty result here does not mean
+        the case has no documents.
 
         Args:
             query: What to look for, in the user's own words.
@@ -150,7 +217,13 @@ class CaseTools:
 
     @tool
     def get_case_timeline(self) -> dict[str, Any]:
-        """Get the recent activity recorded on this case, most recent last."""
+        """Returns what has recently happened on this case, oldest first.
+
+        Call this when the question is about change over time — "what changed",
+        "what happened since", "what has been done" — or when an attorney needs
+        to know whether anyone has acted on the case lately. It is history, not
+        state: it does not say what is missing or what is on file now.
+        """
         return {
             "status": "success",
             "events": [
@@ -162,8 +235,45 @@ class CaseTools:
     # --- attorney-only ---------------------------------------------------
 
     @tool
+    def get_attorney_actions(self) -> dict[str, Any]:
+        """Returns the actions this attorney can take on the case from its
+        toolbar, with what each one does.
+
+        Call this before telling an attorney what to do next, so the advice
+        names a control that exists — "request the mortgage statement, which
+        appears as pending evidence in the client's file" rather than "follow
+        up with the client".
+
+        You cannot perform any of these. Name the action and say what it is
+        for; the attorney presses the button.
+
+        Attorney-only.
+        """
+        if self._context.role != "attorney":
+            raise ToolAuthorizationError(
+                "get_attorney_actions was reached on a non-attorney runtime."
+            )
+        return {
+            "status": "success",
+            "actions": [
+                {
+                    "action_id": action.action_id,
+                    "label": action.label,
+                    "does": action.description,
+                }
+                for action in self._context.attorney_actions
+            ],
+        }
+
+    @tool
     def get_attorney_review_notes(self) -> dict[str, Any]:
-        """Get the attorney's private notes and the case's priority alerts.
+        """Returns the attorney's private notes on this case and its priority alerts.
+
+        Call this when an attorney asks what to review, what was already noted,
+        or why a case is flagged — the alerts are what "needs attention" means
+        for one case.
+
+        The notes are private to the attorney. Never repeat them to a client.
 
         Attorney-only.
         """

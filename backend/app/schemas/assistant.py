@@ -33,6 +33,60 @@ class ConversationTurnDto(ApiModel):
     message: str
 
 
+class EvidenceRequirementContextDto(ApiModel):
+    """One evidence requirement, with whether the case already covers it.
+
+    `pending_documents` — the only document field this context used to carry —
+    holds documents an *attorney explicitly requested*. It is empty for almost
+    every case, so "¿qué documentos me faltan?" was answered "no hay documentos
+    pendientes", which is true about requests and useless about evidence. These
+    three concepts are distinct and the assistant has to be able to tell them
+    apart:
+
+      * documents the case holds (`held_documents`),
+      * requirements those documents already satisfy (`satisfied` here),
+      * requirements nothing covers yet (`satisfied` false).
+
+    Decided by `BankruptcyAnalysisService` from canonical evidence-type slugs,
+    never by the model.
+    """
+
+    key: str
+    label: str
+    satisfied: bool
+
+
+class HeldDocumentDto(ApiModel):
+    """A document actually attached to the case.
+
+    Carries the name so the assistant can say "the pay stub already on file"
+    instead of "the system says" — provenance the answer can be checked
+    against. `evidence_type` is the canonical slug; `type_label` is what the
+    workspace shows, so the assistant and the UI name the same thing.
+    """
+
+    name: str
+    evidence_type: str
+    type_label: str
+    status: str
+
+
+class AttorneyActionDto(ApiModel):
+    """One action the attorney's case toolbar can perform.
+
+    The assistant is asked what an attorney should do next, and it was
+    answering without knowing what this product lets them do — so it invented
+    generic advice ("contact the client") instead of naming the control that is
+    two clicks away. This is capability vocabulary, not authorization: the
+    assistant may say an action exists and what it is for, and it still cannot
+    perform one. Every write remains a human pressing the button.
+    """
+
+    action_id: str
+    label: str
+    description: str
+
+
 class CaseContextDto(ApiModel):
     """
     Reduced, audited context handed to AI providers — never the raw case
@@ -85,6 +139,14 @@ class CaseContextDto(ApiModel):
     chapter_13_questions: list[str]
     next_steps: list[str]
     pending_documents: list[str]
+    """Documents an attorney explicitly requested. Not "what evidence is
+    missing" — see `evidence_requirements` for that."""
+    held_documents: list[HeldDocumentDto] = Field(default_factory=list)
+    evidence_requirements: list[EvidenceRequirementContextDto] = Field(default_factory=list)
+    attorney_actions: list[AttorneyActionDto] = Field(default_factory=list)
+    """What the attorney's toolbar can do. Empty for a client session: a client
+    has no use for it, and a context that carries it anyway is one more thing a
+    redaction bug could leak."""
     attorney_notes: str | None
     timeline: list[TimelineEventDto] = Field(default_factory=list)
     recent_conversation: list[ConversationTurnDto] = Field(default_factory=list)

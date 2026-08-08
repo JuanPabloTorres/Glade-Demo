@@ -5,7 +5,7 @@ import {
 } from "flowbite-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { useAuth } from "../auth/AuthContext";
 import { MetricTiles } from "../components/case/MetricTiles";
 import { DataTableToolbar } from "../components/data-display/DataTableToolbar";
@@ -53,9 +53,8 @@ type SortKey = "name-asc" | "name-desc" | "completion-desc" | "completion-asc" |
 
 export function AttorneyDashboardPage() {
   const { t } = useTranslation(["workspace", "tables"]);
-  const navigate = useNavigate();
   const auth = useAuth();
-  const { cases, updateCase, deleteCase, createCase } = useBankruptcyWorkspace();
+  const { cases, updateCase, deleteCase } = useBankruptcyWorkspace();
   const [searchParams, setSearchParams] = useSearchParams();
   // `view` is derived from the URL on every render (not a one-time lazy
   // useState initializer) so sidebar deep links (?view=urgent,
@@ -136,10 +135,20 @@ export function AttorneyDashboardPage() {
     setSearchParams({});
   };
 
-  const startNewCase = () => {
-    if (!auth.user) return;
-    navigate(`/case/${createCase(auth.user)}`);
-  };
+  /*
+    "Create case" is gone, and this is the honest fix rather than the small one.
+    It called `createCase(auth.user)`, which built a case whose owner is the
+    *attorney*. `CaseAccessService.authorize_for_submission` refuses to create a
+    case for a non-client — a case must have a client owner, by design and by
+    docstring — so every one of those cases 404'd on its first `analyze` call
+    and the workspace showed "Could not refresh the financial analysis".
+
+    Making it work would mean an attorney-initiated intake: choosing which
+    client owns the case, and an authorization rule that lets an attorney create
+    on their behalf. That is a product decision with a security boundary in it,
+    not a button fix, and it needs an ADR. Until then the attorney reviews cases
+    clients submit, which is what the rest of the product already assumes.
+  */
 
   return (
     <div className="space-y-8">
@@ -173,9 +182,6 @@ export function AttorneyDashboardPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge color="gray" className="w-fit px-3 py-1.5">{t("workspace:attorneyDashboard.caseCount", { shown: sorted.length, total: cases.length })}</Badge>
-            <AppButton className="primary-action" size="sm" onClick={startNewCase} iconLeft="document">
-              {t("workspace:attorneyDashboard.createCase")}
-            </AppButton>
           </div>
         </div>
 
