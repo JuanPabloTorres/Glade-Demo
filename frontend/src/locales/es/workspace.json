@@ -468,5 +468,25 @@
       "description": "El mensaje aparecerá en el chat de Guía inteligente que ve el cliente.",
       "label": "Mensaje"
     }
+  },
+  "timeline": {
+    "statusComplete": "Completado",
+    "statusCurrent": "Actual",
+    "statusUpcoming": "Próximo",
+    "requestStartedTitle": "Solicitud iniciada",
+    "requestStartedDescription": "Se creó un expediente privado de evaluación.",
+    "financialTitle": "Plantilla financiera",
+    "financialDescription": "Organizar ingresos, gastos, deudas y bienes.",
+    "evidenceTitle": "Evidencia",
+    "evidenceDescription": "Añadir documentos y revisar faltantes.",
+    "attorneyTitle": "Revisión del abogado",
+    "attorneyDescription": "Enviar la solicitud y programar consulta.",
+    "submittedTitle": "Solicitud enviada",
+    "submittedDescription": "El abogado puede revisar la información y solicitar aclaraciones.",
+    "statusChangedTitle": "Estado actualizado",
+    "statusChangedDescription": "El expediente cambió a {{status}}.",
+    "welcomeMessage": "Comencemos por tu meta y la composición del hogar. Luego organizaremos cada cifra con evidencia.",
+    "consultationTitle": "Consulta",
+    "consultationDescription": "Programar discusión de alternativas con el abogado."
   }
 }

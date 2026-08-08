@@ -9,10 +9,9 @@ import {
   Textarea,
   TextInput,
 } from "flowbite-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router";
-import { bankruptcyApi } from "../api/bankruptcyApi";
 import { useAuth } from "../auth/AuthContext";
 import { useChatPanel } from "../chat/ChatPanelContext";
 import { AppIcon } from "../components/atoms/AppIcon";
@@ -25,112 +24,28 @@ import { ResponsiveDataView } from "../components/molecules/ResponsiveDataView";
 import { StageOrientation } from "../components/molecules/StageOrientation";
 import {
   CASE_SECTION,
-  type CaseSectionSlug,
   FOCUS_PARAM_TO_SECTION,
   isCaseSectionSlug,
   ROUTES,
 } from "../config/routes";
-import type {
-  BankruptcyCase,
-  CaseAnalysis,
-  CaseStatus,
-  EntryKind,
-  EntrySubmission,
-} from "../types/bankruptcy";
+import type { CaseStatus, EntryKind } from "../types/bankruptcy";
 import { useBankruptcyWorkspace } from "../workspace/BankruptcyWorkspaceContext";
-import { currency, localCompletion, monthlyAmount } from "../workspace/caseMetrics";
+import { currency, monthlyAmount } from "../workspace/caseMetrics";
 import { formatDate } from "../i18n/format";
+import { STAGE_LABEL_KEYS } from "./caseWorkspace/stages";
+import { useCaseAnalysis } from "./caseWorkspace/useCaseAnalysis";
+import { useCaseEntries } from "./caseWorkspace/useCaseEntries";
+import { useCaseStageNavigation } from "./caseWorkspace/useCaseStageNavigation";
 
 /**
- * Stable, position-independent identifiers for every stage of the workspace.
- * This is the single source of truth for "which stage is active" — nothing
- * else in this file encodes a stage as a positional number. The stepper's
- * displayed index (see CaseStageStepper) is always *derived* from a stage's
- * position in `BASE_STAGE_ORDER` (see STAGE_ORDER below), never hardcoded,
- * so reordering a stage in `BASE_STAGE_ORDER` can never desync a shortcut or
- * deep-link from the stage it's supposed to open.
+ * The stage vocabulary moved to `./caseWorkspace/stages`, and the navigation,
+ * analysis and mutation logic to the hooks beside it. Re-exported here because
+ * `BASE_STAGE_ORDER` is imported by this page's tests and `CaseStage` reads
+ * naturally as this page's type — moving the definitions out should not force
+ * every consumer to learn where they went.
  */
-export type CaseStage =
-  | "start"
-  | "household"
-  | "income"
-  | "expenses"
-  | "debts"
-  | "assets"
-  | "documents"
-  | "review"
-  | "submitted"
-  | "tracking"
-  | "attorney-review";
-
-/**
- * Order of the always-present stages, matching the stage-content order
- * below. "attorney-review" is appended conditionally (only attorneys get
- * that stage) — see STAGE_ORDER in the component body, which is the only
- * place that adds it.
- */
-export const BASE_STAGE_ORDER: readonly CaseStage[] = [
-  "start",
-  "household",
-  "income",
-  "expenses",
-  "debts",
-  "assets",
-  "documents",
-  "review",
-  "submitted",
-  "tracking",
-];
-
-/**
- * Maps the URL's section slug (see CASE_SECTION in config/routes.ts) to the
- * internal stage it opens, and back. These are two vocabularies on purpose:
- * the URL is user-facing and stable, while `CaseStage` is an implementation
- * detail free to be renamed. "tasks" and "activity" read better in a URL than
- * the "review" and "tracking" stages they resolve to.
- *
- * This is a name alias, never a position map — nothing here encodes an index,
- * so it cannot go stale when `BASE_STAGE_ORDER` is reordered.
- */
-export const SECTION_TO_STAGE: Record<CaseSectionSlug, CaseStage> = {
-  [CASE_SECTION.overview]: "start",
-  [CASE_SECTION.household]: "household",
-  [CASE_SECTION.income]: "income",
-  [CASE_SECTION.expenses]: "expenses",
-  [CASE_SECTION.debts]: "debts",
-  [CASE_SECTION.assets]: "assets",
-  [CASE_SECTION.documents]: "documents",
-  [CASE_SECTION.tasks]: "review",
-  [CASE_SECTION.submitted]: "submitted",
-  [CASE_SECTION.activity]: "tracking",
-  [CASE_SECTION.attorneyReview]: "attorney-review",
-};
-
-export const STAGE_TO_SECTION = Object.fromEntries(
-  Object.entries(SECTION_TO_STAGE).map(([section, stage]) => [stage, section as CaseSectionSlug]),
-) as Record<CaseStage, CaseSectionSlug>;
-
-/**
- * Maps every `CaseStage` to its i18n key — the single, stable place that
- * associates a stage identity with its display label. Looked up by stage
- * key (not by array position), so it can never go stale when
- * `BASE_STAGE_ORDER` is reordered. Reuses the existing `workspace:tabs.*`
- * keys (see locales/<lang>/workspace.json) rather than introducing new ones for
- * the same 10 labels.
- */
-export const STAGE_LABEL_KEYS: Record<CaseStage, string> = {
-  start: "workspace:tabs.start",
-  household: "workspace:tabs.household",
-  income: "workspace:tabs.income",
-  expenses: "workspace:tabs.expenses",
-  debts: "workspace:tabs.debts",
-  assets: "workspace:tabs.assets",
-  documents: "workspace:tabs.documents",
-  review: "workspace:tabs.review",
-  submitted: "workspace:tabs.submitted",
-  tracking: "workspace:tabs.tracking",
-  "attorney-review": "workspace:tabs.attorneyReview",
-};
+export type { CaseStage } from "./caseWorkspace/stages";
+export { BASE_STAGE_ORDER, SECTION_TO_STAGE, STAGE_LABEL_KEYS, STAGE_TO_SECTION } from "./caseWorkspace/stages";
 
 function statusColor(status: CaseStatus): "gray" | "warning" | "success" | "info" {
   if (status === "submitted" || status === "attorney_review") return "warning";
@@ -148,53 +63,28 @@ export function CaseWorkspacePage() {
   const workspace = useBankruptcyWorkspace();
   const { openAssistant } = useChatPanel();
   const caseData = workspace.cases.find((item) => item.id === caseId);
-  const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [modalKind, setModalKind] = useState<EntryKind | null>(null);
   const isAttorney = user?.role === "attorney";
 
-  // The attorney-review stage content only renders for attorneys (JSX
-  // below), so it only belongs in STAGE_ORDER for that role — this is the
-  // one place that appends it, so the stepper's index always matches what's
-  // actually rendered.
-  const STAGE_ORDER = useMemo<CaseStage[]>(
-    () => (isAttorney ? [...BASE_STAGE_ORDER, "attorney-review"] : [...BASE_STAGE_ORDER]),
-    [isAttorney],
-  );
+  const {
+    stageOrder: STAGE_ORDER,
+    activeStage,
+    navigateToStage,
+  } = useCaseStageNavigation({ caseId, section, isAttorney });
 
-  // The URL is the single source of truth for which stage is open — there is
-  // no `activeStage` state to drift from it. An unknown or role-inappropriate
-  // slug falls back to the overview rather than rendering nothing.
-  const activeStage: CaseStage = useMemo(() => {
-    if (!isCaseSectionSlug(section)) return "start";
-    const stage = SECTION_TO_STAGE[section];
-    return STAGE_ORDER.includes(stage) ? stage : "start";
-  }, [section, STAGE_ORDER]);
+  const {
+    analysis,
+    error: analysisError,
+    completion,
+    requiredEvidence,
+    missingEvidenceCount,
+    requiredEvidencePresent,
+  } = useCaseAnalysis(caseData);
 
-  // Every navigation — stepper clicks, shortcuts and deep-links alike — goes
-  // through this single function, and every one of them changes the URL. That
-  // is what makes reload, back and forward work identically to a click.
-  const navigateToStage = useCallback(
-    (stage: CaseStage) => {
-      if (!caseId) return;
-      const target = STAGE_ORDER.includes(stage) ? stage : "start";
-      navigate(ROUTES.caseSection(caseId, STAGE_TO_SECTION[target]));
-    },
-    [STAGE_ORDER, caseId, navigate],
-  );
-
-  useEffect(() => {
-    if (!caseData) return;
-    let active = true;
-    setAnalysisError(null);
-    bankruptcyApi
-      .analyze(caseData)
-      .then((result) => active && setAnalysis(result))
-      .catch(() => active && setAnalysisError(t("workspace:header.analysisError")));
-    return () => {
-      active = false;
-    };
-  }, [caseData, t]);
+  // `caseId ?? ""` because the hook must be called unconditionally, while the
+  // guards below can still redirect away when there is no case. The empty id is
+  // never used: every consumer of these actions renders after those guards.
+  const { update, addEntry, removeEntry, toggleUrgentCollectionAction: markUrgent } = useCaseEntries(caseId ?? "");
 
   // Backwards compatibility for `?focus=<section>` links — the vocabulary the
   // backend's `focus_section` still speaks, plus any URL a user bookmarked
@@ -213,30 +103,6 @@ export function CaseWorkspacePage() {
     return <Navigate to={ROUTES.caseSection(caseData.id, CASE_SECTION.overview)} replace />;
   }
 
-  const update = (updater: (value: BankruptcyCase) => BankruptcyCase) => workspace.updateCase(caseData.id, updater);
-  const addEntry = (submission: EntrySubmission) => {
-    update((current) => {
-      if (submission.kind === "income") return { ...current, incomes: [...current.incomes, submission.value] };
-      if (submission.kind === "expense") return { ...current, expenses: [...current.expenses, submission.value] };
-      if (submission.kind === "debt") return { ...current, debts: [...current.debts, submission.value] };
-      if (submission.kind === "asset") return { ...current, assets: [...current.assets, submission.value] };
-      return { ...current, evidence: [...current.evidence, submission.value] };
-    });
-  };
-  const removeEntry = (kind: EntryKind, entryId: string) =>
-    update((current) => ({
-      ...current,
-      incomes: kind === "income" ? current.incomes.filter((item) => item.id !== entryId) : current.incomes,
-      expenses: kind === "expense" ? current.expenses.filter((item) => item.id !== entryId) : current.expenses,
-      debts: kind === "debt" ? current.debts.filter((item) => item.id !== entryId) : current.debts,
-      assets: kind === "asset" ? current.assets.filter((item) => item.id !== entryId) : current.assets,
-      evidence: kind === "evidence" ? current.evidence.filter((item) => item.id !== entryId) : current.evidence,
-    }));
-
-  const markUrgent = () =>
-    update((current) => ({ ...current, household: { ...current.household, urgentCollectionAction: !current.household.urgentCollectionAction } }));
-
-  const completion = analysis?.completion_score ?? localCompletion(caseData);
   const isSubmitted = caseData.status !== "draft" && caseData.status !== "collecting_information";
   // Derived from STAGE_ORDER (via the stage-key → i18n-key map STAGE_LABEL_KEYS)
   // rather than a separately hand-maintained list, so it always has exactly
@@ -245,17 +111,6 @@ export function CaseWorkspacePage() {
   const stageStepperTitles = STAGE_ORDER.map((stage) => t(STAGE_LABEL_KEYS[stage]));
 
   const householdComplete = Boolean(caseData.household.maritalStatus && caseData.household.housingStatus);
-  // required_evidence is free-text Spanish guidance from the backend (e.g.
-  // "Talones de pago de los últimos 60 días"), while evidence.evidenceType
-  // stores the canonical slug (e.g. "pay-stubs") — match against the
-  // translated label, not the slug, or every requirement reads as missing.
-  const requiredEvidencePresent = (requirement: string) =>
-    caseData.evidence.some((item) => {
-      const label = t(`workspace:entryModal.evidenceTypes.${item.evidenceType}`).toLowerCase();
-      return requirement.toLowerCase().split(" ").some((word) => word.length > 5 && label.includes(word));
-    });
-  const requiredEvidence = analysis?.required_evidence ?? [];
-  const missingEvidenceCount = requiredEvidence.filter((item) => !requiredEvidencePresent(item)).length;
 
   return (
     <div className="space-y-6">
