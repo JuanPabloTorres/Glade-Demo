@@ -14,6 +14,9 @@ what "demo data" means.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import dataclass
+
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -34,6 +37,8 @@ from app.repositories.orm_models import (
     CaseTimelineModel,
     UserModel,
 )
+from app.services.documents.chunking import DocumentChunker
+from app.services.documents.index import get_shared_case_document_index
 
 DEMO_CASE_ID = "case-elena-demo"
 """The demo client's case id, and it must equal the one the UI seeds.
@@ -87,6 +92,109 @@ collection lawsuit and an urgent flag; Rosa is barely started with nothing
 attached. A queue of three healthy cases would let a ranking answer look correct
 while ranking on nothing.
 """
+
+
+@dataclass(frozen=True)
+class DemoEvidence:
+    """One synthetic document: what the evidence list shows, and what it says.
+
+    `text` is not decoration. It is indexed for retrieval, so "¿qué dice mi
+    talón de pago?" has something real to find — without it the demo's document
+    step is a list of filenames the assistant cannot read.
+    """
+
+    filename: str
+    evidence_type: str
+    text: str
+
+
+DEMO_EVIDENCE: tuple[DemoEvidence, ...] = (
+    DemoEvidence(
+        filename="talon-pago-julio.txt",
+        evidence_type="Talones de pago",
+        text=(
+            "Talon de pago quincenal. Patrono: Panaderia Los Robles. "
+            "Salario bruto $1,200.00. Neto $950.00. Periodo: julio 2026."
+        ),
+    ),
+    DemoEvidence(
+        filename="contrato-alquiler.txt",
+        evidence_type="Contrato de alquiler",
+        text=(
+            "Contrato de alquiler residencial en Ponce. Renta mensual $1,100.00. "
+            "Arrendataria: Elena Rivera. Vigencia hasta diciembre 2026."
+        ),
+    ),
+)
+"""Elena has documents *and* an open task asking for more.
+
+Both halves are the point: a case with nothing attached cannot demonstrate the
+evidence step, and a case with everything attached cannot demonstrate the
+product's actual job, which is surfacing what is still missing.
+"""
+
+ATTORNEY_REVIEW_EVIDENCE: tuple[DemoEvidence, ...] = (
+    DemoEvidence(
+        filename="estado-hipoteca.txt",
+        evidence_type="Estados de cuenta",
+        text=(
+            "Estado de cuenta hipotecario. Balance $148,000.00. "
+            "Atrasos acumulados $6,400.00. Propiedad: residencia principal."
+        ),
+    ),
+    DemoEvidence(
+        filename="demanda-cobro.txt",
+        evidence_type="Notificaciones de cobro",
+        text=(
+            "Notificacion de demanda de cobro de dinero. Acreedor: Regional Medical. "
+            "Cantidad reclamada $24,000.00."
+        ),
+    ),
+    DemoEvidence(
+        filename="talon-pago-miguel.txt",
+        evidence_type="Talones de pago",
+        text="Talon de pago mensual. Salario bruto $3,400.00. Neto $2,690.00.",
+    ),
+)
+"""Miguel's case is the one that is ready to review, which needs evidence on file.
+
+Rosa deliberately gets none. That is what separates "waiting on the client" from
+"waiting on me" in the attorney's queue — and with no evidence anywhere, every
+case looked incomplete and the triage tools ranked on nothing.
+"""
+
+
+def _seed_evidence(session: Session, case_id: str, documents: Sequence[DemoEvidence]) -> None:
+    """Record each document and make its text retrievable.
+
+    Two stores, because they answer different questions and the demo needs both:
+    `case_documents` is the durable evidence checklist the UI lists and the
+    portfolio counts, and `CaseDocumentIndex` is the in-process vector index the
+    assistant searches. Writing only the first gives an evidence list the
+    assistant cannot read; writing only the second gives answers about documents
+    that appear nowhere in the case.
+
+    The index is per case by construction, so seeding it here cannot cross cases
+    any more than an upload can.
+    """
+    index = get_shared_case_document_index()
+    # A reset is a reset. The rows were just wiped, so anything still indexed
+    # for this case is from a previous seed — kept, it would both duplicate
+    # every chunk and let the assistant cite documents the evidence list no
+    # longer lists.
+    index.clear_case(case_id)
+    for document in documents:
+        chunks = list(DocumentChunker().chunk(document.text))
+        session.add(
+            CaseDocumentModel(
+                case_id=case_id,
+                filename=document.filename,
+                evidence_type=document.evidence_type,
+                status="received",
+                chunk_count=len(chunks),
+            )
+        )
+        index.add_document(case_id, chunks)
 
 
 def _wipe_all(session: Session) -> None:
@@ -197,6 +305,7 @@ def reset_demo_data(settings: Settings) -> None:
                 case_id=case.id, title="Adjuntar talones de pago recientes", status="open"
             )
         )
+        _seed_evidence(session, case.id, DEMO_EVIDENCE)
         session.add(
             CaseTimelineModel(
                 case_id=case.id,
@@ -329,6 +438,7 @@ def _seed_attorney_review_case(session: Session, settings: Settings) -> None:
             body="Confirmar el estado de la demanda de cobro antes de la consulta.",
         )
     )
+    _seed_evidence(session, case.id, ATTORNEY_REVIEW_EVIDENCE)
     # `TimelineEventType` is the vocabulary — there is no "case_submitted"
     # member, and inventing one as a bare string is the magic-string pattern the
     # repository forbids. Submission is a status change, so it is recorded as an
