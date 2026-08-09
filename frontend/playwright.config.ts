@@ -31,6 +31,11 @@ const APP_VERSION = readFileSync(new URL("../VERSION", import.meta.url), "utf8")
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
+  // CI and release verification share one synthetic SQLite database. Multiple
+  // workers can race full-snapshot case upserts and both insert the same case
+  // id, manufacturing a UNIQUE failure that is a harness-concurrency artifact.
+  // Keep the browser workflow serial when it owns that shared demo database.
+  workers: process.env.CI || RELEASE ? 1 : undefined,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   globalSetup: "./e2e/global-setup.ts",
