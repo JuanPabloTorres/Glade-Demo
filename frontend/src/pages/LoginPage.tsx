@@ -15,17 +15,14 @@ import { ROUTES } from "../config/routes";
 import { resolveApiErrorMessage } from "../i18n/backendErrors";
 
 /**
- * The backdrop, self-hosted.
+ * The login backdrop, pointed at the requested iStock asset.
  *
- * It used to be a hotlinked iStock URL, and that had never rendered in
- * production: the deployment's own CSP is `img-src 'self' data:`
- * (`vercel.json`), so the request was blocked and the page fell back to the
- * flat near-black every time. The URL was also a 612px preview, which is not a
- * licensed asset. This one is a vector under `public/`, so it loads under
- * `'self'`, has no focal point to crop badly, and is built from the product's
- * own colour tokens — see the comment inside the file.
+ * The page still treats it as atmosphere behind the form, with the scrim and
+ * layout doing the actual legibility work. Because the asset is hosted on a
+ * third-party origin, the deployment CSP has to allow that host explicitly.
  */
-const LOGIN_BACKDROP = "/login-backdrop.svg";
+const LOGIN_BACKDROP =
+  "https://media.istockphoto.com/id/930475882/photo/smiling-colleagues-working-online-together-at-an-office-desk.jpg?s=170667a&w=0&k=20&c=JDGopA6CPDtUOSCptOhHdkvG48vi2XT_iza5vM5RR0k=";
 
 // Deliberately NOT wrapped in AppShell (see router.tsx: "/login" is a
 // sibling of the ProtectedRoute tree, not a child). Login is a full-bleed,

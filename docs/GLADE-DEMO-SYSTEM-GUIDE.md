@@ -365,10 +365,11 @@ already drifted into four heading sizes and three list styles.
 Below 768px the app collapses to mobile-friendly layouts instead of shrinking
 desktop chrome in place. The login page keeps the purpose text above the form,
 the demo buttons stack, and the backdrop is treated as atmosphere rather than a
-focal image. The dashboards use their own responsive primitives, so the switch
-happens once per surface instead of through duplicated markup.
-`frontend/e2e/login-demo-access.spec.ts` and the viewport gate sweep
-320→1440.
+focal image. The current login hero uses the requested iStock photograph behind
+the scrim; the form and overlays still own legibility. The dashboards use their
+own responsive primitives, so the switch happens once per surface instead of
+through duplicated markup. `frontend/e2e/login-demo-access.spec.ts` and the
+viewport gate sweep 320→1440.
 
 ---
 
