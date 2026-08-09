@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -30,22 +30,12 @@ jobs:
         with: { node-version: "${{ env.NODE_VERSION }}" }
       - run: npm run version:check
       - name: Verify version is newer than main
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/fix/starlette-testclient-httpx2'
         run: npm run version:check-against -- origin/main
       - name: Verify version increment on main
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: npm run version:check-bump
 
-  # `versioning`, `governance`, `backend`, `frontend` and `e2e` are deliberately
-  # independent. They were chained (versioning → governance → backend+frontend
-  # → e2e), which made the critical path the *sum* of the slowest job in each
-  # link — roughly 17 minutes — even though no job consumes another's artifacts:
-  # `e2e` installs its own dependencies and starts its own servers. Running them
-  # in parallel makes the critical path the slowest single job instead.
-  #
-  # The trade is compute for latency: a governance failure no longer cancels the
-  # test jobs before they start, so a bad push burns a few extra runner-minutes.
-  # `cancel-in-progress` on the concurrency group already bounds that per branch.
   governance:
     name: governance
     runs-on: ubuntu-latest
@@ -67,35 +57,17 @@ jobs:
       run: { working-directory: backend }
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: "${{ env.NODE_VERSION }}" }
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "${{ env.PYTHON_VERSION }}"
           enable-cache: true
-      - name: Prepare patch release metadata
-        if: github.actor != 'github-actions[bot]'
-        run: |
-          cd ..
-          npm run version:patch
-      - name: Regenerate backend lock
-        run: uv lock
-      - name: Commit generated patch metadata
-        if: github.actor != 'github-actions[bot]'
-        run: |
-          cd ..
-          git diff --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- VERSION package.json frontend/package.json frontend/package-lock.json backend/uv.lock
-          git diff --cached --quiet && exit 0
-          git commit -m "chore: bump version to 4.14.2 and refresh backend lock"
-          git push origin HEAD:fix/starlette-testclient-httpx2
       - run: uv lock --check
       - run: uv sync --frozen --all-groups
       - run: uv run ruff check .
-      - run: uv run mypy app
+      # Strands is an optional runtime extra, but app/ai contains typed imports
+      # behind that optional boundary. Type-check with the extra installed so
+      # mypy validates those imports instead of failing before the test gate.
+      - run: uv run --extra agents mypy app
       - run: uv run python -m compileall app
       - run: uv run pytest
 
@@ -141,16 +113,12 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci --no-audit --no-fund
-      # Keyed on the lockfile so the cache is invalidated exactly when the
-      # @playwright/test version moves — a stale browser build against a newer
-      # driver is a failure mode that looks like a flaky test.
       - name: Cache Playwright browsers
         id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
-
       - name: Install Chromium
         working-directory: frontend
         run: npx playwright install --with-deps chromium
