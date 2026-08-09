@@ -9,18 +9,18 @@ import { afterEach, vi } from "vitest";
 import "../i18n/i18n";
 
 // `isolate: false` deliberately reuses a worker to keep this suite fast. Vitest
-// executes setupFiles before every test file in that mode, but the module-mock
-// registry is shared. A vi.mock() from CaseWorkspacePage/ChatPanel/navigation
-// therefore leaked into unrelated files after LanguageProvider began consuming
-// useAuth(), turning otherwise valid component renders into an undefined mocked
-// hook. Clear only the modules this suite explicitly mocks between files; this
-// preserves the fast shared jsdom while restoring file-level mock boundaries.
+// executes setupFiles before every test file in that mode, but both the mock
+// registry and imported application modules survive between files. Clear the
+// explicit module mocks first, then invalidate cached modules so the next test
+// file actually imports the unmocked implementations. `doUnmock()` alone is
+// insufficient because it does not reevaluate an already-cached module.
 vi.doUnmock("../auth/AuthContext");
 vi.doUnmock("../workspace/BankruptcyWorkspaceContext");
 vi.doUnmock("../chat/ChatPanelContext");
 vi.doUnmock("../hooks/useAiHealth");
 vi.doUnmock("../api/bankruptcyApi");
 vi.doUnmock("react-router");
+vi.resetModules();
 
 // vite.config.ts doesn't set test.globals, so @testing-library/react's
 // automatic afterEach-based cleanup never registers on its own — every
