@@ -71,7 +71,11 @@ const gates = [
   ["version", "npm", ["run", "version:check"], root],
   ["i18n", "npm", ["--prefix", "frontend", "run", "i18n:check"], root],
   ["backend lint", "uv", ["run", "ruff", "check", "."], resolve(root, "backend")],
-  ["backend types", "uv", ["run", "mypy", "app"], resolve(root, "backend")],
+  // Strands is an optional runtime extra, but typed imports live behind that
+  // boundary in app/ai. Install the extra for static analysis so the gate
+  // validates those imports instead of failing because the optional package
+  // was intentionally omitted from the default runtime dependency set.
+  ["backend types", "uv", ["run", "--extra", "agents", "mypy", "app"], resolve(root, "backend")],
   ["backend tests", "uv", ["run", "pytest"], resolve(root, "backend")],
   ["frontend lint", "npm", ["--prefix", "frontend", "run", "lint"], root],
   ["frontend tests", "npm", ["--prefix", "frontend", "run", "test", "--", "--run"], root],
