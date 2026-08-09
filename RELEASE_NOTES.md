@@ -1,3 +1,54 @@
+# FreshStart 4.14.0
+
+Final polish on the first screen anyone sees, and the study guide for explaining
+the system. Two of the findings were defects rather than taste.
+
+**The login background had never rendered in production.** It was a hotlinked
+iStock URL, and this deployment's own Content-Security-Policy is
+`img-src 'self' data:` — so the request was blocked and the page fell back to
+flat near-black every time anyone opened it. The URL was also a 612px preview,
+which is not a licensed asset. It is now a self-hosted vector built from the
+product's own colour tokens: no focal point to crop badly, and it loads under
+`'self'`.
+
+**There was no favicon at all.** No `public/` directory, no icon link, so every
+tab showed the browser's default globe. The new mark is the product's own — the
+exact glyph the header, sidebar and login already display, on the same gradient
+— and the tab now reads `Fresh Start` instead of carrying a tagline into
+fifteen characters of space.
+
+## Signing in
+
+The hierarchy reads brand → purpose → form → primary action → demo access. The
+demo buttons used to sit above the fields, which put the shortcut ahead of the
+thing it shortcuts and made the password form look optional.
+
+The password field arrives empty; it used to be pre-filled with the real demo
+credential, one eye-toggle from being on screen during a screen-share.
+
+Both demo buttons perform a real sign-in — the same endpoint, a real token, a
+normal session — and role routing resolves from the authenticated user, so the
+attorney lands on the case inbox and the client on their workspace. No
+credential was changed, and there is no demo branch anywhere in the auth path.
+A wrong password still fails, which is asserted alongside the happy path.
+
+At 320, 390, 768, 1024 and 1440 each demo control is not merely present but
+*scrolled to and clicked* by the suite, because `main` is `overflow-hidden` and
+"has a layout box" is not the same as "a person can press it".
+
+## The system guide
+
+`docs/GLADE-DEMO-SYSTEM-GUIDE.md` — architecture, stack rationale, the AI
+layer's authorization boundary, evidence and RAG, i18n, testing, honest
+limitations, an interview Q&A and a code map. Written against the code rather
+than from memory.
+
+One thing it records that is worth repeating here: the first version of the new
+backdrop was invalid XML — a `--` inside an XML comment, which browsers discard
+— so it served 200 with the right content-type and painted nothing, and a
+status-only assertion passed over it. The test decodes both SVGs now. A status
+code says a file was served, not that it works.
+
 # FreshStart 4.13.0
 
 Two release gates reported green while being wrong, and neither is catchable by

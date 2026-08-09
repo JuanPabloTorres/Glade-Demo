@@ -70,12 +70,19 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
     );
   }
 
-  // The web server has to be answering at all — a `webServer` entry that
-  // silently failed would otherwise surface as every spec timing out.
-  const app = await fetchWithTimeout(baseURL);
-  if (!app.ok) {
-    throw new Error(`The web server on ${baseURL} answered ${app.status}.`);
-  }
+  // The web server is *not* re-checked here, deliberately.
+  //
+  // Playwright's own `webServer` entry already polls `baseURL` until it answers
+  // and fails the run if it never does, so a second fetch adds no guarantee —
+  // only a second way to fail. It did: on a cold Vite start the extra request
+  // exceeded this file's timeout and aborted an otherwise healthy run. A
+  // pre-flight guard that flakes is worse than no pre-flight guard, because the
+  // next person learns to re-run instead of to read it.
+  //
+  // The identity of the *frontend* build is covered where it is observable:
+  // `ui-quality-evidence.spec.ts` asserts the footer badge equals this
+  // checkout's VERSION, and in release mode Playwright started the server
+  // itself so the port cannot belong to another worktree.
 
   const isolation = process.env.E2E_RELEASE === "1" ? "own servers" : "may reuse a running server";
   console.log(`e2e: API on ${apiBase} reports FreshStart ${expected} (${isolation})`);
