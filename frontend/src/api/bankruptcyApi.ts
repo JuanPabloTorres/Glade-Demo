@@ -84,12 +84,38 @@ export function toApiCase(caseData: BankruptcyCase): ApiBankruptcyCase {
   };
 }
 
+/**
+ * One in-flight request per exact case snapshot.
+ *
+ * React StrictMode deliberately runs effect setup/cleanup twice in development.
+ * Both the client dashboard and the case workspace analyze the current snapshot
+ * from an effect, so the Vite/Playwright path could submit the same brand-new
+ * case twice before either request committed it. The backend correctly treats
+ * the first analyze as case creation, which made the duplicate race on the same
+ * primary key.
+ *
+ * Coalescing only byte-for-byte-equivalent snapshots keeps that development
+ * behavior honest without hiding real edits: if any case field changes, the
+ * serialized request key changes and a new analysis is sent. The entry is
+ * removed after success or failure, so this is not a response cache.
+ */
+const analysisInFlight = new Map<string, Promise<CaseAnalysis>>();
+
 export const bankruptcyApi = {
-  async analyze(caseData: BankruptcyCase): Promise<CaseAnalysis> {
-    const response = await http.post<CaseAnalysis>(pathFor("bankruptcy.analyze"), {
-      case: toApiCase(caseData),
-    });
-    return response.data;
+  analyze(caseData: BankruptcyCase): Promise<CaseAnalysis> {
+    const apiCase = toApiCase(caseData);
+    const requestKey = JSON.stringify(apiCase);
+    const existing = analysisInFlight.get(requestKey);
+    if (existing) return existing;
+
+    const request = http
+      .post<CaseAnalysis>(pathFor("bankruptcy.analyze"), { case: apiCase })
+      .then((response) => response.data)
+      .finally(() => {
+        analysisInFlight.delete(requestKey);
+      });
+    analysisInFlight.set(requestKey, request);
+    return request;
   },
 
   async guide(
