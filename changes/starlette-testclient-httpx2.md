@@ -24,6 +24,12 @@ None.
 `backend/uv.lock` is regenerated from the modified `pyproject.toml`. The package is
 added only to the `dev` dependency group, so production installs remain unchanged.
 
+The lockfile and release-authority files are regenerated on the repository's Linux
+CI runner because the interactive execution environment used for this maintenance
+pass has no outbound package-registry DNS. The temporary branch-only CI adjustment
+used for that reproducible generation is restored to the repository's standard CI
+configuration before integration into `main`.
+
 # Tests and evidence
 
 Required release evidence:
