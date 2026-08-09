@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" role="presentation">
+  <!--
+    The login backdrop.
+
+    It replaces a hotlinked iStock photograph, and the reason is not taste: the
+    deployment's own Content-Security-Policy is `img-src 'self' data:`, so
+    media.istockphoto.com was blocked in production and the background had never
+    rendered there — the page fell back to flat #09111f every time. The URL was
+    also a 612px preview, which is not a licensed asset.
+
+    Self-hosted, so it loads under `'self'`. Vector, so there is no focal point
+    to crop badly: `xMidYMid slice` keeps the composition centred at every
+    aspect ratio from 320x568 to 1440x900, and the interesting geometry is held
+    away from the left third where the sign-in card sits at `lg`.
+
+    Colours are the product's own tokens (color-primary #2563eb,
+    color-secondary #4f46e5, color-accent #7c3aed) over the near-black the
+    page already used, so the hero belongs to the same visual language as the
+    application behind it rather than looking like a stock image someone found.
+
+    Deliberately quiet: no photograph, no faces, no literal "debt" imagery. The
+    shapes read as stacked records and a document edge — the thing this product
+    organizes — at an opacity low enough that white text over it stays the
+    brightest element on screen.
+  -->
+  <defs>
+    <linearGradient id="field" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070f1d"/>
+      <stop offset="0.55" stop-color="#0d1730"/>
+      <stop offset="1" stop-color="#141a3d"/>
+    </linearGradient>
+
+    <radialGradient id="glow" cx="0.56" cy="0.32" r="0.6">
+      <stop offset="0" stop-color="#4f46e5" stop-opacity="0.85"/>
+      <stop offset="0.5" stop-color="#2563eb" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#2563eb" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="accent" cx="0.9" cy="0.86" r="0.5">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#field)"/>
+  <rect width="1600" height="1000" fill="url(#glow)"/>
+  <rect width="1600" height="1000" fill="url(#accent)"/>
+
+  <!--
+    Stacked records, receding.
+
+    Placed at x≈540 rather than out at the right edge, and that was measured
+    rather than eyeballed: with `slice`, a 1440x900 viewport scales this 1600
+    canvas by 0.9, and the sign-in card's left edge lands near x=896 in these
+    coordinates. Geometry drawn to the right of that is simply behind the card.
+    Sitting here, the motif reads in the gap between the headline and the card
+    at desktop, and is covered by the card on a phone — which is correct, since
+    the phone scrim is heavy and the form owns that screen.
+  -->
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5">
+    <rect x="540" y="215" width="430" height="275" rx="26"/>
+    <rect x="580" y="262" width="430" height="275" rx="26"/>
+    <rect x="620" y="309" width="430" height="275" rx="26"/>
+  </g>
+
+  <!-- The front record, faintly filled, with rule lines: a case file being
+       organized, abstracted rather than illustrated. -->
+  <g>
+    <rect x="660" y="356" width="430" height="275" rx="26" fill="#ffffff" fill-opacity="0.10"/>
+    <rect x="660" y="356" width="430" height="275" rx="26" fill="none" stroke="url(#edge)" stroke-width="1.5"/>
+    <g fill="#ffffff" fill-opacity="0.26">
+      <rect x="700" y="404" width="228" height="9" rx="4.5"/>
+      <rect x="700" y="440" width="302" height="7" rx="3.5"/>
+      <rect x="700" y="468" width="274" height="7" rx="3.5"/>
+      <rect x="700" y="496" width="315" height="7" rx="3.5"/>
+    </g>
+    <g fill="#7c3aed" fill-opacity="0.75">
+      <rect x="700" y="546" width="92" height="26" rx="13"/>
+    </g>
+    <g fill="#2563eb" fill-opacity="0.70">
+      <rect x="806" y="546" width="126" height="26" rx="13"/>
+    </g>
+  </g>
+
+  <!-- A single sweep of light, low contrast, to keep the field from reading as
+       a flat panel. -->
+  <path d="M0 760 C 420 640, 900 900, 1600 700 L1600 1000 L0 1000 Z" fill="#ffffff" fill-opacity="0.02"/>
+</svg>

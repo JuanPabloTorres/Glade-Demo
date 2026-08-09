@@ -115,6 +115,23 @@ On `integration/demo-close` since the 4.9.0 release commit. No version bump yet.
   the operation that was impossible before.
 - Pinned the footer version badge to the tree's `VERSION`, so a build a release behind fails
   a suite rather than being spotted on a screen.
+- Replaced the login background. It was a hotlinked iStock URL that this deployment's CSP
+  (`img-src 'self' data:`) blocks, so it had **never rendered in production** — the page fell
+  back to flat near-black. Now a self-hosted vector built from the product's colour tokens.
+  (`changes/login-polish-system-guide.md`, 4.14.0)
+- Added a favicon and fixed the tab title. There was no `public/` directory and no icon link,
+  so every tab showed the browser default and `/favicon.ico` 404'd. The mark is the product's
+  own glyph; the title is `Fresh Start`.
+- Recomposed the login: brand → purpose → form → primary action → demo access, with the demo
+  buttons moved below the thing they shortcut, and the password field no longer pre-filled
+  with a real credential.
+- Pinned that both demo buttons perform a *real* sign-in (one `POST /auth/login`, a written
+  session, the correct role's destination) and that a wrong password still fails — 17 cases in
+  `e2e/login-demo-access.spec.ts`, including scrolling to and clicking each control at
+  320/390/768/1024/1440.
+- Wrote `docs/GLADE-DEMO-SYSTEM-GUIDE.md`: 21 sections on architecture, the AI authorization
+  boundary, evidence/RAG, i18n, testing, limitations, interview Q&A and a code map — written
+  against the code, not from memory.
 - Made release gates pass only on `exit 0`. `npm run release:verify` runs twelve gates, parses no
   output and reports each one's real exit code — the rule tested against the failure it exists
   for: a command printing "Tests 143 passed (143)" and exiting 1 is recorded failing.
