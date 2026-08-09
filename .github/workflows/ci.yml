@@ -79,22 +79,6 @@ jobs:
         run: |
           cd ..
           npm run version:patch
-          python - <<'PY'
-          from pathlib import Path
-          path = Path("RELEASE_NOTES.md")
-          current = path.read_text(encoding="utf-8")
-          header = """# FreshStart 4.14.2
-
-Backend tests now install `httpx2` alongside legacy `httpx`, matching the
-supported Starlette `TestClient` path and removing the remaining
-`StarletteDeprecationWarning` without hiding it with warning filters. The
-production dependency set and application behavior are unchanged. The backend
-lockfile was regenerated from `pyproject.toml` as part of the patch release.
-
-"""
-          if not current.startswith("# FreshStart 4.14.2\n"):
-              path.write_text(header + current, encoding="utf-8")
-          PY
       - name: Regenerate backend lock
         run: uv lock
       - name: Commit generated patch metadata
@@ -104,7 +88,7 @@ lockfile was regenerated from `pyproject.toml` as part of the patch release.
           git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- VERSION package.json frontend/package.json frontend/package-lock.json backend/uv.lock RELEASE_NOTES.md
+          git add -- VERSION package.json frontend/package.json frontend/package-lock.json backend/uv.lock
           git diff --cached --quiet && exit 0
           git commit -m "chore: bump version to 4.14.2 and refresh backend lock"
           git push origin HEAD:fix/starlette-testclient-httpx2
