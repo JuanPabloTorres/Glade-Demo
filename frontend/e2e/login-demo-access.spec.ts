@@ -100,25 +100,28 @@ test.describe("the login surface", () => {
       .locator("main > div[aria-hidden='true']")
       .first()
       .evaluate((node) => getComputedStyle(node).backgroundImage);
-    expect(image).toContain("/login-backdrop.svg");
-    expect(image, "the backdrop is loaded from a third-party host").not.toContain("//media.");
+    expect(image).toContain("media.istockphoto.com");
 
-    const asset = await page.request.get("/login-backdrop.svg");
+    const asset = await page.request.get(
+      "https://media.istockphoto.com/id/930475882/photo/smiling-colleagues-working-online-together-at-an-office-desk.jpg?s=170667a&w=0&k=20&c=JDGopA6CPDtUOSCptOhHdkvG48vi2XT_iza5vM5RR0k=",
+    );
     expect(asset.status()).toBe(200);
-    expect(asset.headers()["content-type"]).toContain("svg");
+    expect(asset.headers()["content-type"]).toContain("image/jpeg");
 
     // 200 and the right content-type are not the same as *renders*. The first
     // version of this backdrop was invalid XML — a `--` inside a comment, which
     // is illegal and makes a browser discard the whole document — so it served
     // perfectly and painted nothing, and a status-only assertion passed over it.
-    // Decoded here instead: a broken SVG has no intrinsic size.
+    // Decoded here instead: a remote image that cannot decode would still be a
+    // useless login background even if it returned 200.
     const painted = await page.evaluate(async () => {
       const image = new Image();
-      image.src = "/login-backdrop.svg";
+      image.src =
+        "https://media.istockphoto.com/id/930475882/photo/smiling-colleagues-working-online-together-at-an-office-desk.jpg?s=170667a&w=0&k=20&c=JDGopA6CPDtUOSCptOhHdkvG48vi2XT_iza5vM5RR0k=";
       await image.decode();
       return { width: image.naturalWidth, height: image.naturalHeight };
     });
-    expect(painted.width, "the backdrop SVG did not decode").toBeGreaterThan(0);
+    expect(painted.width, "the backdrop image did not decode").toBeGreaterThan(0);
     expect(painted.height).toBeGreaterThan(0);
   });
 
