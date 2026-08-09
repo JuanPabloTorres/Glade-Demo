@@ -1,3 +1,11 @@
+# FreshStart 4.14.1
+
+The login backdrop now uses the requested iStock image behind the existing
+scrim, so the login screen keeps the same hierarchy while the background
+matches the latest demo direction. The deployment CSP now explicitly allows
+that host. The change was verified by the login Playwright suite, including the
+real client/attorney demo entry flow and the favicon/title checks.
+
 # FreshStart 4.14.0
 
 Final polish on the first screen anyone sees, and the study guide for explaining

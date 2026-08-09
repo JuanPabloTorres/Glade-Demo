@@ -70,6 +70,10 @@ On `integration/demo-close` since the 4.9.0 release commit. No version bump yet.
 
 ### Delivered
 
+- Switched the login backdrop to the requested iStock photo and allowed that
+  host in the edge CSP, while keeping the login hierarchy and demo access
+  behavior intact. Verified by the Playwright login spec and the frontend build.
+
 - Gave the attorney's demo case a server-side fixture, closing the 4.9.0 blocker —
   `case-miguel-demo` seeds with its own client owner and
   `test_case_ids_match_the_ones_the_ui_seeds` pins both identifiers.
