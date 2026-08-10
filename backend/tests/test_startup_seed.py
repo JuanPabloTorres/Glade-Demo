@@ -43,13 +43,14 @@ def test_it_reports_that_it_did_nothing_when_data_exists(settings: Settings) -> 
     assert seed_demo_data_if_absent(settings) is False
 
 
-def test_it_never_overwrites_rows_it_did_not_create(settings: Settings) -> None:
-    """The property that makes this safe on a boot path.
+def test_it_adds_missing_demo_cases_without_overwriting_unrelated_rows(
+    settings: Settings,
+) -> None:
+    """A partial serverless database must not strand the attorney workspace.
 
-    `reset_demo_data`, which this delegates to for an empty database, wipes
-    every table first. If the emptiness check were ever dropped or inverted,
-    enabling the flag on a populated deployment would destroy it — so the
-    guarantee is asserted against a real row rather than trusted.
+    The browser can still list the synthetic cases while a warm function has
+    only an unrelated row. Startup must restore the missing demo fixtures
+    without using the destructive reset path or changing that existing row.
     """
     init_db(settings)
     with get_sessionmaker()() as session:
@@ -64,11 +65,11 @@ def test_it_never_overwrites_rows_it_did_not_create(settings: Settings) -> None:
         )
         session.commit()
 
-    assert seed_demo_data_if_absent(settings) is False
+    assert seed_demo_data_if_absent(settings) is True
 
     with get_sessionmaker()() as session:
         assert session.get(UserModel, "real-user") is not None, "pre-existing row was destroyed"
-        assert session.get(CaseModel, DEMO_CASE_ID) is None, "demo data was written anyway"
+        assert session.get(CaseModel, DEMO_CASE_ID) is not None, "the browser-visible case is absent"
 
 
 def test_the_flag_is_off_unless_asked_for() -> None:
