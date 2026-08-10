@@ -132,30 +132,30 @@ export function LoginPage() {
         rather than `order` utilities, so there is one copy of every element in
         the markup rather than an `lg:hidden` duplicate to keep in sync.
       */}
-      <div className="relative mx-auto grid min-h-screen w-full max-w-360 content-start gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_480px] lg:grid-rows-[auto_auto] lg:content-center lg:gap-x-16 lg:gap-y-7 lg:px-10 xl:px-16">
+      <div className="relative mx-auto grid min-h-screen w-full max-w-360 content-start gap-4 px-4 py-4 sm:gap-6 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,1fr)_480px] lg:grid-rows-[auto_auto] lg:content-center lg:gap-x-16 lg:gap-y-7 lg:px-10 xl:px-16">
         {/* `pe-24` reserves the corner the absolutely-positioned language
             switcher occupies. `min-w-0` is load-bearing: a grid item's automatic
             minimum size is its min-content, and `truncate` sets `nowrap`, whose
             min-content is the whole string — which once widened the 320px track
             to 351px and clipped the card. */}
-        <div className="flex min-w-0 items-center gap-4 pe-24 text-white lg:col-start-1 lg:row-start-1 lg:self-end lg:pe-0">
-          <span className="brand-mark flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-xl shadow-indigo-950/30 sm:h-14 sm:w-14">
+        <div className="flex min-w-0 items-center gap-3 pe-24 text-white sm:gap-4 lg:col-start-1 lg:row-start-1 lg:self-end lg:pe-0">
+          <span className="brand-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-xl shadow-indigo-950/30 sm:h-14 sm:w-14 sm:rounded-2xl">
             <AppIcon name="brand" size={30} />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-xl font-semibold tracking-[-0.02em]">{t("common:app.name")}</p>
-            <p className="truncate text-sm text-white/70">{t("common:app.subtitle")}</p>
+            <p className="truncate text-lg font-semibold tracking-[-0.02em] sm:text-xl">{t("common:app.name")}</p>
+            <p className="truncate text-xs text-white/70 sm:text-sm">{t("common:app.subtitle")}</p>
           </div>
         </div>
 
         <section className="max-w-3xl text-white lg:col-start-1 lg:row-start-2 lg:self-start">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
+          <p className="mb-3 hidden text-xs font-semibold uppercase tracking-[0.14em] text-white/70 sm:block">
             {t("auth:login.heroBadge")}
           </p>
-          <h1 className="max-w-3xl text-3xl font-semibold leading-[1.1] tracking-[-0.045em] sm:text-5xl lg:text-6xl">
+          <h1 className="max-w-3xl text-2xl font-semibold leading-[1.08] tracking-[-0.045em] sm:text-5xl sm:leading-[1.1] lg:text-6xl">
             {t("auth:login.heroTitle")}
           </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-white/78 sm:mt-6 sm:text-lg sm:leading-8">
+          <p className="mt-2 line-clamp-2 max-w-2xl text-sm leading-5 text-white/78 sm:mt-6 sm:line-clamp-none sm:text-lg sm:leading-8">
             {t("auth:login.heroBody")}
           </p>
         </section>
@@ -173,10 +173,10 @@ export function LoginPage() {
               a reviewer looking for "just let me in" finds it after seeing what
               the real sign-in is.
             */}
-            <form className="space-y-4 sm:space-y-6" onSubmit={submit}>
-              <div className="border-b border-default pb-4 md:pb-5">
+            <form className="space-y-3 sm:space-y-6" onSubmit={submit}>
+              <div className="border-b border-default pb-3 sm:pb-4 md:pb-5">
                 <h2 className="text-lg font-medium text-heading sm:text-xl">{t("auth:login.title")}</h2>
-                <p className="mt-2 text-sm leading-6 text-body">{t("auth:login.subtitle")}</p>
+                <p className="mt-1 text-sm leading-5 text-body sm:mt-2 sm:leading-6">{t("auth:login.subtitle")}</p>
               </div>
 
               {activeAlert ? (
@@ -188,7 +188,7 @@ export function LoginPage() {
               {/* Floating-label fields (Flowbite's floating form block). The label
                   doubles as the field's resting placeholder, so the form loses a
                   stacked label row per field without losing the label itself. */}
-              <div className="space-y-5 sm:space-y-7">
+              <div className="space-y-4 sm:space-y-7">
                 <FloatingField
                   id="login-email"
                   type="email"
@@ -216,7 +216,7 @@ export function LoginPage() {
                 />
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-y-2">
                 {/* `min-w-0` because CheckboxField is full-width by design and
                     this row is a flex container: without it the label's text
                     inflates the item's automatic minimum size and pushes the

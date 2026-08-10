@@ -74,7 +74,7 @@ jobs:
       - run: uv lock --check
       - run: uv sync --frozen --all-groups
       - run: uv run ruff check .
-      - run: uv run mypy app
+      - run: uv run --extra agents mypy app
       - run: uv run python -m compileall app
       - run: uv run pytest
 

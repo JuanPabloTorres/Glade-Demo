@@ -55,10 +55,13 @@ async function signIn(page: Page, language: "es" | "en", role: "client" | "attor
     window.localStorage.setItem("freshstart.language", code);
   }, language);
   await page.goto("/login");
+  // DemoAccess copy was polished from "Sign in as …" to "Enter as …" in
+  // English. Keep the old phrase accepted as a backwards-compatible selector,
+  // but assert the actual current control rather than timing out on stale copy.
   const label =
     role === "client"
-      ? /Entrar como cliente|Sign in as client/i
-      : /Entrar como abogad|Sign in as attorney/i;
+      ? /Entrar como cliente|Enter as Client|Sign in as client/i
+      : /Entrar como abogad|Enter as Attorney|Sign in as attorney/i;
   await page.getByRole("button", { name: label }).click();
   await expect(page.getByRole("banner")).toBeVisible();
 }
@@ -194,7 +197,9 @@ test("the footer reports the version this tree was built from", async ({ page })
 async function firstVisitAsClient(page: Page) {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/login");
-  await page.getByRole("button", { name: /Entrar como cliente|Sign in as client/i }).click();
+  await page
+    .getByRole("button", { name: /Entrar como cliente|Enter as Client|Sign in as client/i })
+    .click();
   await expect(page.getByRole("banner")).toBeVisible();
 }
 
