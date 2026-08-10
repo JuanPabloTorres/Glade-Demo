@@ -55,8 +55,12 @@ exit 0:
 - E2E: **121/121 Playwright tests passed** in 3.8 minutes using the release-compatible
   shared-database execution model.
 
-The final `npm run release:verify` result is recorded in the release notes after the
-full release gate runs on this tree.
+The final release authority was GitHub Actions run `31343570889`, job `release-verify`,
+executing the repository's own `npm run release:verify` command against FreshStart
+4.14.2. Every internal gate exited 0: governance, architecture, Flowbite, version,
+i18n, backend lint, backend types, backend tests, frontend lint, frontend tests,
+build, and Playwright. Its independent release-mode Playwright pass also completed
+**121/121**, and the gate ended with `RELEASE GATE = PASS — every gate exited 0.`
 
 # Risks / limitations
 
@@ -64,6 +68,9 @@ GitHub's JavaScript actions still emit their own Node-runtime deprecation notice
 (`punycode`, `url.parse`, and Node 20 action metadata being forced onto Node 24).
 Those originate in third-party GitHub Actions, not FastAPI/Starlette or the application
 test suite, and are outside this patch's dependency boundary.
+
+The frontend linter also reports its existing warning-only React Hook/Fast Refresh
+notices; lint exits 0 and no new lint error was introduced by this patch.
 
 `analysisInFlight` coalesces only byte-for-byte-identical case snapshots while a
 request is active and removes the entry on success or failure; it is intentionally not
