@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, fix/starlette-testclient-httpx2]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -19,31 +19,6 @@ env:
   PYTHON_VERSION: "3.13"
 
 jobs:
-  release-metadata:
-    name: release-metadata
-    if: github.ref == 'refs/heads/fix/starlette-testclient-httpx2' && github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: fix/starlette-testclient-httpx2
-          fetch-depth: 0
-      - name: Prepend 4.14.2 release notes
-        run: >-
-          python -c 'from pathlib import Path; p=Path("RELEASE_NOTES.md"); s=p.read_text(encoding="utf-8"); h="# FreshStart 4.14.2\n\nTest-harness and release-gate maintenance. The backend dev environment now installs `httpx2` alongside legacy `httpx`, so Starlette `TestClient` uses its maintained backend and the remaining Starlette/FastAPI deprecation warning is removed at the source rather than filtered. The lockfile was regenerated and the release version advanced from 4.14.1 to 4.14.2.\n\nThe full delivery pass also repaired gates that `main` had accumulated: mypy now type-checks the optional Strands boundary with the `agents` extra installed; Vitest restores file isolation for application-wide mocks; identical in-flight case analyses are coalesced so React StrictMode cannot double-create the same new case; the E2E selector follows the current demo-access copy; CI/release Playwright is serial around its shared SQLite demo database; and the smallest login viewport keeps the real sign-in controls above the first-screen fold. No API contract, database schema, authorization rule, or production backend dependency changed.\n\nRelease evidence before integration: 385 backend tests, 143 frontend tests plus build, and 121 Playwright tests all exit 0. `npm run release:verify` is the final integration authority.\n\n"; p.write_text(s if s.startswith("# FreshStart 4.14.2\n") else h+s, encoding="utf-8")'
-      - name: Commit release notes
-        run: |
-          git diff --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- RELEASE_NOTES.md
-          git diff --cached --quiet && exit 0
-          git commit -m "docs: add 4.14.2 release notes"
-          git push origin HEAD:fix/starlette-testclient-httpx2
-
   versioning:
     name: versioning
     runs-on: ubuntu-latest
@@ -55,12 +30,22 @@ jobs:
         with: { node-version: "${{ env.NODE_VERSION }}" }
       - run: npm run version:check
       - name: Verify version is newer than main
-        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/fix/starlette-testclient-httpx2'
+        if: github.event_name == 'pull_request'
         run: npm run version:check-against -- origin/main
       - name: Verify version increment on main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push'
         run: npm run version:check-bump
 
+  # `versioning`, `governance`, `backend`, `frontend` and `e2e` are deliberately
+  # independent. They were chained (versioning → governance → backend+frontend
+  # → e2e), which made the critical path the *sum* of the slowest job in each
+  # link — roughly 17 minutes — even though no job consumes another's artifacts:
+  # `e2e` installs its own dependencies and starts its own servers. Running them
+  # in parallel makes the critical path the slowest single job instead.
+  #
+  # The trade is compute for latency: a governance failure no longer cancels the
+  # test jobs before they start, so a bad push burns a few extra runner-minutes.
+  # `cancel-in-progress` on the concurrency group already bounds that per branch.
   governance:
     name: governance
     runs-on: ubuntu-latest
@@ -135,12 +120,16 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci --no-audit --no-fund
+      # Keyed on the lockfile so the cache is invalidated exactly when the
+      # @playwright/test version moves — a stale browser build against a newer
+      # driver is a failure mode that looks like a flaky test.
       - name: Cache Playwright browsers
         id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
       - name: Install Chromium
         working-directory: frontend
         run: npx playwright install --with-deps chromium
@@ -155,32 +144,3 @@ jobs:
           path: frontend/playwright-report
           if-no-files-found: ignore
           retention-days: 14
-
-  release-verify:
-    name: release-verify
-    if: github.ref == 'refs/heads/fix/starlette-testclient-httpx2'
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - uses: astral-sh/setup-uv@v5
-        with:
-          python-version: "${{ env.PYTHON_VERSION }}"
-          enable-cache: true
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "${{ env.NODE_VERSION }}"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Install backend dependencies
-        working-directory: backend
-        run: uv sync --frozen --all-groups
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci --no-audit --no-fund
-      - name: Install Chromium
-        working-directory: frontend
-        run: npx playwright install --with-deps chromium
-      - name: Run full repository release gate
-        run: npm run release:verify
