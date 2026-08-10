@@ -1,11 +1,13 @@
 import {
+  Alert,
   Badge,
   Card,
   Pagination,
 } from "flowbite-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
+import { bankruptcyApi } from "../api/bankruptcyApi";
 import { useAuth } from "../auth/AuthContext";
 import { MetricTiles } from "../components/case/MetricTiles";
 import { DataTableToolbar } from "../components/data-display/DataTableToolbar";
@@ -55,6 +57,29 @@ export function AttorneyDashboardPage() {
   const { t } = useTranslation(["workspace", "tables"]);
   const auth = useAuth();
   const { cases, updateCase, deleteCase } = useBankruptcyWorkspace();
+  const [persistedCaseIds, setPersistedCaseIds] = useState<ReadonlySet<string> | null>(null);
+  const [portfolioError, setPortfolioError] = useState(false);
+
+  useEffect(() => {
+    if (auth.user?.role !== "attorney") return;
+    let active = true;
+    setPersistedCaseIds(null);
+    setPortfolioError(false);
+    bankruptcyApi
+      .listPortfolio()
+      .then((portfolio) => {
+        if (active) setPersistedCaseIds(new Set(portfolio.map((entry) => entry.case_id)));
+      })
+      .catch(() => {
+        if (!active) return;
+        setPersistedCaseIds(new Set());
+        setPortfolioError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [auth.user?.id, auth.user?.role]);
+
   // Releases before 4.14.2 let the attorney create a local-only draft by
   // passing the attorney identity through the client intake helper. Those
   // rows survive deployments in localStorage, but they can never be opened:
@@ -63,8 +88,11 @@ export function AttorneyDashboardPage() {
   // Apply that same ownership boundary before every dashboard projection so
   // stale rows cannot appear in metrics, filters, cards, or Open links.
   const reviewableCases = useMemo(
-    () => cases.filter((caseData) => caseData.ownerUserId !== auth.user?.id),
-    [auth.user?.id, cases],
+    () => cases.filter(
+      (caseData) =>
+        caseData.ownerUserId !== auth.user?.id && persistedCaseIds?.has(caseData.id),
+    ),
+    [auth.user?.id, cases, persistedCaseIds],
   );
   const [searchParams, setSearchParams] = useSearchParams();
   // `view` is derived from the URL on every render (not a one-time lazy
@@ -185,6 +213,11 @@ export function AttorneyDashboardPage() {
       />
 
       <Card className="app-card">
+        {portfolioError ? (
+          <Alert color="failure" className="mb-4">
+            {t("workspace:attorneyDashboard.portfolioError")}
+          </Alert>
+        ) : null}
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-fg-brand">{t("workspace:attorneyDashboard.managementLabel")}</p>

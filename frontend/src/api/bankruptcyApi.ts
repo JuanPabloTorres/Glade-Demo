@@ -7,10 +7,11 @@ import type {
   AssistantScope,
   BankruptcyCase,
   CaseAnalysis,
+  CasePortfolioEntry,
 } from "../types/bankruptcy";
 import type { UserRole } from "../types/api";
 
-function pathFor(key: "bankruptcy.analyze" | "bankruptcy.guide"): string {
+function pathFor(key: "bankruptcy.portfolio" | "bankruptcy.analyze" | "bankruptcy.guide"): string {
   return apiContracts[key].path;
 }
 
@@ -102,6 +103,11 @@ export function toApiCase(caseData: BankruptcyCase): ApiBankruptcyCase {
 const analysisInFlight = new Map<string, Promise<CaseAnalysis>>();
 
 export const bankruptcyApi = {
+  async listPortfolio(): Promise<CasePortfolioEntry[]> {
+    const response = await http.get<CasePortfolioEntry[]>(pathFor("bankruptcy.portfolio"));
+    return response.data;
+  },
+
   analyze(caseData: BankruptcyCase): Promise<CaseAnalysis> {
     const apiCase = toApiCase(caseData);
     const requestKey = JSON.stringify(apiCase);

@@ -164,6 +164,24 @@ describe("CaseWorkspacePage stage navigation", () => {
     expect(await screen.findByText("elsewhere")).toBeInTheDocument();
     expect(mockAnalyze).not.toHaveBeenCalled();
   });
+
+  it("returns the attorney to the queue when a case disappears before analysis", async () => {
+    mockAnalyze.mockRejectedValue({ isAxiosError: true, response: { status: 404 } });
+    mockUseAuth.mockReturnValue({
+      user: { id: "attorney-demo", name: "Lic. Andrea Morales", email: "attorney@freshstart.demo", role: "attorney" },
+    });
+    mockUseBankruptcyWorkspace.mockReturnValue({
+      cases: [makeCase({ ownerUserId: "client-1" })],
+      updateCase: vi.fn(),
+      submitCase: vi.fn(),
+      updateStatus: vi.fn(),
+    });
+
+    renderWorkspace("/case/case-1/overview");
+
+    expect(await screen.findByText("elsewhere")).toBeInTheDocument();
+    expect(screen.queryByText("Could not refresh the financial analysis.")).not.toBeInTheDocument();
+  });
 });
 
 describe("STAGE_ORDER index derivation (regression guard for the hardcoded-index bug)", () => {

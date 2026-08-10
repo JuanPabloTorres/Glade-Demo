@@ -153,6 +153,7 @@
     "managementLabel": "Gestión de solicitudes",
     "inboxTitle": "Bandeja de casos",
     "inboxDescription": "Prioriza urgencias, faltantes y solicitudes enviadas.",
+    "portfolioError": "No se pudo cargar la bandeja de expedientes. Inténtalo nuevamente.",
     "caseCount": "{{shown}} de {{total}} casos",
     "createCase": "Crear caso",
     "searchPlaceholder": "Buscar por nombre o correo...",

@@ -13,6 +13,7 @@ from app.repositories.case_repository import CaseRepositoryDep
 from app.schemas.bankruptcy import (
     CaseAnalysisDto,
     CaseAnalysisRequestDto,
+    CasePortfolioEntryDto,
     GuidanceRequestDto,
 )
 from app.services.bankruptcy_service import (
@@ -24,6 +25,21 @@ from app.services.case_access_service import CaseAccessDep
 router = APIRouter(tags=["Bankruptcy Guidance"])
 registry = get_contract_registry()
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+
+
+@router.get(
+    registry.get("bankruptcy.portfolio").path,
+    response_model=list[CasePortfolioEntryDto],
+    operation_id=registry.get("bankruptcy.portfolio").operation_id,
+)
+def list_attorney_portfolio(
+    current_user: CurrentUserDep,
+    case_access: CaseAccessDep,
+) -> list[CasePortfolioEntryDto]:
+    return [
+        CasePortfolioEntryDto.model_validate(entry)
+        for entry in case_access.attorney_portfolio(current_user)
+    ]
 
 
 @router.post(
