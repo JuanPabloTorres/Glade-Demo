@@ -1,3 +1,22 @@
+# FreshStart 4.15.1
+
+Chat messages now use complete 36px icon avatars instead of squeezing localized
+“You/Tú” and “AI/IA” text into Flowbite's 24px initials placeholder. The
+assistant has a branded sparkle avatar, the user has a distinct profile avatar,
+and both expose localized accessible names. Bubble spacing, long-text wrapping,
+metadata and the copy action were refined for narrow screens.
+
+The transcript now anchors the newest message inside its own scrollport, with
+enough governed end spacing to avoid leaving the preceding avatar half visible
+under the panel header. The scroll correction never moves the underlying page
+and does not change assistant logic, OpenRouter configuration, stored messages,
+API contracts or legal guardrails.
+
+Release evidence includes 390 backend tests, Ruff and mypy, 147 frontend tests,
+lint/i18n/build, and all 124 Playwright journeys. Focused screenshots and
+geometry checks cover 320, 390, 768, 1024 and 1440 in Spanish plus English at
+390, with no assistant-panel console errors or horizontal overflow.
+
 # FreshStart 4.15.0
 
 The attorney queue now intersects browser workspace rows with a new
