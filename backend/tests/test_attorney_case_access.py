@@ -26,7 +26,12 @@ from fastapi.testclient import TestClient
 from app.core.config import get_settings
 from app.repositories.database import get_sessionmaker
 from app.repositories.orm_models import CaseModel
-from app.repositories.seed import ATTORNEY_REVIEW_CASE_ID, DEMO_CASE_ID, reset_demo_data
+from app.repositories.seed import (
+    ATTORNEY_REVIEW_CASE_ID,
+    DEMO_CASE_ID,
+    reset_demo_data,
+    seed_demo_data_if_absent,
+)
 
 
 def _case_payload(case_id: str) -> dict[str, object]:
@@ -82,6 +87,27 @@ class TestSeededCasesCoverTheDemo:
 
 
 class TestAttorneyCanReviewTheQueuedCase:
+    def test_startup_reconciliation_restores_a_browser_visible_case(
+        self, attorney_client: TestClient
+    ) -> None:
+        """A partial serverless database used to make Open fail with 404."""
+        with get_sessionmaker()() as session:
+            case = session.get(CaseModel, DEMO_CASE_ID)
+            assert case is not None
+            session.delete(case)
+            session.commit()
+
+        missing = attorney_client.post(
+            "/api/v1/bankruptcy/analyze", json=_case_payload(DEMO_CASE_ID)
+        )
+        assert missing.status_code == 404, missing.text
+
+        assert seed_demo_data_if_absent(get_settings()) is True
+        restored = attorney_client.post(
+            "/api/v1/bankruptcy/analyze", json=_case_payload(DEMO_CASE_ID)
+        )
+        assert restored.status_code == 200, restored.text
+
     def test_attorney_analyze_succeeds_on_the_case_the_queue_opens(
         self, attorney_client: TestClient
     ) -> None:

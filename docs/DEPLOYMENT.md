@@ -25,7 +25,7 @@ That is acceptable for a synthetic-data demo and unacceptable as an ownership gu
 | Variable | Required | Why |
 | --- | --- | --- |
 | `JWT_SECRET` | **Yes — the API will not boot without it** | `api/index.py` sets `ENVIRONMENT=production`, and `Settings` refuses to construct while the signing key is still the public demo default. Since that happens at import time, every `/api/*` route returns a function error until this is set. Use a long random value. |
-| `SEED_DEMO_DATA_ON_STARTUP` | Recommended: `true` | Populates the synthetic demo case into an **empty** database at boot. Without it a login lands on an empty workspace after every cold start. It never writes over existing rows, so it degrades to a no-op once there is real data. |
+| `SEED_DEMO_DATA_ON_STARTUP` | Recommended: `true` | Reconciles missing synthetic demo users and cases at boot. Without it a login can land on a browser-visible case that the API does not know after a cold or partial start. Existing cases and unrelated rows are never overwritten. |
 | `DATABASE_URL` | No | Defaults to `sqlite:////tmp/matter_ready.db`. Set it to a Postgres DSN to make persistence real. |
 | `OPENAI_API_KEY` | For a working agent | `api/index.py` already sets `AI_PROVIDER=openai`. Without a key the model factory raises, the runtime catches it, and every answer comes back from the deterministic draft with `degraded: true` — no error, just no agent. |
 | `OPENAI_BASE_URL` | Only for a non-OpenAI provider | Points the `openai` provider at any endpoint speaking OpenAI's **Chat Completions** API — see "Running the agent for free" below. Unset means OpenAI itself, over the Responses API. |
@@ -93,7 +93,7 @@ Every model in `app/repositories/orm_models.py` uses portable SQLAlchemy column 
 1. The `psycopg[binary]` driver already ships in both `requirements.txt` and `backend/pyproject.toml`. Nothing to add.
 2. Set `DATABASE_URL=postgresql+psycopg://user:password@host:5432/dbname`. Note the `+psycopg` — a bare `postgresql://` DSN makes SQLAlchemy look for `psycopg2`, which is not installed.
 3. Run the migrations once against the new database: `cd backend && alembic upgrade head`.
-4. Leave `SEED_DEMO_DATA_ON_STARTUP` set only if you want the synthetic case in it; it seeds once into an empty database and then does nothing.
+4. Leave `SEED_DEMO_DATA_ON_STARTUP` set only if you want the synthetic cases in it; it adds missing governed fixture IDs and leaves existing cases and unrelated rows untouched.
 
 `init_db()` also runs `create_all()` at startup as a demo-convenience safety net. It is idempotent and never a substitute for Alembic on a real database — run step 3 explicitly.
 
