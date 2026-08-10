@@ -41,13 +41,14 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 
 from app.domain.entities import CasePortfolioEntry
-from app.repositories.case_repository import CaseRepositoryDep, SqlAlchemyCaseRepository
+from app.repositories.case_repository import CaseRepositoryDep
+from app.repositories.protocols import CaseRepositoryProtocol
 from app.schemas.auth import AuthUserDto
 from app.schemas.bankruptcy import BankruptcyCaseDto
 
 
 class CaseAccessService:
-    def __init__(self, case_repository: SqlAlchemyCaseRepository) -> None:
+    def __init__(self, case_repository: CaseRepositoryProtocol) -> None:
         self._cases = case_repository
 
     def authorize_for_submission(
