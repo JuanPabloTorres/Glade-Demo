@@ -29,14 +29,14 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # Off by default: populating a database on boot is the wrong behaviour
     # everywhere except a target whose storage is per-instance and ephemeral,
     # where every cold start otherwise answers a login with an empty
-    # workspace. `seed_demo_data_if_absent` writes only into a database that
-    # has none, so leaving this on after the deployment gains real rows
-    # degrades to a no-op instead of wiping them.
+    # workspace. `seed_demo_data_if_absent` reconciles only missing synthetic
+    # fixture ids, so a partial warm instance is repaired without overwriting
+    # existing cases or unrelated rows.
     if settings.seed_demo_data_on_startup:
         if seed_demo_data_if_absent(settings):
-            logger.info("Seeded synthetic demo data into an empty database.")
+            logger.info("Reconciled missing synthetic demo fixtures.")
         else:
-            logger.info("SEED_DEMO_DATA_ON_STARTUP is set but the database already has rows.")
+            logger.info("Synthetic demo fixtures are already present.")
     yield
 
 
