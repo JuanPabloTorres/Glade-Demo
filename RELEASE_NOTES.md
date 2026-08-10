@@ -1,3 +1,20 @@
+# FreshStart 4.14.3
+
+Opening a synthetic case no longer loses its server-generated financial
+analysis when a Vercel instance is only partially initialized. The opted-in
+startup bootstrap now reconciles missing governed demo users and cases by ID,
+instead of treating the presence of any unrelated row as proof that every demo
+fixture exists. Existing cases and unrelated rows are never overwritten.
+
+Ownership remains strict: an attorney can analyze the restored browser-visible
+demo cases, while an arbitrary unknown case still returns `404`. There is no API
+contract or database-schema change. The Vercel default remains per-instance,
+ephemeral SQLite; this repair keeps synthetic demo fixtures coherent, but real
+durability still requires a shared Postgres `DATABASE_URL`.
+
+Release evidence includes 386 backend tests, mypy and Ruff, 143 frontend tests,
+frontend lint/build, and the isolated nine-step attorney Playwright journey.
+
 # FreshStart 4.14.2
 
 Test-harness and release-gate maintenance. The backend dev environment now installs `httpx2` alongside legacy `httpx`, so Starlette `TestClient` uses its maintained backend and the remaining Starlette/FastAPI deprecation warning is removed at the source rather than filtered. The lockfile was regenerated and the release version advanced from 4.14.1 to 4.14.2.
