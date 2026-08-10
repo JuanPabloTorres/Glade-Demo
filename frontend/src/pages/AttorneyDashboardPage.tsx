@@ -55,6 +55,17 @@ export function AttorneyDashboardPage() {
   const { t } = useTranslation(["workspace", "tables"]);
   const auth = useAuth();
   const { cases, updateCase, deleteCase } = useBankruptcyWorkspace();
+  // Releases before 4.14.2 let the attorney create a local-only draft by
+  // passing the attorney identity through the client intake helper. Those
+  // rows survive deployments in localStorage, but they can never be opened:
+  // the backend correctly requires every case to have a client owner and
+  // returns 404 rather than letting an attorney create one implicitly.
+  // Apply that same ownership boundary before every dashboard projection so
+  // stale rows cannot appear in metrics, filters, cards, or Open links.
+  const reviewableCases = useMemo(
+    () => cases.filter((caseData) => caseData.ownerUserId !== auth.user?.id),
+    [auth.user?.id, cases],
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   // `view` is derived from the URL on every render (not a one-time lazy
   // useState initializer) so sidebar deep links (?view=urgent,
@@ -69,9 +80,9 @@ export function AttorneyDashboardPage() {
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(8);
   const query = searchParams.get("q") ?? "";
 
-  const submitted = cases.filter((item) => item.status !== "draft" && item.status !== "collecting_information");
-  const urgent = cases.filter(isUrgent);
-  const waitingOnClient = cases.filter(isWaitingOnClient);
+  const submitted = reviewableCases.filter((item) => item.status !== "draft" && item.status !== "collecting_information");
+  const urgent = reviewableCases.filter(isUrgent);
+  const waitingOnClient = reviewableCases.filter(isWaitingOnClient);
 
   const views: { key: ViewKey; label: string; match: (item: BankruptcyCase) => boolean }[] = useMemo(
     () => [
@@ -90,10 +101,10 @@ export function AttorneyDashboardPage() {
   );
 
   const searched = useMemo(() => {
-    if (!query.trim()) return cases;
+    if (!query.trim()) return reviewableCases;
     const needle = query.trim().toLowerCase();
-    return cases.filter((item) => item.clientName.toLowerCase().includes(needle) || item.clientEmail.toLowerCase().includes(needle));
-  }, [cases, query]);
+    return reviewableCases.filter((item) => item.clientName.toLowerCase().includes(needle) || item.clientEmail.toLowerCase().includes(needle));
+  }, [reviewableCases, query]);
 
   const filtered = useMemo(() => {
     const matcher = views.find((item) => item.key === view)?.match ?? (() => true);
@@ -166,7 +177,7 @@ export function AttorneyDashboardPage() {
           drifted into three different number sizes. */}
       <MetricTiles
         tiles={[
-          { id: "requests", icon: "document", label: t("workspace:attorneyDashboard.metrics.requests"), value: cases.length, count: true },
+          { id: "requests", icon: "document", label: t("workspace:attorneyDashboard.metrics.requests"), value: reviewableCases.length, count: true },
           { id: "in-review", icon: "attorney", label: t("workspace:attorneyDashboard.metrics.inReview"), value: submitted.length, count: true },
           { id: "urgent", icon: "alert", label: t("workspace:attorneyDashboard.metrics.urgent"), value: urgent.length, count: true },
           { id: "waiting-client", icon: "evidence", label: t("workspace:attorneyDashboard.metrics.waitingClient"), value: waitingOnClient.length, count: true },
@@ -181,7 +192,7 @@ export function AttorneyDashboardPage() {
             <p className="mt-2 text-sm text-body">{t("workspace:attorneyDashboard.inboxDescription")}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge color="gray" className="w-fit px-3 py-1.5">{t("workspace:attorneyDashboard.caseCount", { shown: sorted.length, total: cases.length })}</Badge>
+            <Badge color="gray" className="w-fit px-3 py-1.5">{t("workspace:attorneyDashboard.caseCount", { shown: sorted.length, total: reviewableCases.length })}</Badge>
           </div>
         </div>
 

@@ -1,3 +1,22 @@
+# FreshStart 4.14.4
+
+The attorney queue no longer exposes empty, browser-only drafts left behind by
+older releases that incorrectly created a case with the attorney as its owner.
+Those rows could never pass the backend's client-ownership rule, so selecting
+Open repeatedly produced a `404` and the generic financial-analysis refresh
+error. Queue counts, filters, responsive cards and Open actions now use only
+client-owned reviewable cases.
+
+A bookmarked URL for one of those legacy drafts now returns to the attorney
+dashboard without calling the analysis endpoint. The backend authorization
+boundary is unchanged: attorneys still review existing client-owned cases and
+cannot implicitly create a case without a client owner. The invalid legacy rows
+are left untouched in local browser storage but are no longer reachable.
+
+Release evidence includes 386 backend tests, Ruff and mypy, 145 frontend tests,
+frontend lint/build, plus focused regressions for the queue and bookmarked-route
+paths. There is no API contract or database-schema change.
+
 # FreshStart 4.14.3
 
 Opening a synthetic case no longer loses its server-generated financial
