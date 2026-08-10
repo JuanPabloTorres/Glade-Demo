@@ -1,3 +1,17 @@
+# FreshStart 4.14.5
+
+The case-ownership authorization service now depends on the governed repository
+protocol instead of the concrete SQLAlchemy implementation. Runtime behavior is
+unchanged: clients remain restricted to their own cases, attorneys can review
+existing client-owned cases, and unknown cases still return the same response.
+
+An application-layer architecture test now rejects concrete SQLAlchemy
+repository imports from services so the boundary cannot silently regress. There
+is no API contract, database-schema, configuration, or user-interface change.
+
+Release evidence includes 387 backend tests, Ruff and mypy, 145 frontend tests,
+frontend lint/build, and focused client/attorney ownership regressions.
+
 # FreshStart 4.14.4
 
 The attorney queue no longer exposes empty, browser-only drafts left behind by
