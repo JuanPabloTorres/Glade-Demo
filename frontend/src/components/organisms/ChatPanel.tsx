@@ -83,10 +83,23 @@ export function ChatPanel({ prefill = "", routeContext = null, variant = "page" 
     if (prefill) setMessage(prefill);
   }, [prefill]);
 
-  // Pin to the newest message.
+  // Keep the newest message fully in view. Scrolling the transcript to its
+  // absolute bottom left the previous row clipped beneath the fixed panel
+  // header on short phones — often showing only half of its avatar. Anchoring
+  // the newest message itself gives the conversation a stable reading origin;
+  // cards and suggested actions remain immediately below it in normal flow.
   useEffect(() => {
     const transcript = transcriptRef.current;
-    transcript?.scrollTo({ top: transcript.scrollHeight, behavior: "smooth" });
+    const messageNodes = transcript?.querySelectorAll<HTMLElement>("[data-chat-message]");
+    const newestMessage = messageNodes?.item(messageNodes.length - 1);
+    if (!transcript || !newestMessage) return;
+    // Scroll only the transcript. `scrollIntoView` also moves ancestor
+    // scrollports and could pull the fixed panel header above the browser
+    // viewport on desktop.
+    transcript.scrollTo({
+      top: Math.max(0, newestMessage.offsetTop - transcript.offsetTop - 16),
+      behavior: "auto",
+    });
   }, [messages.length, busy]);
 
   if (!user || !caseData) {
@@ -210,10 +223,14 @@ export function ChatPanel({ prefill = "", routeContext = null, variant = "page" 
         // px-4 below `sm`: on a 320–390px phone the sheet is full-bleed, so
         // every horizontal pixel spent on panel padding comes out of the
         // bubble, which already gives up room to an avatar and a copy control.
-        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5"
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain scroll-py-4 px-4 py-4 sm:px-6 sm:py-5"
       >
         {messages.length ? (
-          messages.map((item) => <ChatBubble key={item.id} message={item} />)
+          messages.map((item) => (
+            <div key={item.id} data-chat-message>
+              <ChatBubble message={item} />
+            </div>
+          ))
         ) : (
           <p className="py-6 text-center text-sm text-body">{t("chat.emptyTranscript")}</p>
         )}
@@ -247,6 +264,12 @@ export function ChatPanel({ prefill = "", routeContext = null, variant = "page" 
             </div>
           </Alert>
         ) : null}
+
+        {/* A governed spacing rung at the end gives the local scrollport enough
+            travel to align the newest message below its top padding. Without
+            it, a tall desktop transcript can hit its maximum scroll position
+            while the preceding avatar is still half visible at the top. */}
+        <div aria-hidden="true" className="h-16" />
       </div>
 
       <div className="shrink-0 border-t border-default px-4 py-3 sm:px-6 sm:py-4">

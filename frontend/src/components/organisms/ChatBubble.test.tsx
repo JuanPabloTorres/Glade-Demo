@@ -46,10 +46,11 @@ describe("ChatBubble", () => {
     expect(screen.getByText("La plantilla financiera está completa.")).toBeInTheDocument();
   });
 
-  it("labels the user's own messages distinctly from the assistant's", () => {
-    const { rerender, container } = renderBubble(<ChatBubble message={message({ role: "assistant" })} />);
-    const assistantAvatar = container.querySelector('[class*="rounded-full"]');
-    expect(assistantAvatar).toBeTruthy();
+  it("renders distinct, accessible icon avatars without putting sender text inside the circle", () => {
+    const { rerender } = renderBubble(<ChatBubble message={message({ role: "assistant" })} />);
+    const assistantAvatar = screen.getByRole("img", { name: "Asistente" });
+    expect(assistantAvatar.querySelector("svg")).toBeInTheDocument();
+    expect(assistantAvatar).not.toHaveTextContent("IA");
 
     rerender(
       <AuthProvider>
@@ -58,6 +59,9 @@ describe("ChatBubble", () => {
         </LanguageProvider>
       </AuthProvider>,
     );
+    const userAvatar = screen.getByRole("img", { name: "Tú" });
+    expect(userAvatar.querySelector("svg")).toBeInTheDocument();
+    expect(userAvatar).not.toHaveTextContent("Tú");
     expect(screen.getByText("¿Qué me falta?")).toBeInTheDocument();
   });
 

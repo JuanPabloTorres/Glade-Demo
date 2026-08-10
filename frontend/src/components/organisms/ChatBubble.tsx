@@ -1,8 +1,8 @@
-import { Avatar } from "flowbite-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "../../i18n/LanguageContext";
 import { formatTime } from "../../i18n/format";
+import { AppIcon } from "../atoms/AppIcon";
 import { IconButton } from "../ui/IconButton";
 import { AppTooltip } from "../overlays/AppTooltip";
 import type { ChatMessage } from "../../types/bankruptcy";
@@ -70,22 +70,27 @@ export function ChatBubble({ message }: ChatBubbleProps) {
   };
 
   return (
-    <div className={`flex items-start gap-2.5 ${isUser ? "flex-row-reverse" : ""}`}>
-      <Avatar
-        rounded
-        size="xs"
-        // Translated: these were literal "Tú"/"IA", so an English session read
-        // "IA" beside every answer the assistant gave.
-        placeholderInitials={isUser ? t("ai:chat.initialsYou") : t("ai:chat.initialsAssistant")}
-        className={isUser ? "shrink-0" : "shrink-0 [&>div]:bg-brand [&>div]:text-white"}
-      />
-
+    <div className={`flex min-w-0 items-start gap-2 sm:gap-2.5 ${isUser ? "flex-row-reverse" : ""}`}>
       <div
-        className={`flex max-w-[80%] flex-col p-4 ${
-          isUser ? "rounded-s-base rounded-ee-base bg-brand" : "rounded-e-base rounded-es-base bg-neutral-secondary-soft"
+        role="img"
+        aria-label={isUser ? t("ai:chat.senderYou") : t("ai:chat.senderAssistant")}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-sm ${
+          isUser
+            ? "border-default-medium bg-neutral-primary text-body"
+            : "glade-gradient border-brand text-white ring-4 ring-brand-soft"
         }`}
       >
-        <div className="flex items-center gap-1.5">
+        <AppIcon name={isUser ? "client" : "assistant"} size={18} />
+      </div>
+
+      <div
+        className={`flex min-w-0 max-w-[80%] flex-col p-3 shadow-sm sm:p-4 ${
+          isUser
+            ? "rounded-s-base rounded-ee-base bg-brand"
+            : "rounded-e-base rounded-es-base border border-default bg-neutral-secondary-soft"
+        }`}
+      >
+        <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
           <span className={`text-sm font-semibold ${isUser ? "text-white" : "text-heading"}`}>
             {isUser ? t("ai:chat.senderYou") : t("ai:chat.senderAssistant")}
           </span>
@@ -93,7 +98,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
             {formatTime(message.createdAt, locale)}
           </span>
         </div>
-        <p className={`py-2.5 text-sm leading-6 ${isUser ? "text-white" : "text-body"}`}>{body}</p>
+        <p className={`break-words pt-2 text-sm leading-6 ${isUser ? "text-white" : "text-body"}`}>{body}</p>
       </div>
 
       <AppTooltip content={copied ? t("chat.copied") : t("chat.copy")}>
@@ -102,10 +107,10 @@ export function ChatBubble({ message }: ChatBubbleProps) {
           icon={copied ? "check" : "document"}
           label={t("chat.copyToClipboard")}
           size="sm"
-          // Placement and ground, which are this row's business: the control is
-          // centred against a bubble whose height it does not set, and it needs
-          // its own background to stay visible on top of one.
-          className="self-center bg-neutral-primary"
+          // Align with the message origin instead of floating halfway down a
+          // multi-line answer; the bordered ground stays legible over either
+          // bubble treatment.
+          className="mt-0.5 self-start border border-default bg-neutral-primary shadow-sm"
         />
       </AppTooltip>
     </div>

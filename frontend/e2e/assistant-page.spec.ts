@@ -31,6 +31,7 @@ const VIEWPORTS = [
   { width: 320, height: 568 },
   { width: 390, height: 844 },
   { width: 768, height: 1024 },
+  { width: 1024, height: 768 },
   { width: 1440, height: 900 },
 ];
 
@@ -47,12 +48,48 @@ async function openAssistant(page: Page) {
 
 test.describe("Assistant panel", () => {
   for (const viewport of VIEWPORTS) {
-    test(`opens from the launcher and keeps the composer on screen at ${viewport.width}x${viewport.height}`, async ({
+    test(`keeps complete avatars and the composer on screen at ${viewport.width}x${viewport.height}`, async ({
       page,
     }) => {
+      const consoleErrors: string[] = [];
+      page.on("console", (entry) => {
+        if (entry.type() === "error") consoleErrors.push(entry.text());
+      });
       await page.setViewportSize(viewport);
       await loginAsClient(page);
       await openAssistant(page);
+      const documentScrollBeforeMessage = await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
+
+      const assistantAvatar = page.getByRole("img", { name: "Asistente" }).first();
+      await expect(assistantAvatar).toBeVisible();
+
+      await page.getByLabel("Mensaje").fill("¿Qué me falta?");
+      const sendButton = page.getByRole("button", { name: "Enviar", exact: true });
+      await sendButton.click();
+      const userAvatar = page.getByRole("img", { name: "Tú" }).last();
+      await expect(userAvatar).toBeVisible();
+
+      for (const avatar of [assistantAvatar, userAvatar]) {
+        const box = (await avatar.boundingBox())!;
+        expect(box.width).toBe(36);
+        expect(box.height).toBe(36);
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+      }
+
+      await expect(page.getByRole("img", { name: "Asistente" })).toHaveCount(2);
+      const latestAssistantIsComplete = await page
+        .getByRole("img", { name: "Asistente" })
+        .last()
+        .evaluate((avatar) => {
+          const transcript = avatar.closest(".overflow-y-auto");
+          if (!transcript) return false;
+          const viewportBox = transcript.getBoundingClientRect();
+          const box = avatar.getBoundingClientRect();
+          return box.top >= viewportBox.top && box.bottom <= viewportBox.bottom;
+        });
+      expect(latestAssistantIsComplete).toBe(true);
+      expect(await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual(documentScrollBeforeMessage);
 
       // The composer has to be inside the viewport, not merely on the page —
       // the whole point of sizing the transcript instead of the document.
@@ -67,6 +104,10 @@ test.describe("Assistant panel", () => {
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
       );
       expect(overflow).toBeLessThanOrEqual(0);
+      expect(consoleErrors).toEqual([]);
+      await page.screenshot({
+        path: `test-results/chat-avatar-evidence/chat-avatar-${viewport.width}-es.png`,
+      });
     });
   }
 
@@ -81,6 +122,21 @@ test.describe("Assistant panel", () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole("dialog", { name: "Asistente de preparación" })).toBeVisible();
     await expect(page.getByLabel("Mensaje")).toHaveValue("¿Qué me falta?");
+  });
+
+  test("renders the same complete avatar treatment in English", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await loginAsClient(page);
+    await page.getByRole("button", { name: "Cambiar a English" }).click();
+    await page.getByRole("button", { name: "Open assistant" }).click();
+
+    const assistantAvatar = page.getByRole("img", { name: "Assistant" }).first();
+    await expect(assistantAvatar).toBeVisible();
+    await page.getByLabel("Message").fill("What am I missing?");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(page.getByRole("img", { name: "You" }).last()).toBeVisible();
+
+    await page.screenshot({ path: "test-results/chat-avatar-evidence/chat-avatar-390-en.png" });
   });
 
   test("answers a question and holds the composer in place", async ({ page }) => {
