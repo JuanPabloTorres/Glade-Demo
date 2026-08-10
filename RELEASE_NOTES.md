@@ -1,3 +1,11 @@
+# FreshStart 4.14.2
+
+Test-harness and release-gate maintenance. The backend dev environment now installs `httpx2` alongside legacy `httpx`, so Starlette `TestClient` uses its maintained backend and the remaining Starlette/FastAPI deprecation warning is removed at the source rather than filtered. The lockfile was regenerated and the release version advanced from 4.14.1 to 4.14.2.
+
+The full delivery pass also repaired gates that `main` had accumulated: mypy now type-checks the optional Strands boundary with the `agents` extra installed; Vitest restores file isolation for application-wide mocks; identical in-flight case analyses are coalesced so React StrictMode cannot double-create the same new case; the E2E selector follows the current demo-access copy; CI/release Playwright is serial around its shared SQLite demo database; and the smallest login viewport keeps the real sign-in controls above the first-screen fold. No API contract, database schema, authorization rule, or production backend dependency changed.
+
+Release evidence before integration: 385 backend tests, 143 frontend tests plus build, and 121 Playwright tests all exit 0. `npm run release:verify` is the final integration authority.
+
 # FreshStart 4.14.1
 
 The login backdrop now uses the requested iStock image behind the existing
