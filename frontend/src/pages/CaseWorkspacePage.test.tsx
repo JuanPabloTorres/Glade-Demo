@@ -10,6 +10,7 @@ import type { BankruptcyCase, CaseAnalysis } from "../types/bankruptcy";
 const mockUseAuth = vi.fn();
 const mockUseBankruptcyWorkspace = vi.fn();
 const mockUseChatPanel = vi.fn();
+const mockAnalyze = vi.hoisted(() => vi.fn());
 
 vi.mock("../auth/AuthContext", () => ({
   useAuth: () => mockUseAuth(),
@@ -25,7 +26,7 @@ vi.mock("../chat/ChatPanelContext", () => ({
 
 vi.mock("../api/bankruptcyApi", () => ({
   bankruptcyApi: {
-    analyze: vi.fn().mockResolvedValue(makeAnalysis()),
+    analyze: mockAnalyze,
     guide: vi.fn(),
   },
 }));
@@ -99,6 +100,7 @@ function renderWorkspace(initialPath: string) {
 
 describe("CaseWorkspacePage stage navigation", () => {
   beforeEach(() => {
+    mockAnalyze.mockReset().mockResolvedValue(makeAnalysis());
     mockUseAuth.mockReturnValue({
       user: { id: "client-1", name: "Elena Rivera", email: "client@freshstart.demo", role: "client" },
     });
@@ -144,6 +146,23 @@ describe("CaseWorkspacePage stage navigation", () => {
     renderWorkspace("/case/case-1/not-a-real-section");
 
     expect(await screen.findByRole("heading", { name: "Próximos pasos" })).toBeInTheDocument();
+  });
+
+  it("redirects a legacy attorney-owned draft without requesting a financial analysis", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "attorney-demo", name: "Lic. Andrea Morales", email: "attorney@freshstart.demo", role: "attorney" },
+    });
+    mockUseBankruptcyWorkspace.mockReturnValue({
+      cases: [makeCase({ ownerUserId: "attorney-demo", clientName: "Lic. Andrea Morales", clientEmail: "attorney@freshstart.demo" })],
+      updateCase: vi.fn(),
+      submitCase: vi.fn(),
+      updateStatus: vi.fn(),
+    });
+
+    renderWorkspace("/case/case-1/overview");
+
+    expect(await screen.findByText("elsewhere")).toBeInTheDocument();
+    expect(mockAnalyze).not.toHaveBeenCalled();
   });
 });
 

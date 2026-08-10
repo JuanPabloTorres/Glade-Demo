@@ -71,6 +71,9 @@ export function CaseWorkspacePage() {
   const caseData = workspace.cases.find((item) => item.id === caseId);
   const [modalKind, setModalKind] = useState<EntryKind | null>(null);
   const isAttorney = user?.role === "attorney";
+  const isLegacyAttorneyOwnedCase = Boolean(
+    isAttorney && caseData && caseData.ownerUserId === user?.id,
+  );
 
   const {
     stageOrder: STAGE_ORDER,
@@ -84,7 +87,7 @@ export function CaseWorkspacePage() {
     completion,
     evidenceRequirements,
     missingEvidenceCount,
-  } = useCaseAnalysis(caseData);
+  } = useCaseAnalysis(isLegacyAttorneyOwnedCase ? undefined : caseData);
 
   // `caseId ?? ""` because the hook must be called unconditionally, while the
   // guards below can still redirect away when there is no case. The empty id is
@@ -101,6 +104,12 @@ export function CaseWorkspacePage() {
 
   if (!caseData || !user) return <Navigate to={ROUTES.home} replace />;
   if (user.role === "client" && caseData.ownerUserId !== user.id) return <Navigate to={ROUTES.home} replace />;
+  // Old browser state may still contain drafts created with the attorney as
+  // owner. They are not cases the backend can authorize: every case requires
+  // a client owner. Redirect them like any other inaccessible case, and pass
+  // `undefined` to useCaseAnalysis above so a bookmarked URL cannot emit the
+  // known 404 before this guard renders.
+  if (isLegacyAttorneyOwnedCase) return <Navigate to={ROUTES.home} replace />;
   if (legacySection) return <Navigate to={ROUTES.caseSection(caseData.id, legacySection)} replace />;
   // `/case/:id` with no section is the overview; give it its canonical URL so
   // the sidebar's "My case" entry and a section entry can't both look active.
