@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { bankruptcyApi } from "../../api/bankruptcyApi";
@@ -7,6 +8,7 @@ import { localCompletion } from "../../workspace/caseMetrics";
 export interface CaseAnalysisState {
   analysis: CaseAnalysis | null;
   error: string | null;
+  notFound: boolean;
   /** Server score when the call succeeded, local estimate otherwise. */
   completion: number;
   /**
@@ -35,15 +37,23 @@ export function useCaseAnalysis(caseData: BankruptcyCase | undefined): CaseAnaly
   const { t } = useTranslation(["workspace"]);
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!caseData) return;
     let active = true;
     setError(null);
+    setNotFound(false);
     bankruptcyApi
       .analyze(caseData)
       .then((result) => active && setAnalysis(result))
-      .catch(() => active && setError(t("workspace:header.analysisError")));
+      .catch((requestError: unknown) => {
+        if (!active) return;
+        setNotFound(
+          axios.isAxiosError(requestError) && requestError.response?.status === 404,
+        );
+        setError(t("workspace:header.analysisError"));
+      });
     return () => {
       active = false;
     };
@@ -65,6 +75,7 @@ export function useCaseAnalysis(caseData: BankruptcyCase | undefined): CaseAnaly
   return {
     analysis,
     error,
+    notFound,
     completion: analysis?.completion_score ?? (caseData ? localCompletion(caseData) : 0),
     evidenceRequirements,
     missingEvidenceCount: evidenceRequirements.filter((item) => !item.satisfied).length,

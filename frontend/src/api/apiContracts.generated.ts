@@ -21,6 +21,11 @@ export const apiContracts = {
     "method": "GET",
     "path": "/api/v1/auth/me"
   },
+  "bankruptcy.portfolio": {
+    "operationId": "listAttorneyPortfolio",
+    "method": "GET",
+    "path": "/api/v1/bankruptcy/portfolio"
+  },
   "bankruptcy.analyze": {
     "operationId": "analyzeBankruptcyCase",
     "method": "POST",

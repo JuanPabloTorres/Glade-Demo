@@ -153,6 +153,7 @@
     "managementLabel": "Request management",
     "inboxTitle": "Case inbox",
     "inboxDescription": "Prioritize urgent issues, missing items, and submitted requests.",
+    "portfolioError": "The case queue could not be loaded. Please try again.",
     "caseCount": "{{shown}} of {{total}} cases",
     "createCase": "Create case",
     "searchPlaceholder": "Search by name or email...",

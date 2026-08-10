@@ -33,6 +33,21 @@ export type EntryKind = "income" | "expense" | "debt" | "asset" | "evidence";
  */
 export type AssistantScope = "case" | "portfolio";
 
+export interface CasePortfolioEntry {
+  case_id: string;
+  client_name: string;
+  status: CaseStatus;
+  owner_user_id: string;
+  urgent_collection_action: boolean;
+  has_collection_lawsuit: boolean;
+  income_count: number;
+  expense_count: number;
+  debt_count: number;
+  asset_count: number;
+  evidence_count: number;
+  updated_at: string;
+}
+
 export interface Household {
   maritalStatus?: string;
   householdSize: number;

@@ -1,3 +1,23 @@
+# FreshStart 4.15.0
+
+The attorney queue now intersects browser workspace rows with a new
+server-authorized portfolio before rendering metrics, filters, cards, or Open
+actions. Stale and browser-only drafts — including drafts whose local owner
+looks like a client — no longer lead to an analysis request that the backend
+must reject as an unknown case. Persisted cases with no financial entries remain
+visible and open normally.
+
+A second guard handles serverless instance turnover between listing and opening:
+if an attorney's analysis receives a late `404`, the workspace returns to the
+queue without displaying “Could not refresh the financial analysis.” The new
+`GET /api/v1/bankruptcy/portfolio` operation is attorney-only and returns
+triage metadata and counts, never detailed balances or financial collections.
+
+Release evidence includes 390 backend tests, Ruff and mypy, 147 frontend tests,
+frontend lint/i18n/build, API contract verification, and a Playwright regression
+using the exact reported orphan case ID. There is no database migration or
+breaking API change.
+
 # FreshStart 4.14.5
 
 The case-ownership authorization service now depends on the governed repository

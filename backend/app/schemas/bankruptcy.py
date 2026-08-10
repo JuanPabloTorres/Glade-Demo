@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
 from pydantic import Field
@@ -104,6 +105,23 @@ class BankruptcyCaseDto(ApiModel):
 
 class CaseAnalysisRequestDto(ApiModel):
     case: BankruptcyCaseDto
+
+
+class CasePortfolioEntryDto(ApiModel):
+    """Authorized, triage-only case summary for the attorney queue."""
+
+    case_id: str
+    client_name: str
+    status: CaseStatus
+    owner_user_id: str
+    urgent_collection_action: bool
+    has_collection_lawsuit: bool
+    income_count: int
+    expense_count: int
+    debt_count: int
+    asset_count: int
+    evidence_count: int
+    updated_at: datetime
 
 
 class EvidenceRequirementDto(ApiModel):

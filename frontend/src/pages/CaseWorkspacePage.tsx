@@ -84,6 +84,7 @@ export function CaseWorkspacePage() {
   const {
     analysis,
     error: analysisError,
+    notFound: analysisNotFound,
     completion,
     evidenceRequirements,
     missingEvidenceCount,
@@ -104,6 +105,7 @@ export function CaseWorkspacePage() {
 
   if (!caseData || !user) return <Navigate to={ROUTES.home} replace />;
   if (user.role === "client" && caseData.ownerUserId !== user.id) return <Navigate to={ROUTES.home} replace />;
+  if (isAttorney && analysisNotFound) return <Navigate to={ROUTES.home} replace />;
   // Old browser state may still contain drafts created with the attorney as
   // owner. They are not cases the backend can authorize: every case requires
   // a client owner. Redirect them like any other inaccessible case, and pass
